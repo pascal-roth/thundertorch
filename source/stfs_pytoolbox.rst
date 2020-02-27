@@ -12,6 +12,7 @@ Subpackages
 .. toctree::
 
    stfs_pytoolbox.cantera
+   stfs_pytoolbox.plotting
 
 Submodules
 ----------
