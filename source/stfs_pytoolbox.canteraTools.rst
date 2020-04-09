@@ -1,5 +1,5 @@
-stfs\_pytoolbox.canteraTools module
-===================================
+stfs\_pytoolbox.canteraTools package
+====================================
 
 .. automodule:: stfs_pytoolbox.canteraTools
    :members:
