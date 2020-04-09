@@ -18,4 +18,5 @@ help:
 # "make mode" option.  $(O) is meant as a shortcut for $(SPHINXOPTS).
 %: Makefile
 	sphinx-apidoc -M -f -d 1 -e -o $(SOURCEDIR) ../stfs_pytoolbox/
+	rm source/modules.rst
 	@$(SPHINXBUILD) -M $@ "$(SOURCEDIR)" "$(BUILDDIR)" $(SPHINXOPTS) $(O)
