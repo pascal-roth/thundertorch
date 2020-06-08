@@ -325,6 +325,14 @@ def trainFlexMLP(model, path, features, labels, df_train, df_validation=None, ep
     print("\nInitial validation loss is: {:6.5e}\n".format(best_loss))
     train_losses, validation_losses = [], []
 
+    # if training on gpu
+    if torch.cuda.is_available():
+        device="cuda:0"
+    else:
+        device="cpu"
+
+    model.to(device)
+
 
     # Prepare plot
     if plot:
@@ -357,6 +365,8 @@ def trainFlexMLP(model, path, features, labels, df_train, df_validation=None, ep
         # get training batch
         for batch in iter(trainloader):
             x, y = batch
+            x = x.to(device)
+            y = y.to(device)
 
             optimizer.zero_grad()             # Empty gradients
             prediction = model.forward(x)     # model prediction on batch
