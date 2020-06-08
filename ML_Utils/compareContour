@@ -1,0 +1,121 @@
+import pandas as pd
+from stfs_pytoolbox.ML_Utils import *
+import pandas as pd
+from pyFLUT.flut import Flut
+
+import argparse
+import os
+import sys
+
+import matplotlib.pyplot as plt
+#plt.style.use(['mystyle-presentation'])
+#print(plt.style.available)
+
+def parseArguments():
+    parser = argparse.ArgumentParser("This scripts plot a contour comparison between a pyTorch model prediction"
+                                     " and a the original data and their difference using the"
+                                     " pyFLUT.flut.Flut.contourplot functionality.")
+
+    # Add mutually_exclusive_group to either load a FlexMLP model or create on based on input
+    parser.add_argument('x',
+                        help='value on x-axis')
+    parser.add_argument('y',
+                        help='value on y-axis')
+    parser.add_argument('value',
+                        help='value for contour')
+
+    parser.add_argument('--model', '-m', dest='model',
+                        help='PyTorch model to load from .pt file')
+
+    parser.add_argument('-d', '--data', type=str, dest='data', required=True,
+                        help='File to load for training data. Valid extensions are .txt, .csv, .ulf, .h5'
+                             ' Delimiter must be spaces"')
+
+    parser.add_argument('--flut-input', '-f', nargs='+', required=False, default=["Z", "t", "X"],
+                        help='input-dict for flut that dataframe can be converted to flut. These values must provide'
+                             ' a orthogonal mesh!')
+
+    parser.add_argument('--slice', '-s', dest='slice', nargs=2, required=False,
+                        help='slice data along this variable. e.g. -s phi 1.0')
+    args = parser.parse_args()
+
+    return args
+
+
+def main():
+    args = parseArguments()
+
+    # Handle arguments
+
+    print("Reading data from file: {}".format(args.data))
+    # training data
+    file = args.data
+    _, file_exention = os.path.splitext(file)
+    if file_exention == ".h5":
+        store = pd.HDFStore(file)
+        keys = store.keys()
+        assert len(keys) == 1, "There must be only one key stored in pandas.HDFStore in '{}'!".format(file)
+        data = store.get(keys[0])
+        store.close()
+    else:
+        data = pd.read_csv(file, sep=" ")
+    print("Done!")
+
+    # check if slice is required
+    if args.slice:
+        s_quant = args.slice[0]
+        s_value = float(args.slice[1])
+        print("Slicing data by {} = {} ".format(s_quant, s_value))
+        if s_value not in data[s_quant].unique():
+            print("Error: Value {} is not in data['{}']".format(s_value, s_quant))
+            print("Valid value are: {}".format(data[s_quant].unique()))
+            sys.exit(1)
+        data = data[data[s_quant] == s_value]
+        print("Done!")
+
+    # load pyTorch model
+
+    model, features, labels, _, scalers = loadFlexMLPCheckpoint(args.model)
+    # check if features and labels are not empy
+    if not features and not labels:
+        print("No features or labels where provided in model: '{}'".format(args.model))
+        sys.exit(1)
+
+    # check if value is label
+    if args.value not in labels:
+        print("Error: Provided value '{}' is not predicted by model in '{}'".format(args.value, args.model))
+        print("Labels of model are: {}".format(labels))
+        sys.exit(1)
+
+    print("Running model")
+    # run model
+    df_pred = runFlexMLP(model, data, features=features, labels=labels, scalers=scalers)
+
+    # Concat prediction to data
+    data = pd.concat([data, df_pred], axis=1)
+    print("Done")
+
+    # Convert to Flut, default input-dict for HOQ: ['Z', 'X', 't']
+    flut = Flut.read_df(data, args.flut_input)
+
+    # Calculate difference
+    flut[args.value+"_diff"] = flut[args.value] - flut[args.value+"_pred"]
+
+    fig, ax = plt.subplots(ncols=3, figsize=(18, 6), sharey=True)
+    x = args.x
+    y = args.y
+    val = args.value
+    flut.contourdata(x, y, val, Z=0, index=True, ax=ax[0])
+    flut.contourdata(x, y, val+"_pred", Z=[0], index=True, ax=ax[1])
+    flut.contourdata(x, y, val+"_diff", Z=[0], index=True, ax=ax[2])
+
+    for a in ax:
+        a.set_title("{}={:1.3f}".format('Z', flut.input_variable_values('Z')[0]))
+
+    plt.show()
+
+
+
+
+if __name__ == "__main__":
+    main()
