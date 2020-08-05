@@ -113,6 +113,7 @@ def createFlexMLPCheckpoint(model, path, features=None, labels=None, epochs=None
     checkpoint = {  'input_size': model.n_inp,
                     'output_size': model.n_out,
                     'hidden_layers': model.n_neurons[1:-1],  # cut of number of in and outputs
+                    'activation': model.activation,
                     'output_activation': model.output_activation,
                     'state_dict': model.state_dict()}
     if epochs:
@@ -127,7 +128,10 @@ def createFlexMLPCheckpoint(model, path, features=None, labels=None, epochs=None
             sys.exit(-1)
         checkpoint['scalers'] = scalers
 
-    torch.save(checkpoint, path)
+    # Have to use dill as pickle module because softplus activation function is C wrapper and cannot
+    # be saved by regular pickle
+    import dill
+    torch.save(checkpoint, path, pickle_module=dill)
 
 
 def loadFlexMLPCheckpoint(filepath):
@@ -141,11 +145,19 @@ def loadFlexMLPCheckpoint(filepath):
     -------
     model - FlexMLP object
     """
-    checkpoint = torch.load(filepath)
+    # pyTorch saves device on which model was saved, therefore it has to be saved
+    if torch.cuda.is_available():
+        device="cuda"
+    else:
+        device="cpu"
+
+    checkpoint = torch.load(filepath, map_location=torch.device(device))
     model = FlexMLP(checkpoint['input_size'],
                     checkpoint['output_size'],
                     checkpoint['hidden_layers'],
+                    activation_fn=checkpoint['activation'],
                     output_activation=checkpoint['output_activation']).double()
+
     model.load_state_dict(checkpoint['state_dict'])
 
     if "epochs" in checkpoint:
@@ -165,7 +177,7 @@ class AssemblyModel(torch.nn.Module):
     model that combines various single torch models that have the same input but different output
     into one model for later convenience
     """
-    def __init__(self,models,x_min, x_max, y_min, y_max):
+    def __init__(self,models,x_min, x_max, y_min, y_max, limit_scale=False):
         """
 
         Parameters
@@ -179,10 +191,11 @@ class AssemblyModel(torch.nn.Module):
         super().__init__()
 
         self.models = torch.nn.ModuleList(models)
-        self.X_max = x_max if isinstance(torch.tensor, x_max) else torch.tensor(x_max, dtype=torch.float64)
-        self.X_min = x_min if isinstance(torch.tensor, x_min) else torch.tensor(x_min, dtype=torch.float64)
-        self.Y_max = y_max if isinstance(torch.tensor, y_max) else torch.tensor(y_max, dtype=torch.float64)
-        self.Y_min = y_min if isinstance(torch.tensor, y_min) else torch.tensor(y_min, dtype=torch.float64)
+        self.X_max = x_max if isinstance(x_max, torch.Tensor) else torch.tensor(x_max, dtype=torch.float64)
+        self.X_min = x_min if isinstance(x_min, torch.Tensor) else torch.tensor(x_min, dtype=torch.float64)
+        self.Y_max = y_max if isinstance(y_max, torch.Tensor) else torch.tensor(y_max, dtype=torch.float64)
+        self.Y_min = y_min if isinstance(y_min, torch.Tensor) else torch.tensor(y_min, dtype=torch.float64)
+        self.limit_scale = limit_scale
 
     def forward(self, Xorg):
         """
@@ -201,6 +214,10 @@ class AssemblyModel(torch.nn.Module):
         X = Xorg.clone()
         X.requires_grad_(False)
         X = (X - self.X_min) / (self.X_max - self.X_min)
+        # If input are out of range of trained scales, set value to border
+        if self.limit_scale:
+            X[X > 1] = 1
+            X[X < 0] = 0
         outputs = []
         for i, model in enumerate(self.models):
             out = model(X)
@@ -219,6 +236,7 @@ class AssemblyModel(torch.nn.Module):
         """
         n_inp = self.models[0].n_inp
         sample_input = torch.ones([8, n_inp], dtype=torch.float64)
+        b = self.forward(sample_input)
         with torch.no_grad():
             torch_script = torch.jit.trace(self, sample_input)
 
@@ -295,10 +313,25 @@ def trainFlexMLP(model, path, features, labels, df_train, df_validation=None, ep
     y_validation = df_validation[labels].copy()
 
     # scale training and validation data
+
+    # check if min and max value are equal, if yes fit scaler with min value of that quantity set to 0
+    # MinMaxScaler can actually handle this but returning a value of 0 if min ==max
+    # but in order to scale appropriately manually in AssemblyModel min value is set to 0
+    x_train_min = np.amin(x_train.values, axis=0)
+    x_train_max = np.amax(x_train.values, axis=0)
+    diff = x_train_max - x_train_min
+    idx = np.where(np.isin(diff, 0))
+
+    for i in idx:
+        x_train_min[i] = 0
+
+    # scale features with new min and max values and labels with all values
     featureScaler = MinMaxScaler()
-    featureScaler.fit(x_train.values)
+    featureScaler.fit(np.stack((x_train_max, x_train_min), axis=0))
     labelScaler = MinMaxScaler()
     labelScaler.fit(y_train.values)
+
+
 
     x_train = featureScaler.transform(x_train.values)
     y_train = labelScaler.transform(y_train.values)
@@ -331,20 +364,21 @@ def trainFlexMLP(model, path, features, labels, df_train, df_validation=None, ep
     else:
         device="cpu"
 
+    print("Training on {}!".format(device))
+
     model.to(device)
 
-
-    # Prepare plot
+    # Prepare plot of loss curves
     if plot:
-        #print("backend: "+plt.get_backend())
-        xdata = []
+        # print("backend: "+plt.get_backend())
+        xdata = [0]
         plt.show()
         ax = plt.gca()
         ax.set_xlim(0, epochs)
-        ax.set_ylim(1e-8, best_loss)
+        ax.set_ylim(1e-7, best_loss*10)
         plt.yscale("log")
-        ax.plot(xdata, train_losses, 'r-', label="Training loss")
-        ax.plot(xdata, train_losses, 'b-', label="Validation loss")
+        ax.plot(xdata, [best_loss], 'r-', label="Training loss")
+        ax.plot(xdata, [best_loss], 'b-', label="Validation loss")
         ax.legend()
         plt.draw()
         plt.pause(1e-17)
@@ -494,12 +528,24 @@ def runFlexMLP(model, data, features=None, labels=None, scalers=None):
         print("Error: Provided model is neither a .pt file to load or a FlexMLP class.")
         sys.exit(1)
 
+    if torch.cuda.is_available():
+        device = "cuda"
+    else:
+        device = "cpu"
+
     # Prepare input
     inp = data[features].values if featureScaler is None else featureScaler.transform(data[features].values)
     inp = torch.from_numpy(inp.astype(np.float64))
 
+    # Move everything to device
+    model.to(device)
+    inp.to(device)
+
     # Run model
     pred = model(inp)
+
+    # move output to cpu
+    pred.to("cpu")
 
     # Modify label name with suffix
     labels = [label+"_pred" for label in labels]
