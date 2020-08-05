@@ -95,18 +95,24 @@ def main():
     data = pd.concat([data, df_pred], axis=1)
     print("Done")
 
-    # Convert to Flut, default input-dict for HOQ: ['Z', 'X', 't']
+    # Convert to Flut, default input-dict for HOQ: ['Z', 't', 'X']
     flut = Flut.read_df(data, args.flut_input)
 
     # Calculate difference
     flut[args.value+"_diff"] = flut[args.value] - flut[args.value+"_pred"]
 
-    fig, ax = plt.subplots(ncols=3, figsize=(18, 6), sharey=True)
+    # define colobar
     x = args.x
     y = args.y
     val = args.value
-    flut.contourdata(x, y, val, Z=0, index=True, ax=ax[0])
-    flut.contourdata(x, y, val+"_pred", Z=[0], index=True, ax=ax[1])
+    vmin = flut[val].min()
+    vmax = flut[val].max()
+    levels = 64
+
+    fig, ax = plt.subplots(ncols=3, figsize=(18, 6), sharey=True)
+
+    _, _, cb = flut.contourdata(x, y, val, Z=0, index=True, ax=ax[0], vmin=vmin, vmax=vmax, levels=levels, return_cp=True)
+    flut.contourdata(x, y, val+"_pred", Z=[0], index=True, vmin=vmin, vmax=vmax, levels=levels, ax=ax[1])
     flut.contourdata(x, y, val+"_diff", Z=[0], index=True, ax=ax[2])
 
     for a in ax:
