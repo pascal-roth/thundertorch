@@ -1,4 +1,4 @@
-import pandas as pd
+
 from stfs_pytoolbox.ML_Utils import *
 import pandas as pd
 
@@ -39,6 +39,11 @@ def parseArguments():
                         help='file name of best model that is saved')
     parser.add_argument('-p', '--plot', action='store_true', dest='plot',
                         help='Enables plotting of losses during training')
+    parser.add_argument('-r', '--output-relu', action='store_true',
+                        help="Adds a relu activation function to output layer")
+    parser.add_argument('-a', '--activation', choices=['relu', 'tanh', 'softplus'], default='relu',
+                        help="Defines activation function for each layer")
+
     args = parser.parse_args()
 
     # Make model and model definition mutually_exclusive, there is not way to do it in with argparse
@@ -93,7 +98,7 @@ def main():
     print("Loading FlexMLP model:")
     # load or create model
     if args.model:
-        model, features, labels, _ = loadFlexMLPCheckpoint(args.model)
+        model, features, labels, _, _ = loadFlexMLPCheckpoint(args.model)
         # check if features and labels are not empy
         if not features and not labels:
             print("No features or labels where provided in model: '{}'".format(args.model))
@@ -101,7 +106,14 @@ def main():
     else:
         features = args.features
         labels = args.labels
-        model = FlexMLP(len(features), len(labels), args.hidden_layer).double()
+        output_activation = None
+        if args.output_relu:
+            output_activation = F.relu
+        # get activation function via string given by argparse arguments
+        activation_fn=getattr(F, args.activation)
+        model = FlexMLP(len(features), len(labels), args.hidden_layer,
+                        activation_fn=activation_fn, output_activation=output_activation).double()
+
     print("Done!")
 
     # Check if features and labels are in data
