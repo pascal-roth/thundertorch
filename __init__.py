@@ -312,9 +312,12 @@ def trainFlexMLP(model, path, features, labels, df_train, df_validation=None, ep
     x_validation_tensor = torch.from_numpy(x_validation.astype(np.float64))
     y_validation_tensor = torch.from_numpy(y_validation.astype(np.float64))
 
-    # Create training dataloader
+    # Create training and validation dataloader
     trainset = torch.utils.data.TensorDataset(x_train_tensor, y_train_tensor)
     trainloader = torch.utils.data.DataLoader(trainset, batch_size=batch, shuffle=True)
+    
+    validationset = torch.utils.data.TensorDataset(x_validation_tensor, y_validation_tensor)
+    validationloader = torch.utils.data.DataLoader(validationset, batch_size=batch)
 
     # optimizer
     optimizer = torch.optim.Adam(model.parameters(), lr=lr)
@@ -327,12 +330,13 @@ def trainFlexMLP(model, path, features, labels, df_train, df_validation=None, ep
 
     # if training on gpu
     if torch.cuda.is_available():
-        device="cuda:0"
+        device="cuda:3"
     else:
         device="cpu"
 
     model.to(device)
 
+    print("Training on {}!".format(device))
 
     # Prepare plot
     if plot:
@@ -360,6 +364,7 @@ def trainFlexMLP(model, path, features, labels, df_train, df_validation=None, ep
     # for epoch in tqdm(range(1,epochs+1)):
     for epoch in range(1,epochs+1):
         running_loss = 0
+        #model.to(device)
         model.train()
 
         # get training batch
@@ -387,13 +392,22 @@ def trainFlexMLP(model, path, features, labels, df_train, df_validation=None, ep
         # Turn off gradients for validation, saves memory and computations
         with torch.no_grad():
             model.eval()
-            pred = model(x_validation_tensor)
-            val_loss = loss_fn(pred, y_validation_tensor).item()
+            running_val_loss = 0
+            for batch in iter(validationloader):
+                x, y = batch
+                x = x.to(device)
+                y = y.to(device)
+                pred = model(x)
+                running_val_loss += loss_fn(pred, y).item()
+            
+            val_loss = running_val_loss/len(validationloader)
             validation_losses.append(val_loss)
             # Save best model
             if val_loss < best_loss:
                 best_loss = val_loss
                 createFlexMLPCheckpoint(model, path, features=features, labels=labels, epochs=epoch, scalers=[featureScaler, labelScaler])
+
+        #update plot
         if plot:
             updateLines(ax, train_losses, validation_losses)
 
