@@ -43,6 +43,8 @@ def parseArguments():
                         help="Adds a relu activation function to output layer")
     parser.add_argument('-a', '--activation', choices=['relu', 'tanh', 'softplus'], default='relu',
                         help="Defines activation function for each layer")
+    parser.add_argument('-w', '--init-weights', dest='weight', type=float, default=0.1,
+                        help='initializes weights of last layer with given number')
 
     args = parser.parse_args()
 
@@ -113,6 +115,9 @@ def main():
         activation_fn=getattr(F, args.activation)
         model = FlexMLP(len(features), len(labels), args.hidden_layer,
                         activation_fn=activation_fn, output_activation=output_activation).double()
+        # init weights of last layer
+        if args.weight:
+            model.layers[-1].weight.data.fill_(args.weight)
 
     print("Done!")
 
