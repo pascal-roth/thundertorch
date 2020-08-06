@@ -152,6 +152,9 @@ def loadFlexMLPCheckpoint(filepath):
         device="cpu"
 
     checkpoint = torch.load(filepath, map_location=torch.device(device))
+    if 'activation' not in checkpoint:
+        checkpoint['activation']=F.relu
+
     model = FlexMLP(checkpoint['input_size'],
                     checkpoint['output_size'],
                     checkpoint['hidden_layers'],
