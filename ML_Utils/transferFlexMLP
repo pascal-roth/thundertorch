@@ -1,4 +1,3 @@
-
 from stfs_pytoolbox.ML_Utils import *
 import pandas as pd
 
@@ -9,19 +8,17 @@ import sys
 
 def parseArguments():
 
-    parser = argparse.ArgumentParser()
+    parser = argparse.ArgumentParser("This script takes an already trained FlexMLP model and uses it for transfer"
+                                     " learning. Therefore it is used as a baseline to train for a different set of"
+                                     " labels.")
 
-    # Add mutually_exclusive_group to either load a FlexMLP model or create on based on input
-
-    group = parser.add_argument_group("Mutally exclusive group to load or create FlexMLP model")
-    group.add_argument('--model', '-m', dest='model',
+    parser.add_argument('--model', '-m', dest='model', required=True,
                         help='PyTorch model to load from .pt file')
-    group.add_argument('-f', '--features', nargs='+',
-                       help="Provide list of features extracted from training data")
-    group.add_argument('-l', '--labels', nargs='+',
+    parser.add_argument('-f', '--features', nargs='+',
+                       help="Provide list of features extracted from training data"
+                            " (default=features of loaded model are used)")
+    parser.add_argument('-l', '--labels', nargs='+', required=True,
                        help="Provide list of labels extracted from training data")
-    group.add_argument('-hl', '--hidden-layer', type=int, nargs='+',
-                       help="Provide list of hidden layer neurons")
 
     parser.add_argument('-d', '--training-data', type=str, dest='train_data', required=True,
                         help='File to load for training data. Valid extensions are .txt, .csv, .ulf, .h5'
@@ -39,22 +36,7 @@ def parseArguments():
                         help='file name of best model that is saved')
     parser.add_argument('-p', '--plot', action='store_true', dest='plot',
                         help='Enables plotting of losses during training')
-    parser.add_argument('-r', '--output-relu', action='store_true',
-                        help="Adds a relu activation function to output layer")
-    parser.add_argument('-a', '--activation', choices=['relu', 'tanh', 'softplus'], default='relu',
-                        help="Defines activation function for each layer")
-
     args = parser.parse_args()
-
-    # Make model and model definition mutually_exclusive, there is not way to do it in with argparse
-    if args.model:
-        if args.features or args.labels or args.hidden_layer:
-            parser.error("The following arguments are mutally exclusive:"
-                         " [-m/--model] or [-f/--features, -l/--labels, -hl/--hidden-layer]")
-    else:
-        if not(args.features and args.labels and args.hidden_layer):
-            parser.error("The following arguments are required together: "
-                         "[-f/--features, -l/--labels, -hl/--hidden-layer]")
 
     return args
 
@@ -96,25 +78,12 @@ def main():
         df_val = df_train
 
     print("Loading FlexMLP model:")
-    # load or create model
-    if args.model:
-        model, features, labels, _, _ = loadFlexMLPCheckpoint(args.model)
-        # check if features and labels are not empy
-        if not features and not labels:
-            print("No features or labels where provided in model: '{}'".format(args.model))
-            sys.exit(1)
-    else:
-        features = args.features
-        labels = args.labels
-        output_activation = None
-        if args.output_relu:
-            output_activation = F.relu
-        # get activation function via string given by argparse arguments
-        activation_fn=getattr(F, args.activation)
-        model = FlexMLP(len(features), len(labels), args.hidden_layer,
-                        activation_fn=activation_fn, output_activation=output_activation).double()
+    model, features, _, _, _ = loadFlexMLPCheckpoint(args.model)
 
-    print("Done!")
+    # overwrite features and labels
+    labels = args.labels
+    if args.features:
+        features = args.features
 
     # Check if features and labels are in data
     for feature in features:
