@@ -45,6 +45,9 @@ def parseArguments():
                         help="Defines activation function for each layer")
     parser.add_argument('-w', '--init-weights', dest='weight', type=float, default=0.1,
                         help='initializes weights of last layer with given number')
+    parser.add_argument('-lo', '--loss', choices=['MSE', 'RelativeMSE'], default='MSE',
+                        help="Defines loss function for training")
+
 
     args = parser.parse_args()
 
@@ -138,6 +141,13 @@ def main():
             print("Error: feature '{}' is not in validation data: {}".format(label, df_val.columns))
             sys.exit(1)
 
+    # get loss function
+    if args.loss == 'MSE':
+        loss_fn = torch.nn.MSELoss()
+    elif args.loss == 'RelativeMSE':
+        loss_fn = RelativeMSELoss()
+
+
     # Continue with training
 
     epochs = args.epochs
@@ -145,7 +155,8 @@ def main():
     outputFile = args.output
 
     # run training
-    model, loss, _ = trainFlexMLP(model, outputFile, features, labels, df_train, epochs=epochs, batch=batch, plot=args.plot, lr=args.lr)
+    model, loss, _ = trainFlexMLP(model, outputFile, features, labels, df_train,
+                                  loss_fn=loss_fn, epochs=epochs, batch=batch, plot=args.plot, lr=args.lr)
 
 
 if __name__ == "__main__":
