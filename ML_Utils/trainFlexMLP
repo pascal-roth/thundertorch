@@ -47,7 +47,8 @@ def parseArguments():
                         help='initializes weights of last layer with given number')
     parser.add_argument('-lo', '--loss', choices=['MSE', 'RelativeMSE'], default='MSE',
                         help="Defines loss function for training")
-
+    parser.add_argument('-s', '--scheduler', action='store_true', default=False,
+                        help="Flag if learning rate scheduler should be used")
 
     args = parser.parse_args()
 
@@ -103,7 +104,7 @@ def main():
     print("Loading FlexMLP model:")
     # load or create model
     if args.model:
-        model, features, labels, _, _ = loadFlexMLPCheckpoint(args.model)
+        model, features, labels, _, scalers = loadFlexMLPCheckpoint(args.model)
         # check if features and labels are not empy
         if not features and not labels:
             print("No features or labels where provided in model: '{}'".format(args.model))
@@ -112,6 +113,7 @@ def main():
         features = args.features
         labels = args.labels
         output_activation = None
+        scalers=None
         if args.output_relu:
             output_activation = F.relu
         # get activation function via string given by argparse arguments
@@ -156,7 +158,8 @@ def main():
 
     # run training
     model, loss, _ = trainFlexMLP(model, outputFile, features, labels, df_train,
-                                  loss_fn=loss_fn, epochs=epochs, batch=batch, plot=args.plot, lr=args.lr)
+                                  loss_fn=loss_fn, epochs=epochs, batch=batch, plot=args.plot, lr=args.lr,
+                                  scalers=scalers, use_scheduler=args.scheduler)
 
 
 if __name__ == "__main__":
