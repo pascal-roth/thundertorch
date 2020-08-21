@@ -5,6 +5,8 @@ try:
     import torch
     import torch.nn as nn
     import torch.nn.functional as F
+
+
     import pandas as pd
     import numpy as np
     import matplotlib.pyplot as plt
@@ -29,14 +31,8 @@ except ImportError as error:
     print("Run Install_stfs_pytoolbox.sh again and answer with 'y' when asked for ML support!")
 
 
-
-
-
-
-
-
 def trainFlexMLP(model, path, features, labels, df_train, df_validation=None, epochs=10,
-                      batch=16, lr=0.001, loss_fn = torch.nn.MSELoss(), plot=False):
+                      batch=16, lr=0.001, loss_fn = torch.nn.MSELoss(), plot=False, scalers=[],  use_scheduler=False):
     """Optimize the weights of a given MLP.
 
     Parameters
@@ -107,12 +103,14 @@ def trainFlexMLP(model, path, features, labels, df_train, df_validation=None, ep
     for i in idx:
         x_train_min[i] = 0
 
-    # scale features with new min and max values and labels with all values
-    featureScaler = MinMaxScaler()
-    featureScaler.fit(np.stack((x_train_max, x_train_min), axis=0))
-    labelScaler = MinMaxScaler()
-    labelScaler.fit(y_train.values)
-
+    if not scalers:
+        # scale features with new min and max values and labels with all values
+        featureScaler = MinMaxScaler()
+        featureScaler.fit(np.stack((x_train_max, x_train_min), axis=0))
+        labelScaler = MinMaxScaler()
+        labelScaler.fit(y_train.values)
+    else:
+        featureScaler, labelScaler = scalers
 
 
     x_train = featureScaler.transform(x_train.values)
@@ -133,6 +131,9 @@ def trainFlexMLP(model, path, features, labels, df_train, df_validation=None, ep
 
     # optimizer
     optimizer = torch.optim.Adam(model.parameters(), lr=lr)
+    if use_scheduler:
+        scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, min_lr=1e-8)
+
 
     # track losses, calculate initial validation loss and set that as baseline
     prediction = model.forward(x_validation_tensor)
@@ -194,7 +195,7 @@ def trainFlexMLP(model, path, features, labels, df_train, df_validation=None, ep
             inner.update(1)
         # Reuse inner progress bar
         outer.update(1)
-        inner.refresh() # flush last output
+        inner.refresh()  # flush last output
         inner.reset()   # reset progress bar
 
         # Track training loss
@@ -212,10 +213,12 @@ def trainFlexMLP(model, path, features, labels, df_train, df_validation=None, ep
                 createFlexMLPCheckpoint(model, path, features=features, labels=labels, epochs=epoch, scalers=[featureScaler, labelScaler])
         if plot:
             updateLines(ax, train_losses, validation_losses)
+        if use_scheduler:
+            scheduler.step(val_loss)
 
         # write output using progress bars
         outer.write("Epoch: {:05d}/{:05d}, Training loss: {:6.5e}, Validation loss: {:6.5e}".format(epoch, epochs, train_losses[-1], validation_losses[-1]))
-        best_log.set_description_str("Best validation loss {:6.5e}".format(best_loss))
+        best_log.set_description_str("Best validation loss: {:6.5e}\tCurrent lr: {:6.5e}".format(best_loss, optimizer.param_groups[0]['lr']))
 
     # close progress bars
     inner.close()
