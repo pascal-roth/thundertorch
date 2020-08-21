@@ -18,8 +18,8 @@ try:
     import platform
     if platform.system() == "Darwin":
         matplotlib.use("MacOSX")
-    else:
-        matplotlib.use("qt5agg")
+    print("backend: "+plt.get_backend())
+
 except ImportError as error:
     # Check if stfs_pytoolbox was installed with ML support
     print(error.__class__.__name__ + ": " + error.msg)
@@ -544,7 +544,7 @@ def runFlexMLP(model, data, features=None, labels=None, scalers=None):
         sys.exit(1)
 
     if torch.cuda.is_available():
-        device = "cuda"
+        device = "cuda:0"
     else:
         device = "cpu"
 
@@ -554,13 +554,13 @@ def runFlexMLP(model, data, features=None, labels=None, scalers=None):
 
     # Move everything to device
     model.to(device)
-    inp.to(device)
+    inp = inp.to(device)
 
     # Run model
     pred = model(inp)
 
     # move output to cpu
-    pred.to("cpu")
+    pred = pred.to("cpu")
 
     # Modify label name with suffix
     labels = [label+"_pred" for label in labels]
