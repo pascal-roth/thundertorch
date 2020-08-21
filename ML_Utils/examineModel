@@ -49,11 +49,37 @@ def main():
     #
     # else:
 
-    model, features, labels, epochs, [featureScaler, labelScaler] = loadFlexMLPCheckpoint(file)
+    if torch.cuda.is_available():
+        device = "cuda"
+    else:
+        device = "cpu"
+
+    checkpoint = torch.load(file, map_location=torch.device(device))
+    if 'activation' not in checkpoint:
+        checkpoint['activation'] = F.relu
+
+    model = FlexMLP(checkpoint['input_size'],
+                    checkpoint['output_size'],
+                    checkpoint['hidden_layers'],
+                    activation_fn=checkpoint['activation'],
+                    output_activation=checkpoint['output_activation']).double()
+
+    model.load_state_dict(checkpoint['state_dict'])
+
+    if "epochs" in checkpoint:
+        epochs = checkpoint["epochs"]
+    if "features" in checkpoint:
+        features = checkpoint["features"]
+    if "labels" in checkpoint:
+        labels = checkpoint["labels"]
+    if "scalers" in checkpoint:
+        [featureScaler, labelScaler] = checkpoint["scalers"]
 
     print("\nModel definition of '{}'\n".format(file))
     print(model)
     print("")
+    print("Activation function: {}".format(checkpoint["activation"].__name__))
+    print("Output activation function: {}".format(checkpoint["output_activation"]))
     print("Features: {}".format(features))
     print("{0:>12s}".format("Minimum:"), '[', ', '.join(["{0:5.4e}".format(i) for i in featureScaler.data_min_]),
           ']')
