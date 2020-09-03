@@ -49,6 +49,8 @@ def parseArguments():
                         help="Defines loss function for training")
     parser.add_argument('-s', '--scheduler', action='store_true', default=False,
                         help="Flag if learning rate scheduler should be used")
+    parser.add_argument('-g', '--gpu', type=int, default=0,
+                        help="Use GPU of given ID, default=0")
 
     args = parser.parse_args()
 
@@ -159,7 +161,7 @@ def main():
     # run training
     model, loss, _ = trainFlexMLP(model, outputFile, features, labels, df_train,
                                   loss_fn=loss_fn, epochs=epochs, batch=batch, plot=args.plot, lr=args.lr,
-                                  scalers=scalers, use_scheduler=args.scheduler)
+                                  scalers=scalers, use_scheduler=args.scheduler, gpuID=args.gpu)
 
 
 if __name__ == "__main__":
