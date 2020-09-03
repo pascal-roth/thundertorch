@@ -32,7 +32,7 @@ except ImportError as error:
 
 
 def trainFlexMLP(model, path, features, labels, df_train, df_validation=None, epochs=10,
-                      batch=16, lr=0.001, loss_fn = torch.nn.MSELoss(), plot=False, scalers=[],  use_scheduler=False):
+                 batch=16, lr=0.001, loss_fn = torch.nn.MSELoss(), plot=False, scalers=[],  use_scheduler=False, gpuID=0):
     """Optimize the weights of a given MLP.
 
     Parameters
@@ -48,7 +48,10 @@ def trainFlexMLP(model, path, features, labels, df_train, df_validation=None, ep
     l_rate - Float : learning rate
     plot: Bool
         plots loss curves
-
+    use_scheduler: bool
+        uses ReduceOnPlateau learning rate scheduler form pytorch during training, min_lr=1-e8
+    gpuID: int
+        run training on that specific gpu
     Note: The training and validation data will be scaled in this function, therefore no prior scaling is needed
 
     Returns
@@ -125,9 +128,12 @@ def trainFlexMLP(model, path, features, labels, df_train, df_validation=None, ep
     x_validation_tensor = torch.from_numpy(x_validation.astype(np.float64))
     y_validation_tensor = torch.from_numpy(y_validation.astype(np.float64))
 
-    # Create training dataloader
+    # Create training and validation dataloader
     trainset = torch.utils.data.TensorDataset(x_train_tensor, y_train_tensor)
     trainloader = torch.utils.data.DataLoader(trainset, batch_size=batch, shuffle=True)
+    
+    validationset = torch.utils.data.TensorDataset(x_validation_tensor, y_validation_tensor)
+    validationloader = torch.utils.data.DataLoader(validationset, batch_size=batch)
 
     # track losses, calculate initial validation loss and set that as baseline
     prediction = model.forward(x_validation_tensor)
@@ -143,12 +149,11 @@ def trainFlexMLP(model, path, features, labels, df_train, df_validation=None, ep
 
     # if training on gpu
     if torch.cuda.is_available():
-        device="cuda:0"
+        device="cuda:{0}".format(gpuID)
     else:
         device="cpu"
 
     print("Training on {}!".format(device))
-
     model.to(device)
 
     # Prepare plot of loss curves
@@ -177,6 +182,7 @@ def trainFlexMLP(model, path, features, labels, df_train, df_validation=None, ep
     # for epoch in tqdm(range(1,epochs+1)):
     for epoch in range(1,epochs+1):
         running_loss = 0
+        #model.to(device)
         model.train()
 
         # get training batch
@@ -204,13 +210,22 @@ def trainFlexMLP(model, path, features, labels, df_train, df_validation=None, ep
         # Turn off gradients for validation, saves memory and computations
         with torch.no_grad():
             model.eval()
-            pred = model(x_validation_tensor)
-            val_loss = loss_fn(pred, y_validation_tensor).item()
+            running_val_loss = 0
+            for batch in iter(validationloader):
+                x, y = batch
+                x = x.to(device)
+                y = y.to(device)
+                pred = model(x)
+                running_val_loss += loss_fn(pred, y).item()
+            
+            val_loss = running_val_loss/len(validationloader)
             validation_losses.append(val_loss)
             # Save best model
             if val_loss < best_loss:
                 best_loss = val_loss
                 createFlexMLPCheckpoint(model, path, features=features, labels=labels, epochs=epoch, scalers=[featureScaler, labelScaler])
+
+        #update plot
         if plot:
             updateLines(ax, train_losses, validation_losses)
         if use_scheduler:
@@ -275,7 +290,7 @@ def unscale_df(df, labels, scaler):
     return scaled_data
 
 
-def runFlexMLP(model, data, features=None, labels=None, scalers=None):
+def runFlexMLP(model, data, features=None, labels=None, scalers=None, gpuID=0):
     """
     Runs a FlexMLP model with some data.
     This data is scaled, the model is run and the rescaled prediciton is returned as pandas.DataFrame
@@ -314,7 +329,7 @@ def runFlexMLP(model, data, features=None, labels=None, scalers=None):
         sys.exit(1)
 
     if torch.cuda.is_available():
-        device = "cuda"
+        device = "cuda:{0}".format(gpuID)
     else:
         device = "cpu"
 
@@ -324,13 +339,13 @@ def runFlexMLP(model, data, features=None, labels=None, scalers=None):
 
     # Move everything to device
     model.to(device)
-    inp.to(device)
+    inp = inp.to(device)
 
     # Run model
     pred = model(inp)
 
     # move output to cpu
-    pred.to("cpu")
+    pred = pred.to("cpu")
 
     # Modify label name with suffix
     labels = [label+"_pred" for label in labels]
