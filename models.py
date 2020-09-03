@@ -3,6 +3,9 @@ import torch.nn as nn
 import torch.nn.functional as F
 import sys
 import os
+import pytorch_lightning as pl
+from pytorch_lightning.core.lightning import LightningModule
+from .utils import *
 
 
 class FlexMLP(torch.nn.Module):
@@ -151,6 +154,76 @@ def loadFlexMLPCheckpoint(filepath):
         scalers = checkpoint["scalers"]
 
     return model, features, labels, epochs, scalers
+
+
+class FlexMLP_pl(LightningModule):
+    """
+    pytorch_lightning module wrapper for FlexMLP class
+    """
+    def __init__(self, features, labels, n_hidden_neurons=[32, 32], activation_fn=F.relu,
+                 output_activation=None, lr=1e-3, loss_fn=torch.nn.MSELoss, scalers=[]):
+        """
+        Initializes a flexMLP model based on the provided parameters
+
+        Parameters
+        ----------
+        features            -   str or list of str : names
+        labels              -   int number of output neurons
+        n_hidden_neurons    -   list of int  number of neurons per hidden layer (default=[32, 32])
+        activation_fn       -   activation function for each hidden layer (default=F.relu)
+        output_activation   -   activation function for output layer (default=None)
+        lr                  -   learning rate of optimizer (default=1e-3)
+        loss_fn             -   loss function for training (default=MSELoss)
+        scalers             -   list [featureScaler labelScaler] sklearn Scaler to save in FlexMLP checkpoint
+        """
+        super().__init__()
+        # check for features and labels
+        if not isinstance(list, features):
+            features = [features]
+        assert isinstance(features), "init FlexMLP_pl: Given features is not a list of strings!"
+        n_inp = len(features)
+
+        if not isinstance(list, labels):
+            features = [labels]
+        assert isinstance(labels), "init FlexMLP_pl: Given features is not a list of strings!"
+        n_out = len(labels)
+
+        assert isinstance(list, scalers)
+        self.scalers = scalers
+
+        # Assign value to object properties
+        self.features = features
+        self.labels = labels
+        self.model = FlexMLP(n_inp, n_out, n_hidden_neurons, activation_fn, output_activation)
+        self.lr = lr
+        self.loss = loss_fn
+
+    def configure_optimizers(self):
+        optimizer = torch.optim.Adam(self.model.parameters(), lr=self.lr)
+        scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, cooldown=10, patience=10, min_lr=1e-8)
+        return [optimizer], [scheduler]
+
+    def training_step(self, batch, batch_idx):
+        x, y = batch
+        result = self.forward(x)
+        loss = self.loss(result, y)
+        result = pl.TrainResult(loss)
+        result.log('train_loss', loss)
+        return result
+
+    def validation_step(self, batch, batch_idx):
+        x, y = batch
+        result = self.forward(x)
+        loss = self.loss(result, y)
+        result = pl.TrainResult(loss)
+        result.log('val_loss', loss)
+        return result
+
+    def validation_epoch_end(self, outputs):
+        print(outputs)
+
+    def save(self, path):
+        createFlexMLPCheckpoint(self.model, path, self.features, self.labels, self.scalers)
 
 
 class AssemblyModel(torch.nn.Module):
