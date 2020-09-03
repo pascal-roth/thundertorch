@@ -129,17 +129,17 @@ def trainFlexMLP(model, path, features, labels, df_train, df_validation=None, ep
     trainset = torch.utils.data.TensorDataset(x_train_tensor, y_train_tensor)
     trainloader = torch.utils.data.DataLoader(trainset, batch_size=batch, shuffle=True)
 
-    # optimizer
-    optimizer = torch.optim.Adam(model.parameters(), lr=lr)
-    if use_scheduler:
-        scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, min_lr=1e-8)
-
-
     # track losses, calculate initial validation loss and set that as baseline
     prediction = model.forward(x_validation_tensor)
     best_loss = loss_fn(prediction, y_validation_tensor).item()
     print("\nInitial validation loss is: {:6.5e}\n".format(best_loss))
     train_losses, validation_losses = [best_loss], [best_loss]
+
+    # optimizer
+    optimizer = torch.optim.Adam(model.parameters(), lr=lr)
+    if use_scheduler:
+        scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, min_lr=1e-8)
+        scheduler.step(best_loss)
 
     # if training on gpu
     if torch.cuda.is_available():
