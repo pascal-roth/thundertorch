@@ -32,7 +32,7 @@ except ImportError as error:
 
 
 def trainFlexMLP(model, path, features, labels, df_train, df_validation=None, epochs=10,
-                      batch=16, lr=0.001, loss_fn = torch.nn.MSELoss(), plot=False, scalers=[],  use_scheduler=False):
+                 batch=16, lr=0.001, loss_fn = torch.nn.MSELoss(), plot=False, scalers=[],  use_scheduler=False, gpuID=0):
     """Optimize the weights of a given MLP.
 
     Parameters
@@ -48,7 +48,10 @@ def trainFlexMLP(model, path, features, labels, df_train, df_validation=None, ep
     l_rate - Float : learning rate
     plot: Bool
         plots loss curves
-
+    use_scheduler: bool
+        uses ReduceOnPlateau learning rate scheduler form pytorch during training, min_lr=1-e8
+    gpuID: int
+        run training on that specific gpu
     Note: The training and validation data will be scaled in this function, therefore no prior scaling is needed
 
     Returns
@@ -146,7 +149,7 @@ def trainFlexMLP(model, path, features, labels, df_train, df_validation=None, ep
 
     # if training on gpu
     if torch.cuda.is_available():
-        device="cuda:3"
+        device="cuda:{0}".format(gpuID)
     else:
         device="cpu"
 
@@ -287,7 +290,7 @@ def unscale_df(df, labels, scaler):
     return scaled_data
 
 
-def runFlexMLP(model, data, features=None, labels=None, scalers=None):
+def runFlexMLP(model, data, features=None, labels=None, scalers=None, gpuID=0):
     """
     Runs a FlexMLP model with some data.
     This data is scaled, the model is run and the rescaled prediciton is returned as pandas.DataFrame
@@ -326,7 +329,7 @@ def runFlexMLP(model, data, features=None, labels=None, scalers=None):
         sys.exit(1)
 
     if torch.cuda.is_available():
-        device = "cuda:0"
+        device = "cuda:{0}".format(gpuID)
     else:
         device = "cpu"
 
