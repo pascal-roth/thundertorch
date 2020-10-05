@@ -1,0 +1,140 @@
+####################################################################################################
+# Arguments for training of single flexMLP network
+####################################################################################################
+
+# Generate class including train, val and test data
+TabularLoader:
+  data: example_samples.csv                            # add_file_location_path
+  validation_data:
+    load_data:
+      perform: False                                  # bool
+      location: None                                  # add_file_location_path
+    split_data:
+      perform: True                                   # bool
+      method: sample                                  # options=[random, sample]
+      val_size: None                                  # only select if method == random
+      split_method: explicit                          # options=[percentage, explicit] only select if method == sample
+      val_params:                                     # only select if method == sample
+        T_0:                                          # adjust feature name
+          - 940                                       # value_1/ percentage, for each value add new line
+  test_data:
+    load_data:
+      perform: False
+      location: None
+    split_data:
+      perform: True
+      method: sample
+      test_size: None                                 # only select if method == random
+      split_method: explicit                          # only select if method == sample
+      test_params:                                    # only select if method == sample
+        T_0:                                          # change name of feature
+          - 945
+  save_TabularLoader:
+    perform: False
+    location: None
+
+# hparams for flexMLP
+flexMLP_pl:
+  load_model:
+    perform: False
+    location: lightning_logs/version_24/checkpoints/epoch=14.ckpt
+  create_model:
+    perform: True
+    features:
+      - T_0
+      - PV
+    labels:
+      - T
+      - yCO2
+      - wH2O
+    hidden_layer:
+      - 64
+      - 128
+      - 64
+    batch: 64
+    lr: 1.e-3
+    output_relu: True
+    activation: relu
+    loss: MSE
+    optimizer: adam
+    scheduler: True
+    num_workers: 5
+
+# training parameters of flexMLP
+pl.Trainer:
+  gpus: 0
+  max_epochs: 15
+
+
+####################################################################################################
+# General Version of yaml file
+####################################################################################################
+
+## Generate class including train, val and test data
+#TabularLoader:
+#  data: add_file_location_path
+#  validation_data:
+#    load_data:
+#      perform: bool
+#      location: add_file_location_path
+#    split_data:
+#      perform: bool
+#      method: [random, sample]
+#      val_size: float                                 # only select if method == random
+#      split_method: [percentage, explicit]            # only select if method == sample
+#      val_params:                                     # only select if method == sample
+#        feature_1:                                    # change name of feature
+#          - value_1/ percentage
+#          - value_2
+#        feature_2:                                    # change name of feature
+#          - value_1/ percentage
+#          - value_2
+#  test_data:
+#    load_data:
+#      perform: bool
+#      location: add_location_path
+#    split_data:
+#      perform: bool
+#      method: random/ sample
+#      test_size: float                                # only select if method == random
+#      split_method: percentage/ explicit              # only select if method == sample
+#      test_params:                                    # only select if method == sample
+#        feature_1:                                    # change name of feature
+#          - value_1/ percentage
+#          - value_2
+#        feature_2:                                    # change name of feature
+#          - value_1/ percentage
+#          - value_2
+#   save_TabularLoader:
+#     perform: bool
+#     location: add_location_path
+#
+## hparams for flexMLP
+#flexMLP_pl:
+#  load_model:
+#    perform: bool
+#    location: add_location_path
+#  create_model:
+#    perform: bool
+#    features:
+#      - feature_1
+#      - feature_2
+#    labels:
+#      - label_1
+#      - label_2
+#    hidden_layers:
+#      - neurons_layer_1
+#      - neurons_layer_2
+#      - neurons_layer_3
+#    batch: batch_size
+#    lr: learning_rate
+#    output_relu: bool
+#    activation: relu/ tanh/ softplus
+#    loss: MSE/ relativeMSE
+#    scheduler: bool
+#    num_workers: int
+#
+## training parameters of flexMLP
+#pl.Trainer:
+#  gpus: int
+#  max_epochs: int

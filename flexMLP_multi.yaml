@@ -1,0 +1,50 @@
+####################################################################################################
+# Define multiple networks and train them parallel/ in sequence
+####################################################################################################
+
+Model001:
+  TabularLoader:
+    data: example_samples.csv
+  flexMLP_pl:
+    load_model:
+      perform: False
+      location: None
+    create_model:
+      perform: True
+      features:
+        - T_0
+        - PV
+      labels:
+        - T
+        - yCO2
+        - wH2O
+      hidden_layer:
+        - 64
+        - 128
+        - 64
+  pl.Trainer:
+    gpus: 0
+    max_epochs: 15
+
+Model002:
+  TabularLoader:
+    data: example_samples.csv
+  flexMLP_pl:
+    load_model:
+      perform: False
+      location: None
+    create_model:
+      perform: True
+      features:
+        - T_0
+        - PV
+      labels:
+        - T
+        - yCO2
+        - wH2O
+      hidden_layer:
+        - 64
+        - 64
+  pl.Trainer:
+    gpus: 0
+    max_epochs: 15

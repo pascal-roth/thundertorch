@@ -1,16 +1,15 @@
 import torch
-import torch.nn as nn
 import torch.nn.functional as F
+import pytorch_lightning as pl
 
-
-class RelativeMSELoss(nn.Module):
+class RelativeMSELoss(pl.LightningModule):
     """
     Relative loss function based on MSE loss
     """
     def __init__(self, r=0.01, truncated=False, threshold=1e-6) -> None:
         """
         :param r: residual parameter to prevent a zero divide
-        :param truncated: True iff ReLU is activated for zero targets
+        :param truncated: True if ReLU is activated for zero targets
         """
         super().__init__()
         self.r = r

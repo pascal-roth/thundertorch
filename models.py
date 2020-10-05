@@ -4,8 +4,8 @@ import torch.nn.functional as F
 import sys
 import os
 import pytorch_lightning as pl
-from pytorch_lightning.core.lightning import LightningModule
-from .utils import *
+# from pytorch_lightning.core.lightning import LightningModule
+# from .utils import *
 
 
 class FlexMLP(torch.nn.Module):
@@ -156,7 +156,7 @@ def loadFlexMLPCheckpoint(filepath):
     return model, features, labels, epochs, scalers
 
 
-class FlexMLP_pl(LightningModule):
+class FlexMLP_pl(pl.LightningModule):
     """
     pytorch_lightning module wrapper for FlexMLP class
     """
