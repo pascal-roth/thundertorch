@@ -7,6 +7,7 @@ import pandas as pd
 import random
 import numpy as np
 import warnings
+import os
 
 
 class TabularLoader:
@@ -155,6 +156,7 @@ class TabularLoader:
 
     @classmethod
     def read_from_h5(cls, file):
+        assert os.path.isfile(file), "Given h5-file '{}' doesn't exist.".format(file) 
         store = pd.HDFStore(file)
         keys = store.keys()
         assert len(keys) == 1, "There must be only one key stored in pandas.HDFStore in '{}'!".format(file)
