@@ -1,70 +1,79 @@
 #######################################################################################################################
-# Load arguments of flexMLP_single.yaml and execute flexMLP_pl.py
+# Load arguments of flexMLP_single.yaml and execute LightningFlexMLP.py
 #######################################################################################################################
 
 # import packages
 import yaml
-import os
-
+import argparse
 import pytorch_lightning as pl
-from pytorch_lightning.callbacks import EarlyStopping
-from pytorch_lightning.callbacks import LearningRateLogger
 
-from argparse import Namespace
-
-from flexMLP_pl import flexMLP_pl
-from flexCNN_pl import flexCNN_pl
-from TabularLoader import TabularLoader
+from stfs_pytoolbox.ML_Utils import models  # Models that are defined in __all__ in the __init__ file
+from stfs_pytoolbox.ML_Utils import loader  # Loader that are defined in __all__ in the __init__ file
+from stfs_pytoolbox.ML_Utils.logger.tensorboard import TensorBoardLoggerAdjusted
 
 
 def parse_yaml():
-    flexMLP_yaml = open("flexMLP_single.yaml")
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-n', '--name_yaml', type=str, default='flexMLP_single.yaml',
+                        help='Name of yaml file to construct Neural Network')
+    args = parser.parse_args()
+
+    flexMLP_yaml = open(args.name_yaml)
     return yaml.load(flexMLP_yaml, Loader=yaml.FullLoader)
 
 
-def LoaderGenerator(argsLoader):
-    """
-    Generate TabularLoader object
+def get_model(argsModel):
+    # load/ create model
+    assert argsModel.load_model['execute'] is True or argsModel.create_model['execute'] is True, \
+        'Set either execute flag in load/ create model to True.'
+    assert hasattr(models, argsModel.type), '{} not an implemented model'.format(argsModel.type)
 
-    Parameters
-    ----------
-    argsLoader      - Namespace object with arguments related to create TabluarLoader object
-
-    Returns
-    -------
-    Loader          - TabularLoader object including training, validation and test samples
-    """
-
-    _, file_exention = os.path.splitext(argsLoader.data)
-
-    if file_exention == '.h5':
-        Loader = TabularLoader.read_from_h5(argsLoader.data)
-    elif file_exention == '.ulf':
-        Loader = TabularLoader.read_from_flut(argsLoader.data)
-    elif file_exention == '.csv':
-        Loader = TabularLoader.read_from_csv(argsLoader.data)
+    if argsModel.load_model.pop('execute'):
+        model = getattr(models, argsModel.type).load_from_checkpoint(argsModel.load_model['path'])
+        model.hparams_update(update_dict=argsModel.params)
+    elif argsModel.create_model.pop('execute'):
+        model = getattr(models, argsModel.type)(hparams=argparse.Namespace(**argsModel.create_model, **argsModel.params))
     else:
-        raise SyntaxError('Data type not supported! Supported are .csv, .txt, .ulf, .h5 with space discriminator')
+        raise SyntaxError('Model neither loaded nor created! Change execute flag in load/ create model to True.')
 
-    if argsLoader.validation_data['load_data']['perform']:
-        Loader.add_val_data(argsLoader.validation_data['load_data']['location'])
-    elif argsLoader.validation_data['split_data']['perform']:
-        argsVal = Namespace(**argsLoader.validation_data['split_data'])
-        Loader.val_split(method=argsVal.method, val_size=argsVal.val_size, split_method=argsVal.split_method,
-                         val_params=argsVal.val_params)
-    else:
-        raise SyntaxError('No validation data selected! Either set perform flag in load or split data to "True".')
+    return model
 
-    if argsLoader.test_data['load_data']['perform']:
-        Loader.add_test_data(argsLoader.test_data['load_data']['location'])
-    elif argsLoader.test_data['split_data']['perform']:
-        argsTest = Namespace(**argsLoader.test_data['split_data'])
-        Loader.test_split(method=argsTest.method, test_size=argsTest.test_size, split_method=argsTest.split_method,
-                          test_params=argsTest.test_params)
-    else:
-        raise SyntaxError('No test data selected! Either set perform flag in load or split data to "True".')
 
-    return Loader
+def get_dataLoader(argsLoader, model):
+    assert hasattr(loader, argsLoader.type), '{} not an implemented loader'.format(argsLoader.type)
+
+    dataLoader = getattr(loader, argsLoader.type).read_from_yaml(argsLoader, batch=model.hparams.batch,
+                                                                 num_workers=model.hparams.num_workers)
+    model.hparams_update(update_dict=dataLoader.lparams)
+    return dataLoader
+
+
+def train_model(model, dataLoader, argsTrainer) -> None:
+    # TODO: assert dass resume_from_checkpoint nur moeglich, wenn model loaded
+
+    # create callback objects
+    if hasattr(argsTrainer, 'callbacks'):
+        callbacks = []
+        if not isinstance(argsTrainer.callbacks, list): argsTrainer.callbacks = list(argsTrainer.callbacks)
+        for i in range(len(argsTrainer.callbacks)):
+            assert hasattr(pl.callbacks, argsTrainer.callbacks[i]['type']), '{} callback is not available in lightning'.\
+                format(argsTrainer.callbacks[i]['type'])
+            if 'params' in argsTrainer.callbacks[i]:
+                callback = getattr(pl.callbacks, argsTrainer.callbacks[i]['type'])(**argsTrainer.callbacks[i]['params'])
+            else:
+                callback = getattr(pl.callbacks, argsTrainer.callbacks[i]['type'])
+            callbacks.append(callback)
+        argsTrainer.params['callbacks'] = callbacks
+
+    # choose Logger
+    if hasattr(argsTrainer, 'logger'):
+        assert hasattr(pl.loggers, argsTrainer.logger), '{} logger not available in lightning'.format(argsTrainer.logger)
+        argsTrainer.params['logger'] = getattr(pl.loggers, argsTrainer.logger)
+
+    # define trainer and start training
+    trainer = pl.Trainer.from_argparse_args(argparse.Namespace(**argsTrainer.params))
+    trainer.fit(model, train_dataloader=dataLoader.train_dataloader(), val_dataloaders=dataLoader.val_dataloader())
+    trainer.test(model, test_dataloaders=dataLoader.test_dataloader())
 
 
 def main(argsLoader, argsModel, argsTrainer):
@@ -77,45 +86,16 @@ def main(argsLoader, argsModel, argsTrainer):
     argsModel       - Namespace object with arguments related to load/ create LightningModule
     argsTrainer     - Namespace object with arguments realted to training of LightningModule
     """
-    Loader = LoaderGenerator(argsLoader)
+    model = get_model(argsModel)
+    dataLoader = get_dataLoader(argsLoader, model)
+    train_model(model, dataLoader, argsTrainer)
 
-    # callbacks
-    early_stop_callback = EarlyStopping(monitor='val_loss', min_delta=0.00, patience=12, verbose=False, mode='min')  # TODO: Discuss with Julian if necessary
-    lr_logger = LearningRateLogger()
-
-    # load/ create model
-    if argsModel.load_model['perform']:
-        model = flexMLP_pl.load_from_checkpoint(argsModel.load_model['location'], TabularLoader=Loader)
-        trainer = pl.Trainer.from_argparse_args(argsTrainer, resume_from_checkpoint=argsModel.load_model['location'],
-                                                early_stop_callback=early_stop_callback, callbacks=[lr_logger])
-        trainer.fit(model)
-
-    elif argsModel.create_model['perform']:
-        hparams = Namespace(**argsModel.create_model)
-        hparams.x_scaler = None
-        hparams.y_scaler = None
-
-        # check hyperparameters
-        # TODO: was macht lightning, falls ich einen ungültigen Wert eingebe --> vllt diese Errors nicht nötig
-        assert all(isinstance(elem, str) for elem in hparams.features), "Given features is not a list of strings!"
-        assert all(isinstance(elem, str) for elem in hparams.labels), "Given labels is not a list of strings!"
-
-        model = flexMLP_pl(hparams=hparams, TabularLoader=Loader)
-        if hparams.scheduler:
-            trainer = pl.Trainer.from_argparse_args(argsTrainer, early_stop_callback=early_stop_callback,
-                                                    callbacks=[lr_logger])  # TODO: are callbacks saved by the checkpoint?
-        else:
-            trainer = pl.Trainer.from_argparse_args(argsTrainer, early_stop_callback=early_stop_callback)
-        trainer.fit(model)
-
-    else:
-        raise SyntaxError('Model neither loaded nor created! Change perform flag in load/ create model to True.')
 
 if __name__ == '__main__':
     args_yaml = parse_yaml()
 
-    argsLoader = Namespace(**args_yaml['TabularLoader'])
-    argsModel = Namespace(**args_yaml['flexMLP_pl'])
-    argsTrainer = Namespace(**args_yaml['pl.Trainer'])
+    argsLoader = argparse.Namespace(**args_yaml['DataLoader'])
+    argsModel = argparse.Namespace(**args_yaml['Model'])
+    argsTrainer = argparse.Namespace(**args_yaml['Trainer'])
 
     main(argsLoader, argsModel, argsTrainer)

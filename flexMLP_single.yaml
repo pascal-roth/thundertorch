@@ -1,69 +1,90 @@
 ####################################################################################################
 # Arguments for training of single flexMLP network
 ####################################################################################################
+# basic contruction of Loader, LightningFlexMLP and pl.Trainer cannot be changed
 
 # Generate class including train, val and test data
-TabularLoader:
-  data: example_samples.csv                            # add_file_location_path
-  validation_data:
-    load_data:
-      perform: False                                  # bool
-      location: None                                  # add_file_location_path
-    split_data:
-      perform: True                                   # bool
-      method: sample                                  # options=[random, sample]
-      val_size: None                                  # only select if method == random
-      split_method: explicit                          # options=[percentage, explicit] only select if method == sample
-      val_params:                                     # only select if method == sample
-        T_0:                                          # adjust feature name
-          - 940                                       # value_1/ percentage, for each value add new line
-  test_data:
-    load_data:
-      perform: False
-      location: None
-    split_data:
-      perform: True
-      method: sample
-      test_size: None                                 # only select if method == random
-      split_method: explicit                          # only select if method == sample
-      test_params:                                    # only select if method == sample
-        T_0:                                          # change name of feature
-          - 945
-  save_TabularLoader:
-    perform: False
-    location: None
-
-# hparams for flexMLP
-flexMLP_pl:
-  load_model:
-    perform: False
-    location: lightning_logs/version_24/checkpoints/epoch=14.ckpt
-  create_model:
-    perform: True
+DataLoader:
+  type: TabularLoader
+  base: load/ create
+  load_DataLoader:
+    path: TabularLoader_example.pkl
+  create_DataLoader:
+    raw_data_path: example_samples.csv                            # .h5, .csv, .txt
     features:
       - T_0
       - PV
     labels:
       - T
-      - yCO2
       - wH2O
-    hidden_layer:
-      - 64
-      - 128
-      - 64
-    batch: 64
-    lr: 1.e-3
-    output_relu: True
-    activation: relu
-    loss: MSE
-    optimizer: adam
-    scheduler: True
+      - yCO2
+    validation_data:
+      type: load/ split
+      load_data:
+        path: None                                  # add_file_path_path
+      split_data:
+        method: explicit                            # options=[random, explicit, percentage]
+        params:                                     # only select if method == explicit, percentage
+          T_0:                                           # adjust feature name
+            - 940                                        # value_1/ percentage, for each value add new line
+    test_data:
+      type: load/ split
+      load_data:
+        path: None
+      split_data:
+        method: explicit
+        params:                                    # only select if method == sample
+          T_0:                                          # change name of feature
+            - 945
+    save_Loader:
+      execute: True
+      path: TabularLoader_example.pkl
+
+# hparams for model
+Model:
+  type: LightningFlexMLP
+  origin: load/ create
+  load_model:
+    path: lightning_logs/version_19/checkpoints/epoch=14.ckpt
+  create_model:
+    n_inp: 2
+    n_out: 3
+    hidden_layer: [64, 128, 64]
+    output_relu: True  # optional
+    activation: relu  # optional
+  params:  # all have defaults
+    loss: mse_loss
+    optimizer:
+      type: Adam
+      params:
+        lr: 1.e-3
+    scheduler:
+      execute: True
+      type: ReduceLROnPlateau
+      params:
+        cooldown: 2
+        patience: 3
+        min_lr: 1.e-8                                   # Notation including point is necessary otherwise will be read as str
     num_workers: 5
+    batch: 64
 
 # training parameters of flexMLP
-pl.Trainer:
-  gpus: 0
-  max_epochs: 15
+Trainer:
+  params:
+    gpus: 0
+    nodes: 2
+    max_epochs: 3
+    profiler: True
+    # resume_from_checkpoint: False                       # can only be true if model loaded from checkpoint
+  callbacks:
+    - type: EarlyStopping
+      params:
+        monitor: val_loss
+        patience: 12
+        mode: min
+    # - type: lr_logger  # TODO: solve error
+  # logger: tensorboard  # TODO: solve error
+
 
 
 ####################################################################################################
@@ -72,13 +93,13 @@ pl.Trainer:
 
 ## Generate class including train, val and test data
 #TabularLoader:
-#  data: add_file_location_path
+#  data: add_file_path_path
 #  validation_data:
 #    load_data:
-#      perform: bool
-#      location: add_file_location_path
+#      execute: bool
+#      path: add_file_path_path
 #    split_data:
-#      perform: bool
+#      execute: bool
 #      method: [random, sample]
 #      val_size: float                                 # only select if method == random
 #      split_method: [percentage, explicit]            # only select if method == sample
@@ -91,14 +112,13 @@ pl.Trainer:
 #          - value_2
 #  test_data:
 #    load_data:
-#      perform: bool
-#      location: add_location_path
+#      execute: bool
+#      path: add_path_path
 #    split_data:
-#      perform: bool
-#      method: random/ sample
+#      execute: bool
+#      method: random/ percentage/ explicit
 #      test_size: float                                # only select if method == random
-#      split_method: percentage/ explicit              # only select if method == sample
-#      test_params:                                    # only select if method == sample
+#      test_params:                                    # only select if method == explicit or percentage
 #        feature_1:                                    # change name of feature
 #          - value_1/ percentage
 #          - value_2
@@ -106,16 +126,16 @@ pl.Trainer:
 #          - value_1/ percentage
 #          - value_2
 #   save_TabularLoader:
-#     perform: bool
-#     location: add_location_path
+#     execute: bool
+#     path: add_path_path
 #
 ## hparams for flexMLP
-#flexMLP_pl:
+#LightningFlexMLP:
 #  load_model:
-#    perform: bool
-#    location: add_location_path
+#    execute: bool
+#    path: add_path_path
 #  create_model:
-#    perform: bool
+#    execute: bool
 #    features:
 #      - feature_1
 #      - feature_2
@@ -131,10 +151,15 @@ pl.Trainer:
 #    output_relu: bool
 #    activation: relu/ tanh/ softplus
 #    loss: MSE/ relativeMSE
-#    scheduler: bool
+#    scheduler:
+#      execute: bool
+#      name: name of scheduler e. g. ReduceLROnPlateau
+#      scheduler_properties_1: value                                  # Notation including point is necessary otherwise will be read as str
+#      scheduler_properties_2: value
+#      Attention: min_lr = 1.e-8                                      Notation including point is necessary otherwise will be read as str
 #    num_workers: int
-#
 ## training parameters of flexMLP
 #pl.Trainer:
 #  gpus: int
 #  max_epochs: int
+#  profiler = True

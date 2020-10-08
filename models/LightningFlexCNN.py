@@ -2,7 +2,7 @@ import torch
 import pytorch_lightning as pl
 
 
-class flexCNN_pl(pl.LightningModule):
+class LightningFlexCNN(pl.LightningModule):
     def __init__(self, labels, features, n_hidden_neurons=[32, 32], activation_fn=torch.nn.functional.relu,
                   lr=1e-3, loss_fn=torch.nn.functional.mse_loss):
 

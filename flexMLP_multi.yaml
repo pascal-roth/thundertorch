@@ -2,46 +2,55 @@
 # Define multiple networks and train them parallel/ in sequence
 ####################################################################################################
 
-Model001:
-  TabularLoader:
-    data: example_samples.csv
+Nbr_processes: 4  # TODO: default ist maximale Anzahl der GPUs
+GPU_per_model: 1
+Model_run:
+  - Model001
+  - Model002
+
+Model001:  # TODO: anpassen der Struktur an das neue single_yaml
+  Template: flexMLP_single.yaml
+  Loader:
+    create_Loader:
+      data: example_samples.csv
+      features:
+        - T_0
+      labels:
+        - T
+        - yCO2
   flexMLP_pl:
     load_model:
       perform: False
       location: None
     create_model:
       perform: True
-      features:
-        - T_0
-        - PV
-      labels:
-        - T
-        - yCO2
-        - wH2O
+      n_inp: 1
+      n_out: 2
       hidden_layer:
         - 64
-        - 128
+        - 64
         - 64
   pl.Trainer:
     gpus: 0
     max_epochs: 15
 
 Model002:
-  TabularLoader:
+  Template: flexMLP_single.yaml
+  Loader:
     data: example_samples.csv
+    features:
+      - PV
+    labels:
+      - T
+      - yCO2
   flexMLP_pl:
     load_model:
       perform: False
       location: None
     create_model:
       perform: True
-      features:
-        - T_0
-        - PV
-      labels:
-        - T
-        - yCO2
-        - wH2O
+      n_inp: 1
+      n_out: 2
       hidden_layer:
         - 64
         - 64

@@ -1,74 +1,81 @@
 #######################################################################################################################
-# Load arguments of flexMLP_single.yaml and execute flexMLP_pl.py
+# Load arguments of flexMLP_single.yaml and execute LightningFlexMLP.py
 #######################################################################################################################
 # each model will be trained on one GPU, script cannot be used if no gpu is available
 
 # import packages
 import yaml
 import itertools
-import numpy as np
+import logging
 import multiprocessing as mp
-from argparse import Namespace
-from flexNN_yaml_single import main
+import argparse
+from stfs_pytoolbox.ML_Utils.flexNN_yaml_single import main
 
 
-def parse_yaml(name):
-    flexMLP_yaml = open(name)
-    return yaml.load(flexMLP_yaml, Loader=yaml.FullLoader)
+def parse_yaml():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-n', '--name_yaml', type=str, default='flexMLP_multi.yaml',
+                        help='Name of yaml file to construct Neural Network')
+    parser.add_argument()
+    args = parser.parse_args()
+
+    return yaml.load(open(args.name_yaml), Loader=yaml.FullLoader)
 
 
-def get_all_keys(dictionary):
-
-    def recrusion(document, key_list, n_row, n_column):
+def replace_keys(dictionary, yamlTemplate):
+    def recrusion(document, key_list, yamlTemplate):
         if isinstance(document, dict):
             for key, value in document.items():
-                key_list[n_row, n_column] = key
-                n_column += 1
-                key_list, n_row, n_column = recrusion(document=value, key_list=key_list, n_row=n_row, n_column=n_column)
-                n_column -= 1
+                key_list.append(key)
+                yamlTemplate, key_list = recrusion(document=value, key_list=key_list, yamlTemplate=yamlTemplate)
+                key_list = key_list[:-1]
         else:
-            key_list = np.append(key_list, np.zeros([1, 3], dtype='<U15'), axis=0)
-            n_row += 1
-            key_list[n_row, :(n_column-1)] = key_list[n_row - 1, :(n_column-1)]
-        return key_list, n_row, n_column
+            try:
+                if len(key_list) == 2:
+                    yamlTemplate[key_list[0]][key_list[1]] = document
+                elif len(key_list) == 3:
+                    yamlTemplate[key_list[0]][key_list[1]][key_list[2]] = document
+                elif len(key_list) == 4:
+                    yamlTemplate[key_list[0]][key_list[1]][key_list[2]][key_list[3]] = document
+                else:
+                    IndexError('Depth of multi yaml (={}) is out of range of template (=4)'.format(len(key_list)))
+            except KeyError:
+                raise KeyError('Key {} in multi yaml cannot be found in yamlTemplate'.format(key_list))
 
-    key_list, _, _ = recrusion(document=dictionary, key_list=np.zeros([1, 3], dtype='<U15'), n_row=0, n_column=0)
-    key_list = key_list[:(len(key_list)-1), :]
-    return key_list
+        return yamlTemplate, key_list
+
+    yamlTemplate, _ = recrusion(document=dictionary, key_list=list([]), yamlTemplate=yamlTemplate)
+
+    return yamlTemplate
 
 
 def runModel(args):
+    ModelRunName, argsModelRun, list_gpu = args
 
-    ModelRunName, argsMulti, list_gpu = args
-    argsSingle = parse_yaml(name='flexMLP_single.yaml')
+    yamlTemplate_location = argsModelRun['{}'.format(ModelRunName)].pop('Template')
+    yamlTemplate = yaml.load(open(yamlTemplate_location), Loader=yaml.FullLoader)
+    yamlTemplate = replace_keys(argsMulti['{}'.format(ModelRunName)], yamlTemplate)
 
-    keys = get_all_keys(argsMulti['{}'.format(ModelRunName)])
-
-    for i in range(len(keys)):
-        if keys[i, 2] == '':
-            argsSingle[keys[i, 0]][keys[i, 1]] = argsMulti['{}'.format(ModelRunName)][keys[i, 0]][keys[i, 1]]
-        else:
-            argsSingle[keys[i, 0]][keys[i, 1]][keys[i, 2]] = argsMulti['{}'.format(ModelRunName)][keys[i, 0]][keys[i, 1]][keys[i, 2]]
-
-    argsLoader = Namespace(**argsSingle['TabularLoader'])
-    argsModel = Namespace(**argsSingle['flexMLP_pl'])
-    argsTrainer = Namespace(**argsSingle['pl.Trainer'])
+    argsLoader = argparse.Namespace(**yamlTemplate['Loader'])
+    argsModel = argparse.Namespace(**yamlTemplate['LightningFlexMLP'])
+    argsTrainer = argparse.Namespace(**yamlTemplate['pl.Trainer'])
 
     argsTrainer.gpus = [list_gpu]
     main(argsLoader, argsModel, argsTrainer)
 
 
 if __name__ == '__main__':
-    argsMulti = parse_yaml(name='flexMLP_multi.yaml')
+    argsMulti = parse_yaml()
 
-    if len(argsMulti) < 4 and len(argsMulti) != 0:
-        n_gpu = len(argsMulti)
-    elif len(argsMulti) >= 4:
-        n_gpu = 4
-    else:
-        raise KeyError('No models defined in "flexMLP_multi.yaml"!')
+    # get nbr of parallel processes for multiprocessing
+    nbr_process = argsMulti.pop('Nbr_processes', 4)
+    assert nbr_process != 0, 'Number of processes must be > 0'
+    ar_gpu = list(range(0, nbr_process))
 
-    ar_gpu = [0, 1, 2, 3]
+    # filter for models defined in Model_Run list
+    model_run_list = argsMulti.pop('Model_run')
+    argsModels = {model_key: argsMulti[model_key] for model_key in model_run_list}
+    assert len(argsModels) != 0, 'No models defined in "flexMLP_multi.yaml"!'
 
-    pool = mp.Pool(processes=n_gpu)
-    pool.map(runModel, zip(argsMulti, itertools.repeat(argsMulti), ar_gpu))
+    pool = mp.Pool(processes=nbr_process)
+    pool.map(runModel, zip(argsModels, itertools.repeat(argsModels), ar_gpu))
