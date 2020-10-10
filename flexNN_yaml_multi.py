@@ -5,6 +5,7 @@
 
 # import packages
 import yaml
+import random
 import itertools
 import logging
 import multiprocessing as mp
@@ -16,7 +17,6 @@ def parse_yaml():
     parser = argparse.ArgumentParser()
     parser.add_argument('-n', '--name_yaml', type=str, default='flexMLP_multi.yaml',
                         help='Name of yaml file to construct Neural Network')
-    parser.add_argument()
     args = parser.parse_args()
 
     return yaml.load(open(args.name_yaml), Loader=yaml.FullLoader)
@@ -56,11 +56,12 @@ def runModel(args):
     yamlTemplate = yaml.load(open(yamlTemplate_location), Loader=yaml.FullLoader)
     yamlTemplate = replace_keys(argsMulti['{}'.format(ModelRunName)], yamlTemplate)
 
-    argsLoader = argparse.Namespace(**yamlTemplate['Loader'])
-    argsModel = argparse.Namespace(**yamlTemplate['LightningFlexMLP'])
-    argsTrainer = argparse.Namespace(**yamlTemplate['pl.Trainer'])
+    argsLoader = argparse.Namespace(**yamlTemplate['DataLoader'])
+    argsModel = argparse.Namespace(**yamlTemplate['Model'])
+    argsTrainer = argparse.Namespace(**yamlTemplate['Trainer'])
 
-    argsTrainer.gpus = [list_gpu]
+    argsTrainer.gpus = list_gpu
+
     main(argsLoader, argsModel, argsTrainer)
 
 
@@ -69,8 +70,18 @@ if __name__ == '__main__':
 
     # get nbr of parallel processes for multiprocessing
     nbr_process = argsMulti.pop('Nbr_processes', 4)
+    gpu_per_process = argsMulti.pop('GPU_per_model', 1)
     assert nbr_process != 0, 'Number of processes must be > 0'
-    ar_gpu = list(range(0, nbr_process))
+    if gpu_per_process != 0:
+        list_gpu = []
+        gpu_available = list(range(0, nbr_process))
+        for i in range(int(nbr_process / gpu_per_process)):
+            list_gpu.append(gpu_available[0:gpu_per_process])
+            del gpu_available[0:gpu_per_process]
+    else:
+        list_gpu = 0
+
+    random.randint(0, 9)
 
     # filter for models defined in Model_Run list
     model_run_list = argsMulti.pop('Model_run')
@@ -78,4 +89,4 @@ if __name__ == '__main__':
     assert len(argsModels) != 0, 'No models defined in "flexMLP_multi.yaml"!'
 
     pool = mp.Pool(processes=nbr_process)
-    pool.map(runModel, zip(argsModels, itertools.repeat(argsModels), ar_gpu))
+    pool.map(runModel, zip(argsModels, itertools.repeat(argsModels), list_gpu))

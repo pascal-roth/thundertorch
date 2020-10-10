@@ -9,6 +9,7 @@
 
 # import packages
 import torch
+import yaml
 import pytorch_lightning as pl
 from argparse import Namespace
 from stfs_pytoolbox.ML_Utils.losses import RelativeMSELoss
@@ -20,7 +21,7 @@ class LightningFlexMLP(pl.LightningModule):
     Create flexMLP as PyTorch LightningModule
     """
 
-    def __init__(self, hparams, **kwargs):
+    def __init__(self, hparams):
         """
         Initializes a flexMLP model based on the provided parameters
 
@@ -31,29 +32,78 @@ class LightningFlexMLP(pl.LightningModule):
         super().__init__()
 
         self.hparams = hparams
-        self._kwargs = kwargs
-
         self.check_hparams()
         self.min_val_loss = None
 
+        # Construct MLP with a variable number of hidden layers
         self.layers = torch.nn.ModuleList([torch.nn.Linear(self.hparams.n_inp, self.hparams.hidden_layer[0])])
-
-        # Add a variable number of more hidden layers
         layer_sizes = zip(self.hparams.hidden_layer[:-1], self.hparams.hidden_layer[1:])
         self.layers.extend([torch.nn.Linear(h1, h2) for h1, h2 in layer_sizes])
-
         self.output = torch.nn.Linear(self.hparams.hidden_layer[-1], self.hparams.n_out)
 
     def check_hparams(self) -> None:
-        # check function types
-        assert isinstance(self.hparams.activation, str), 'Activation function type has to be of type str'
-        assert isinstance(self.hparams.loss, str), 'Loss function type has to be of type str'
-        assert isinstance(self.hparams.optimizer['type'], str), 'Optimizer function type has to be of type str'
-
-        # check model building hparams
+        # check model building hparams -> do not have default values
+        assert hasattr(self.hparams, 'n_inp'), 'Definition of input dimension is missing! Define "n_inp" as type(int)'
         assert isinstance(self.hparams.n_inp, int), 'Size of input layer has to be of type int'
+        assert hasattr(self.hparams, 'n_out'), 'Definition of output dimension is missing! Define "n_out" as type(int)'
         assert isinstance(self.hparams.n_out, int), 'Size of output layer has to be of type int'
-        assert all(isinstance(elem, int) for elem in self.hparams.hidden_layer), 'Size of hidden layer has to be of type int'
+        assert hasattr(self.hparams, 'hidden_layer'), 'Definition of hidden layer dimension(s) is missing! ' \
+                                                      'Define "hidden_layer" as list of int(s)'
+        if not isinstance(self.hparams.hidden_layer, list): self.hparams.hidden_layer = [self.hparams.hidden_layer]
+        assert all(isinstance(elem, int) for elem in self.hparams.hidden_layer), 'Size of hidden layer must be type int'
+
+        # check functions
+        if hasattr(self.hparams, 'activation'):
+            assert isinstance(self.hparams.activation, str), 'Activation function type has to be of type str'
+            assert hasattr(torch.nn.functional, self.hparams.activation), ('Activation function {} not implemented in '
+                                                                           'torch'.format(self.hparams.activation))
+        else:
+            self.hparams.activation = 'relu'
+
+        if hasattr(self.hparams, 'loss'):
+            assert isinstance(self.hparams.loss, str), 'Loss function type has to be of type str'
+            assert hasattr(torch.nn.functional, self.hparams.loss), 'Loss function {} not implemented in ' \
+                                                                    'torch'.format(self.hparams.loss)
+        else:
+            self.hparams.loss = 'mse_loss'
+
+        if hasattr(self.hparams, 'optimizer'):
+            assert self.hparams.optimizer, 'Optimizer params are missing. Attach dict with structure: \n{}'.\
+                format(self.yaml_template(['params', 'optimizer']))
+            assert isinstance(self.hparams.optimizer['type'], str), 'Optimizer function type has to be of type str'
+            assert hasattr(torch.optim, self.hparams.optimizer['type']), 'Optimizer function {} not implemented in ' \
+                                                                         'torch'.format(self.hparams.optimizer['type'])
+        else:
+            self.hparams.optimizer = {'type': 'Adam', 'params': {'lr': 1e-3}}
+
+        if hasattr(self.hparams, 'scheduler'):
+            assert self.hparams.scheduler, 'Scheduler params are missing. Attach dict with structure: \n{}'.\
+                format(self.yaml_template(['params', 'scheduler']))
+            if self.hparams.scheduler['execute']:
+                assert isinstance(self.hparams.scheduler['type'], str), 'Scheduler function type has to be of type str'
+                assert hasattr(torch.optim.lr_scheduler, self.hparams.scheduler['type']), \
+                    'Scheduler function {} not implemented in torch'.format(self.hparams.scheduler['type'])
+        else:
+            self.hparams.scheduler = {'execute': False}
+
+        # introduce default values
+        if not hasattr(self.hparams, 'num_workers'):
+            self.hparams.num_workers = 10
+        else:
+            assert isinstance(self.hparams.num_workers, int), 'Num_workers has to be of type int, not {}!'. \
+                format(type(self.hparams.num_workers))
+
+        if not hasattr(self.hparams, 'batch'):
+            self.hparams.batch = 64
+        else:
+            assert isinstance(self.hparams.batch, int), 'Batch size has to be of type int, not {}!'. \
+                format(type(self.hparams.batch))
+
+        if not hasattr(self.hparams, 'output_relu'):
+            self.hparams.output_relu = False
+        else:
+            assert isinstance(self.hparams.output_relu, bool), 'Output_relu has to be of type bool, not {}!'. \
+                format(type(self.hparams.output_relu))
 
     def loss_fn(self, y, y_hat):
         """
@@ -68,13 +118,8 @@ class LightningFlexMLP(pl.LightningModule):
         -------
         loss        - float
         """
-        try:
-            loss_fn = getattr(torch.nn.functional, self.hparams.loss, 'mse_loss')
-            loss = loss_fn(y_hat, y)
-        except TypeError:
-            raise TypeError('Loss function {} not implemented in torch'.format(self.hparams.loss))
-
-        return loss
+        loss_fn = getattr(torch.nn.functional, self.hparams.loss, 'mse_loss')
+        return loss_fn(y_hat, y)
 
     def forward(self, x):
         """
@@ -89,11 +134,8 @@ class LightningFlexMLP(pl.LightningModule):
         x           - output tensor of the pytorch.nn.Linear layer
         """
         for layer in self.layers:
-            try:
-                activation_fn = getattr(torch.nn.functional, self.hparams.activation, 'relu')
-                x = activation_fn(layer(x))
-            except TypeError:
-                raise TypeError('Activation function {} not implemented in torch'.format(self.hparams.activation))
+            activation_fn = getattr(torch.nn.functional, self.hparams.activation)
+            x = activation_fn(layer(x))
 
         if self.hparams.output_relu:
             x = torch.nn.functional.relu(self.output(x))
@@ -111,20 +153,15 @@ class LightningFlexMLP(pl.LightningModule):
         optimizer       - PyTorch Optimizer function
         scheduler       - PyTorch Scheduler function
         """
-        assert hasattr(torch.optim, self.hparams.optimizer['type']), 'Optimizer function {} not implemented in torch'.\
-            format(self.hparams.optimizer['type'])
         params = list(self.layers.parameters()) + list(self.output.parameters())
-        optimizer = getattr(torch.optim, self.hparams.optimizer['type'], 'Adam')(params,
-                                                                                 **self.hparams.optimizer['params'])
-
-        # optimizer = torch.optim.Adam(self.layers.parameters(), lr=self.hparams.lr)
+        if 'params' in self.hparams.optimizer:
+            optimizer = getattr(torch.optim, self.hparams.optimizer['type'])(params, **self.hparams.optimizer['params'])
+        else:
+            optimizer = getattr(torch.optim, self.hparams.optimizer['type'])(params)
 
         if self.hparams.scheduler['execute']:
-            assert hasattr(torch.optim.lr_scheduler, self.hparams.scheduler['type']), \
-                'Scheduler function {} not implemented in torch'.format(self.hparams.scheduler['type'])
             scheduler = getattr(torch.optim.lr_scheduler, self.hparams.scheduler['type'], 'ReduceLROnPlateau')\
                 (optimizer, **self.hparams.scheduler['params'])
-            # scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, **self.hparams.scheduler['params'])
             return [optimizer], [scheduler]
         else:
             return optimizer
@@ -165,16 +202,16 @@ class LightningFlexMLP(pl.LightningModule):
         results = {'log': log, 'test_loss': test_loss}
         return results
 
-    def hparams_save(self, config_yaml) -> None:
+    def hparams_save(self, path) -> None:
         """
         Save hyparams dict to yaml file
 
         Parameters
         ----------
-        config_yaml         - path where yaml should be saved
+        path             - path where yaml should be saved
         """
         from pytorch_lightning.core.saving import save_hparams_to_yaml
-        save_hparams_to_yaml(config_yaml, self.hparams)
+        save_hparams_to_yaml(path, self.hparams)
 
     def hparams_update(self, update_dict) -> None:
         """
@@ -197,3 +234,21 @@ class LightningFlexMLP(pl.LightningModule):
     #     parser.add_argument('--labels', type=list, default=['T'])
     #     parser.add_argument('--n_hidden_neurons', nargs='+', type=int, default=[64, 64, 64])
     #     return parser
+
+    @staticmethod
+    def yaml_template(key_list):
+        template = {'type': 'LightningFlexMLP',
+                    'source': 'load/ create',
+                    'load_model': {'path': 'name.ckpt'},
+                    'create_model': {'n_inp': int,  'n_out': int, 'hidden_layer': [int, int, int],
+                                     'output_relu': 'bool (default: False)', 'activation': 'relu'},
+                    'params': {'loss': 'mse_loss', 'optimizer': {'type': 'Adam', 'params': {'lr': 0.001}},
+                               'scheduler': {'execute': ' bool (default: False)', 'type': 'name (ReduceLROnPlateau)',
+                                             'params': {'cooldown': int, 'patience': int, 'min_lr': float}},
+                               'num_workers': int, 'batch': int}}
+
+        for i, key in enumerate(key_list):
+            template = template.get(key)
+
+        print(yaml.dump(template, sort_keys=False))
+

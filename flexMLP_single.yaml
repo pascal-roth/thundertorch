@@ -6,44 +6,37 @@
 # Generate class including train, val and test data
 DataLoader:
   type: TabularLoader
-  base: load/ create
+  source: create                            # load / create
   load_DataLoader:
     path: TabularLoader_example.pkl
   create_DataLoader:
     raw_data_path: example_samples.csv                            # .h5, .csv, .txt
-    features:
-      - T_0
-      - PV
-    labels:
-      - T
-      - wH2O
-      - yCO2
+    features: [T_0, PV]
+    labels: [T, wH2O, yCO2]
     validation_data:
-      type: load/ split
+      source: split               # TODO: idea to make default as a thrid option
       load_data:
         path: None                                  # add_file_path_path
       split_data:
         method: explicit                            # options=[random, explicit, percentage]
-        params:                                     # only select if method == explicit, percentage
-          T_0:                                           # adjust feature name
-            - 940                                        # value_1/ percentage, for each value add new line
+        val_params:                                     # only select if method == explicit, percentage
+          T_0: [940]                                        # adjust feature name
     test_data:
-      type: load/ split
+      source: split
       load_data:
         path: None
       split_data:
         method: explicit
-        params:                                    # only select if method == sample
-          T_0:                                          # change name of feature
-            - 945
+        test_params:                                    # only select if method == sample
+          T_0: [945]                                       # change name of feature
     save_Loader:
-      execute: True
+      execute: False
       path: TabularLoader_example.pkl
 
 # hparams for model
 Model:
   type: LightningFlexMLP
-  origin: load/ create
+  source: create
   load_model:
     path: lightning_logs/version_19/checkpoints/epoch=14.ckpt
   create_model:
@@ -72,7 +65,6 @@ Model:
 Trainer:
   params:
     gpus: 0
-    nodes: 2
     max_epochs: 3
     profiler: True
     # resume_from_checkpoint: False                       # can only be true if model loaded from checkpoint
@@ -83,6 +75,10 @@ Trainer:
         patience: 12
         mode: min
     # - type: lr_logger  # TODO: solve error
+    - type: ModelCheckpoint
+      params:
+        filepath: None
+        save_top_k: 1  # other params in documentation
   # logger: tensorboard  # TODO: solve error
 
 

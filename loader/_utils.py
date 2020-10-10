@@ -19,6 +19,7 @@ def data_split_random(x_samples, y_samples, split_params):  #  -> tuple[pd.DataF
 
 
 def data_split_percentage(x_samples, y_samples, split_params):  #  -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.DataFrame]
+    assert isinstance(split_params, dict), 'split parameters have to be of type dict'
     x_split = pd.DataFrame([])
 
     for key, value in split_params.items():
@@ -26,7 +27,7 @@ def data_split_percentage(x_samples, y_samples, split_params):  #  -> tuple[pd.D
         key_options = x_samples['{}'.format(key)].drop_duplicates()
 
         assert value < 1, 'Percentage exceeds 100%!'
-        key_list = random.choices(key_options.values, k=int(np.round(value * len(key_options))))
+        key_list = random.sample(list(key_options.values), k=int(np.round(value * len(key_options))))
         assert len(key_list) > 0, 'Percentage to low that one value of {} is selected'.format(key)
 
         x_samples = x_samples.rename(columns={'{}'.format(key): 'feature'})
@@ -45,6 +46,7 @@ def data_split_percentage(x_samples, y_samples, split_params):  #  -> tuple[pd.D
 
 
 def data_split_explicit(x_samples, y_samples, split_params):  #  -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.DataFrame]
+    assert isinstance(split_params, dict), 'Split parameters have to be of type dict'
     x_split = pd.DataFrame([])
 
     for key, value in split_params.items():
@@ -87,7 +89,7 @@ def read_df_from_file(file_path) -> pd.DataFrame:
     df_samples      - pd.DataFrame including samples
     """
     _, file_extention = os.path.splitext(file_path)
-
+    # TODO: check delimiter (online function finden)
     if file_extention == '.h5':
         assert os.path.isfile(file_path), "Given h5-file '{}' doesn't exist.".format(file_path)
         store = pd.HDFStore(file_path)

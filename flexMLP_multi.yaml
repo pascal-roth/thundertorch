@@ -3,57 +3,47 @@
 ####################################################################################################
 
 Nbr_processes: 4  # TODO: default ist maximale Anzahl der GPUs
-GPU_per_model: 1
+GPU_per_model: 2
 Model_run:
   - Model001
   - Model002
 
 Model001:  # TODO: anpassen der Struktur an das neue single_yaml
   Template: flexMLP_single.yaml
-  Loader:
-    create_Loader:
-      data: example_samples.csv
-      features:
-        - T_0
-      labels:
-        - T
-        - yCO2
-  flexMLP_pl:
+  DataLoader:
+    create_DataLoader:
+      raw_data_path: example_samples.csv
+      features: [T_0]
+      labels: [T, yCO2]
+  Model:
+    source: create
     load_model:
-      perform: False
       location: None
     create_model:
-      perform: True
       n_inp: 1
       n_out: 2
-      hidden_layer:
-        - 64
-        - 64
-        - 64
-  pl.Trainer:
-    gpus: 0
+      hidden_layer: [64, 64, 64]
+  Trainer:
     max_epochs: 15
 
 Model002:
   Template: flexMLP_single.yaml
-  Loader:
-    data: example_samples.csv
-    features:
-      - PV
-    labels:
-      - T
-      - yCO2
-  flexMLP_pl:
+  DataLoader:
+    raw_data_path: example_samples.csv
+    features: [PV]
+    labels: [T, yCO2]
+  Model:
+    source: create
     load_model:
-      perform: False
       location: None
     create_model:
-      perform: True
       n_inp: 1
       n_out: 2
-      hidden_layer:
-        - 64
-        - 64
-  pl.Trainer:
-    gpus: 0
+      hidden_layer: [64, 64]
+    params:
+      optimizer:
+        type: SGD
+        params:
+          lr: 1.e-3
+  Trainer:
     max_epochs: 15

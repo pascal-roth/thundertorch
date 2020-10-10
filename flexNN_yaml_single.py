@@ -23,23 +23,26 @@ def parse_yaml():
 
 
 def get_model(argsModel):
-    # load/ create model
-    assert argsModel.load_model['execute'] is True or argsModel.create_model['execute'] is True, \
-        'Set either execute flag in load/ create model to True.'
+    argsModel = argparse.Namespace(**argsModel)
+
+    assert argsModel.source in ['load', 'create'], 'Decide if source is "load" or "create"! {} not a valid source'.\
+        format(argsModel.source)
     assert hasattr(models, argsModel.type), '{} not an implemented model'.format(argsModel.type)
 
-    if argsModel.load_model.pop('execute'):
+    if argsModel.source == 'load':
         model = getattr(models, argsModel.type).load_from_checkpoint(argsModel.load_model['path'])
         model.hparams_update(update_dict=argsModel.params)
-    elif argsModel.create_model.pop('execute'):
+    elif argsModel.source == 'create':
         model = getattr(models, argsModel.type)(hparams=argparse.Namespace(**argsModel.create_model, **argsModel.params))
     else:
-        raise SyntaxError('Model neither loaded nor created! Change execute flag in load/ create model to True.')
+        raise SyntaxError('Model neither loaded nor created! Set source value to "load" or "create".')
 
     return model
 
 
 def get_dataLoader(argsLoader, model):
+    argsLoader = argparse.Namespace(**argsLoader)
+
     assert hasattr(loader, argsLoader.type), '{} not an implemented loader'.format(argsLoader.type)
 
     dataLoader = getattr(loader, argsLoader.type).read_from_yaml(argsLoader, batch=model.hparams.batch,
@@ -49,7 +52,7 @@ def get_dataLoader(argsLoader, model):
 
 
 def train_model(model, dataLoader, argsTrainer) -> None:
-    # TODO: assert dass resume_from_checkpoint nur moeglich, wenn model loaded
+    argsTrainer = argparse.Namespace(**argsTrainer)
 
     # create callback objects
     if hasattr(argsTrainer, 'callbacks'):
@@ -94,8 +97,12 @@ def main(argsLoader, argsModel, argsTrainer):
 if __name__ == '__main__':
     args_yaml = parse_yaml()
 
-    argsLoader = argparse.Namespace(**args_yaml['DataLoader'])
-    argsModel = argparse.Namespace(**args_yaml['Model'])
-    argsTrainer = argparse.Namespace(**args_yaml['Trainer'])
+    assert 'DataLoader' in args_yaml, ''  # TODO: define statements
+    assert 'Model' in args_yaml, ''
+    assert 'Model' in args_yaml, ''
+
+    argsLoader = args_yaml['DataLoader']
+    argsModel = args_yaml['Model']
+    argsTrainer = args_yaml['Trainer']
 
     main(argsLoader, argsModel, argsTrainer)
