@@ -117,7 +117,7 @@ def generate_samples():
     return samples
 
 
-def test_LightningFlexMLP_integration():
+def test_LightningFlexMLP_integration():  # TODO: check why test times out on gitlab runner
     hparams = argparse.Namespace(**{'n_inp': 2, 'n_out': 3, 'hidden_layer': [64, 64]})
     model = LightningFlexMLP(hparams)
 
