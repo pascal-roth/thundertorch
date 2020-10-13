@@ -43,12 +43,20 @@ class LightningFlexMLP(pl.LightningModule):
 
     def check_hparams(self) -> None:
         # check model building hparams -> do not have default values
-        assert hasattr(self.hparams, 'n_inp'), 'Definition of input dimension is missing! Define "n_inp" as type(int)'
+        assert hasattr(self.hparams, 'n_inp'), 'Definition of input dimension is missing! Define "n_inp" as type ' \
+                                               'int. The necessary params to construct the model are: \n{}'.\
+            format(self.yaml_template(['Model', 'create_model']))
         assert isinstance(self.hparams.n_inp, int), 'Size of input layer has to be of type int'
-        assert hasattr(self.hparams, 'n_out'), 'Definition of output dimension is missing! Define "n_out" as type(int)'
+
+        assert hasattr(self.hparams, 'n_out'), 'Definition of output dimension is missing! Define "n_out" as type ' \
+                                               'int. The necessary params to construct the model are: \n{}'.\
+            format(self.yaml_template(['Model', 'create_model']))
         assert isinstance(self.hparams.n_out, int), 'Size of output layer has to be of type int'
+
         assert hasattr(self.hparams, 'hidden_layer'), 'Definition of hidden layer dimension(s) is missing! ' \
-                                                      'Define "hidden_layer" as list of int(s)'
+                                                      'Define "hidden_layer" as list of int(s). Necessary params to ' \
+                                                      'create the model are: \n{}'.\
+            format(self.yaml_template(['Model', 'create_model']))
         if not isinstance(self.hparams.hidden_layer, list): self.hparams.hidden_layer = [self.hparams.hidden_layer]
         assert all(isinstance(elem, int) for elem in self.hparams.hidden_layer), 'Size of hidden layer must be type int'
 
@@ -69,7 +77,7 @@ class LightningFlexMLP(pl.LightningModule):
 
         if hasattr(self.hparams, 'optimizer'):
             assert self.hparams.optimizer, 'Optimizer params are missing. Attach dict with structure: \n{}'.\
-                format(self.yaml_template(['params', 'optimizer']))
+                format(self.yaml_template(['Model', 'params', 'optimizer']))
             assert isinstance(self.hparams.optimizer['type'], str), 'Optimizer function type has to be of type str'
             assert hasattr(torch.optim, self.hparams.optimizer['type']), 'Optimizer function {} not implemented in ' \
                                                                          'torch'.format(self.hparams.optimizer['type'])
@@ -78,7 +86,7 @@ class LightningFlexMLP(pl.LightningModule):
 
         if hasattr(self.hparams, 'scheduler'):
             assert self.hparams.scheduler, 'Scheduler params are missing. Attach dict with structure: \n{}'.\
-                format(self.yaml_template(['params', 'scheduler']))
+                format(self.yaml_template(['Model', 'params', 'scheduler']))
             if self.hparams.scheduler['execute']:
                 assert isinstance(self.hparams.scheduler['type'], str), 'Scheduler function type has to be of type str'
                 assert hasattr(torch.optim.lr_scheduler, self.hparams.scheduler['type']), \
@@ -237,18 +245,20 @@ class LightningFlexMLP(pl.LightningModule):
 
     @staticmethod
     def yaml_template(key_list):
-        template = {'type': 'LightningFlexMLP',
-                    'source': 'load/ create',
-                    'load_model': {'path': 'name.ckpt'},
-                    'create_model': {'n_inp': int,  'n_out': int, 'hidden_layer': [int, int, int],
-                                     'output_relu': 'bool (default: False)', 'activation': 'relu'},
-                    'params': {'loss': 'mse_loss', 'optimizer': {'type': 'Adam', 'params': {'lr': 0.001}},
-                               'scheduler': {'execute': ' bool (default: False)', 'type': 'name (ReduceLROnPlateau)',
-                                             'params': {'cooldown': int, 'patience': int, 'min_lr': float}},
-                               'num_workers': int, 'batch': int}}
+        template = {'Model': {'type': 'LightningFlexMLP',
+                              'source': 'load/ create',
+                              'load_model': {'path': 'name.ckpt'},
+                              'create_model': {'n_inp': 'int',  'n_out': 'int', 'hidden_layer': '[int, int, int]',
+                                               'output_relu': 'bool (default: False)', 'activation':
+                                                   'str (default: relu)'},
+                              'params': {'loss': 'str (default:mse_loss)', 'optimizer': {'type': 'str (default: Adam)',
+                                                                                         'params': {'lr': 'float (default: 1.e-3'}},
+                                         'scheduler': {'execute': ' bool (default: False)', 'type': 'name',
+                                                       'params': {'cooldown': 'int', 'patience': 'int', 'min_lr': 'float'}},
+                                         'num_workers': 'int (default: 10)', 'batch': 'int (default: 64)'}}}
 
         for i, key in enumerate(key_list):
             template = template.get(key)
 
-        print(yaml.dump(template, sort_keys=False))
+        return yaml.dump(template, sort_keys=False)
 

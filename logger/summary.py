@@ -52,15 +52,6 @@ def hparams(hparam_dict=None, metric_dict=None, hparam_domain_discrete=None):
         HParamsPluginData, SessionEndInfo, SessionStartInfo
     )
 
-    # TODO: expose other parameters in the future.
-    # hp = HParamInfo(name='lr',display_name='learning rate',
-    # type=DataType.DATA_TYPE_FLOAT64, domain_interval=Interval(min_value=10,
-    # max_value=100))
-    # mt = MetricInfo(name=MetricName(tag='accuracy'), display_name='accuracy',
-    # description='', dataset_type=DatasetType.DATASET_VALIDATION)
-    # exp = Experiment(name='123', description='456', time_created_secs=100.0,
-    # hparam_infos=[hp], metric_infos=[mt], user='tw')
-
     if not isinstance(hparam_dict, dict):
         logging.warning('parameter: hparam_dict should be a dictionary, nothing logged.')
         raise TypeError('parameter: hparam_dict should be a dictionary, nothing logged.')

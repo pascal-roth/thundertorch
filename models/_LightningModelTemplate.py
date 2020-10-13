@@ -51,7 +51,7 @@ class LightningTemplateModel(pl.LightningModule):
 
         if hasattr(self.hparams, 'optimizer'):
             assert self.hparams.optimizer, 'Optimizer params are missing. Attach dict with structure: \n{}'. \
-                format(self.yaml_template(['params', 'optimizer']))
+                format(self.yaml_template(['Model', 'params', 'optimizer']))
             assert isinstance(self.hparams.optimizer['type'], str), 'Optimizer function type has to be of type str'
             assert hasattr(torch.optim, self.hparams.optimizer['type']), 'Optimizer function {} not implemented in ' \
                                                                          'torch'.format(self.hparams.optimizer['type'])
@@ -60,7 +60,7 @@ class LightningTemplateModel(pl.LightningModule):
 
         if hasattr(self.hparams, 'scheduler'):
             assert self.hparams.scheduler, 'Scheduler params are missing. Attach dict with structure: \n{}'. \
-                format(self.yaml_template(['params', 'scheduler']))
+                format(self.yaml_template(['Model', 'params', 'scheduler']))
             if self.hparams.scheduler['execute']:
                 assert isinstance(self.hparams.scheduler['type'], str), 'Scheduler function type has to be of type str'
                 assert hasattr(torch.optim.lr_scheduler, self.hparams.scheduler['type']), \
@@ -212,17 +212,17 @@ class LightningTemplateModel(pl.LightningModule):
 
     @staticmethod
     def yaml_template(key_list):
-        template = {'type': 'LightningModelTemplate',
-                    'source': 'load/ create',
-                    'load_model': {'path': 'name.ckpt'},
-                    'create_model': {'some_construction_parameters': 'corresponding datatypes',
-                                     'output_relu': 'bool (default: False)', 'activation': 'relu'},
-                    'params': {'loss': 'mse_loss', 'optimizer': {'type': 'Adam', 'params': {'lr': 0.001}},
-                               'scheduler': {'execute': ' bool (default: False)', 'type': 'name (ReduceLROnPlateau)',
-                                             'params': {'cooldown': int, 'patience': int, 'min_lr': float}},
-                               'num_workers': int, 'batch': int}}
+        template = {'Model': {'type': 'LightningModelTemplate',
+                              'source': 'load/ create',
+                              'load_model': {'path': 'name.ckpt'},
+                              'create_model': {'some_construction_parameters': 'corresponding datatypes',
+                                               'output_relu': 'bool (default: False)', 'activation': 'relu'},
+                              'params': {'loss': 'mse_loss', 'optimizer': {'type': 'Adam', 'params': {'lr': 1.e-3}},
+                                         'scheduler': {'execute': ' bool (default: False)', 'type': 'name',
+                                                       'params': {'cooldown': 'int', 'patience': 'int', 'min_lr': 'float'}},
+                                         'num_workers': 'int', 'batch': 'int'}}}
 
         for i, key in enumerate(key_list):
             template = template.get(key)
 
-        print(yaml.dump(template, sort_keys=False))
+        return yaml.dump(template, sort_keys=False)

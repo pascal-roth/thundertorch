@@ -3,4 +3,9 @@ try:
 except ImportError:
     raise ImportError('TensorBoard logging requires TensorBoard with Python summary writer installed. '
                       'This should be available in 1.14 or above.')
+
 from torch.utils.tensorboard.writer import FileWriter, SummaryWriter  # noqa F401
+
+from .tensorboard import TensorBoardLoggerAdjusted
+
+__all__ = ['TensorBoardLoggerAdjusted']

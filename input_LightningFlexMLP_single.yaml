@@ -43,7 +43,7 @@ Model:
     n_inp: 2
     n_out: 3
     hidden_layer: [64, 128, 64]
-    output_relu: True  # optional
+    output_relu: False  # optional
     activation: relu  # optional
   params:  # all have defaults
     loss: mse_loss
@@ -65,7 +65,7 @@ Model:
 Trainer:
   params:
     gpus: 0
-    max_epochs: 3
+    max_epochs: 15
     profiler: True
     # resume_from_checkpoint: False                       # can only be true if model loaded from checkpoint
   callbacks:
@@ -74,13 +74,19 @@ Trainer:
         monitor: val_loss
         patience: 12
         mode: min
-    # - type: lr_logger  # TODO: solve error
-    - type: ModelCheckpoint
+#    - type: lr_logger  # TODO: solve error
+#    - type: ModelCheckpoint
+#      params:
+#        filepath: None
+#        save_top_k: 1  # other params in documentation
+  logger:
+    - type: comet-ml
       params:
-        filepath: None
-        save_top_k: 1  # other params in documentation
-  # logger: tensorboard  # TODO: solve error
-
+        api_key: ENlkidpOntcgkoGGs5nkyhFv5
+        project_name: general
+        workspace: proth
+        experiment_name: optimizer
+#    - type: tensorboard
 
 
 ####################################################################################################

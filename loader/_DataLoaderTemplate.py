@@ -177,7 +177,7 @@ class DataLoaderTemplate:
         if argsLoader.source == 'load':
             assert hasattr(argsLoader, 'load_DataLoader'), '"Load" source flag requires dict "load_DataLoader" with ' \
                                                            'following structure: \n{}'.format(
-                DataLoaderTemplate.yaml_template(['load_DataLoader']))
+                DataLoaderTemplate.yaml_template(['DataLoader', 'load_DataLoader']))
             assert 'path' in argsLoader.load_DataLoader, 'Path in dict "load_DataLoader" is missing! DataLoader cannot be restored!'
 
             _, file_extention = os.path.splitext(argsLoader.load_DataLoader['path'])
@@ -199,7 +199,7 @@ class DataLoaderTemplate:
         elif argsLoader.source == 'create':
             assert hasattr(argsLoader, 'create_DataLoader'), '"Create" source flag requires dict "create_DataLoader" ' \
                                                              'with following structure: \n{}'.format(
-                DataLoaderTemplate.yaml_template(['create_DataLoader']))
+                DataLoaderTemplate.yaml_template(['DataLoader', 'create_DataLoader']))
             argsLoader = Namespace(**argsLoader.create_DataLoader)
 
             # create Loader
@@ -211,7 +211,7 @@ class DataLoaderTemplate:
             # validation data
             assert hasattr(argsLoader, 'validation_data'), 'Definition of validation data missing! Insert dict ' \
                                                            '"validation_data" with following structure \n{}'. \
-                format(DataLoaderTemplate.yaml_template(['create_DataLoader', 'validation_data']))
+                format(DataLoaderTemplate.yaml_template(['DataLoader', 'create_DataLoader', 'validation_data']))
             assert 'source' in argsLoader.validation_data, 'Define source of Validation data! Can be either set to ' \
                                                            '"load" or "split".'
             if argsLoader.validation_data['source'] == 'load':
@@ -226,7 +226,7 @@ class DataLoaderTemplate:
             # test data
             assert hasattr(argsLoader, 'test_data'), 'Definition of test data missing! Insert dict "test_data" with ' \
                                                      'following structure \n{}'.\
-                format(DataLoaderTemplate.yaml_template(['create_DataLoader', 'test_data']))
+                format(DataLoaderTemplate.yaml_template(['DataLoader', 'create_DataLoader', 'test_data']))
             assert 'source' in argsLoader.test_data, 'Define source of test data! Can be set to "load" or "split"'
             if argsLoader.test_data['source'] == 'load':
                 assert 'load_data' in argsLoader.test_data, 'Parameters to perform data load are missing!'
@@ -283,26 +283,25 @@ class DataLoaderTemplate:
         ----------
         key_list
         """
-        template = {'type': 'DataLoaderTemplate',
-                    'source': 'load/ create',
-                    'load_DataLoader': {'path': 'name.pkl or modelXXX.ckpt'},
-                    'create_DataLoader': {'raw_data_path': 'samples_name.csv, .txt, .h5, .flut',
-                                          # TODO: change extension of flut datatype
-                                          'further_param_1': 'some information',
-                                          'further_param_2': 'some_information',
-                                          'validation_data': {'source': 'load/ split',
-                                                              'load_data': {'path': 'samples_name.csv, .txt, .h5'},
-                                                              'split_data': {'method': 'method name (pre implemented '
-                                                                                       'are random/percentage/explicit)',
-                                                                             'val_params': 'split_params'}},
-                                          'test_data': {'source': 'load/ split',
-                                                        'load_data': {'path': 'samples_name.csv, .txt, .h5, .flut'},
-                                                        'split_data': {'method': 'method name (pre implemented '
-                                                                                 'are random/percentage/explicit)',
-                                                                       'test_params': 'split_params'}},
-                                          'save_Loader': {'execute': 'bool', 'path': 'name.pkl'}}}
+        template = {'DataLoader': {'type': 'DataLoaderTemplate',
+                                   'source': 'load/ create',
+                                   'load_DataLoader': {'path': 'name.pkl or modelXXX.ckpt'},
+                                   'create_DataLoader': {'raw_data_path': 'samples_name.csv, .txt, .h5, .flut', # TODO: change extension of flut datatype
+                                                         'further_param_1': 'some information',
+                                                         'further_param_2': 'some_information',
+                                                         'validation_data': {'source': 'load/ split',
+                                                                             'load_data': {'path': 'samples_name.csv, .txt, .h5'},
+                                                                             'split_data': {'method': 'method name (pre implemented '
+                                                                                                      'are random/percentage/explicit)',
+                                                                                            'val_params': 'split_params'}},
+                                                         'test_data': {'source': 'load/ split',
+                                                                       'load_data': {'path': 'samples_name.csv, .txt, .h5, .flut'},
+                                                                       'split_data': {'method': 'method name (pre implemented '
+                                                                                                'are random/percentage/explicit)',
+                                                                                      'test_params': 'split_params'}},
+                                                         'save_Loader': {'execute': 'bool', 'path': 'name.pkl'}}}}
 
         for i, key in enumerate(key_list):
             template = template.get(key)
 
-        print(yaml.dump(template, sort_keys=False))
+        return yaml.dump(template, sort_keys=False)

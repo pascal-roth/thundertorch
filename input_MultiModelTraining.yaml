@@ -2,42 +2,45 @@
 # Define multiple networks and train them parallel/ in sequence
 ####################################################################################################
 
-Nbr_processes: 4  # TODO: default ist maximale Anzahl der GPUs
-GPU_per_model: 2
+Nbr_processes: 4
+GPU_per_model: 0
 Model_run:
-  - Model001
+  # - Model001
   - Model002
 
-Model001:  # TODO: anpassen der Struktur an das neue single_yaml
-  Template: flexMLP_single.yaml
+Model001:
+  Template: input_LightningFlexMLP_single.yaml
   DataLoader:
     create_DataLoader:
       raw_data_path: example_samples.csv
-      features: [T_0]
+      features: [T_0, PV]
       labels: [T, yCO2]
   Model:
     source: create
     load_model:
-      location: None
+      path: None
     create_model:
-      n_inp: 1
+      n_inp: 2
       n_out: 2
       hidden_layer: [64, 64, 64]
   Trainer:
-    max_epochs: 15
+    params:
+      max_epochs: 3
+      profiler: True
 
 Model002:
-  Template: flexMLP_single.yaml
+  Template: input_LightningFlexMLP_single.yaml
   DataLoader:
-    raw_data_path: example_samples.csv
-    features: [PV]
-    labels: [T, yCO2]
+    create_DataLoader:
+      raw_data_path: example_samples.csv
+      features: [T_0, PV]
+      labels: [T, yCO2]
   Model:
     source: create
     load_model:
-      location: None
+      path: None
     create_model:
-      n_inp: 1
+      n_inp: 2
       n_out: 2
       hidden_layer: [64, 64]
     params:
@@ -46,4 +49,6 @@ Model002:
         params:
           lr: 1.e-3
   Trainer:
-    max_epochs: 15
+    params:
+      max_epochs: 3
+      profiler: True
