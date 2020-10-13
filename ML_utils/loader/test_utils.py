@@ -1,14 +1,5 @@
 import pytest
-import os
-
 from stfs_pytoolbox.ML_Utils.loader._utils import *
-
-
-@pytest.fixture(scope='module')  # TODO: therotisch ein session fixture aber wird nicht angenommen
-def create_random_df():
-    example_df = pd.DataFrame(np.random.rand(4, 4))
-    example_df.columns = ['T_0', 'P_0', 'yCO2', 'wH2O']
-    return example_df
 
 
 @pytest.fixture(scope='module')

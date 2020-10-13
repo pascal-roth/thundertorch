@@ -1,0 +1,80 @@
+####################################################################################################
+# Arguments for training of single flexMLP network
+####################################################################################################
+# basic contruction of Loader, LightningFlexMLP and pl.Trainer cannot be changed
+
+# Generate class including train, val and test data
+DataLoader:
+  type: TabularLoader
+  source: create
+  load_DataLoader:
+    path: TabularLoader_example.pkl
+  create_DataLoader:
+    raw_data_path: example_samples.csv
+    features: [T_0, P_0]
+    labels: [yCO2, wH2O]
+    validation_data:
+      source: split               # TODO: idea to make default as a thrid option
+      load_data:
+        path: None
+      split_data:
+        method: random
+        val_params: 0.25
+    test_data:
+      source: split
+      load_data:
+        path: None
+      split_data:
+        method: random
+        test_params: 0.25
+    save_Loader:
+      execute: False
+      path: TabularLoader_example.pkl
+
+# hparams for model
+Model:
+  type: LightningFlexMLP
+  source: create
+  load_model:
+    path: lightning_logs/version_19/checkpoints/epoch=14.ckpt
+  create_model:
+    n_inp: 2
+    n_out: 2
+    hidden_layer: [64, 128, 64]
+    output_relu: True  # optional
+    activation: relu  # optional
+  params:  # all have defaults
+    loss: mse_loss
+    optimizer:
+      type: Adam
+      params:
+        lr: 1.e-3
+    scheduler:
+      execute: True
+      type: ReduceLROnPlateau
+      params:
+        cooldown: 2
+        patience: 3
+        min_lr: 1.e-8
+    num_workers: 5
+    batch: 64
+
+# training parameters of flexMLP
+Trainer:
+  params:
+    gpus: 0
+    profiler: True
+    fast_dev_run: True
+    # resume_from_checkpoint: False
+  callbacks:
+    - type: EarlyStopping
+      params:
+        monitor: val_loss
+        patience: 12
+        mode: min
+#    - type: lr_logger  # TODO: solve error
+#    - type: ModelCheckpoint
+#      params:
+#        filepath: None
+#        save_top_k: 1  # other params in documentation
+#   logger: tensorboard  # TODO: solve error
