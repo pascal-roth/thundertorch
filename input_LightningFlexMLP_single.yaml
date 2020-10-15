@@ -46,7 +46,7 @@ Model:
     output_relu: False  # optional
     activation: relu  # optional
   params:  # all have defaults
-    loss: mse_loss
+    loss: RelativeMSELoss
     optimizer:
       type: Adam
       params:
@@ -65,27 +65,28 @@ Model:
 Trainer:
   params:
     gpus: 0
-    max_epochs: 15
+    max_epochs: 10
     profiler: True
     # resume_from_checkpoint: False                       # can only be true if model loaded from checkpoint
   callbacks:
-    - type: EarlyStopping
-      params:
-        monitor: val_loss
-        patience: 12
-        mode: min
-#    - type: lr_logger  # TODO: solve error
-#    - type: ModelCheckpoint
+#    - type: EarlyStopping
 #      params:
-#        filepath: None
-#        save_top_k: 1  # other params in documentation
-  logger:
-    - type: comet-ml
+#        monitor: val_loss
+#        patience: 12
+#        mode: min
+#    - type: lr_logger  # TODO: solve error
+    - type: Checkpointing
       params:
-        api_key: ENlkidpOntcgkoGGs5nkyhFv5
-        project_name: general
-        workspace: proth
-        experiment_name: optimizer
+        filepath: checkpoints/haha_wurst
+        save_top_k: 1  # other params in documentation
+        period: 0
+#  logger:
+#    - type: comet-ml
+#      params:
+#        api_key: ENlkidpOntcgkoGGs5nkyhFv5
+#        project_name: general
+#        workspace: proth
+#        experiment_name: try_out
 #    - type: tensorboard
 
 

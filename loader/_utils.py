@@ -7,6 +7,7 @@ import pandas as pd
 import random
 import numpy as np
 import os
+from multiprocessing import Lock
 from sklearn.model_selection import train_test_split
 
 
@@ -78,7 +79,7 @@ def data_split_explicit(x_samples, y_samples, split_params):  #  -> tuple[pd.Dat
 
 
 # data loading ########################################################################################################
-def read_df_from_file(file_path) -> pd.DataFrame:
+def read_df_from_file(file_path, **kwargs) -> pd.DataFrame:
     """
     Load samples of different sample tpyes
     Parameters
@@ -89,23 +90,23 @@ def read_df_from_file(file_path) -> pd.DataFrame:
     -------
     df_samples      - pd.DataFrame including samples
     """
-    _, file_extention = os.path.splitext(file_path)
-    # TODO: check delimiter (online function finden)
-    if file_extention == '.h5':
-        assert os.path.isfile(file_path), "Given h5-file '{}' doesn't exist.".format(file_path)
-        store = pd.HDFStore(file_path)
-        keys = store.keys()
-        assert len(keys) == 1, "There must be only one key stored in pandas.HDFStore in '{}'!".format(file_path)
-        df_samples = store.get(keys[0])
-        store.close()
-    elif file_extention == '.flut':
-        # import pyflut  # TODO: nur laden when package available --> import ... wenn nicht geladen, fehler!
-        raise NotImplementedError('not implemented yet -> flut datatype unknown')  # TODO: implement pyflut datatype
-    elif file_extention == '.csv' or file_extention == '.txt':
-        df_samples = pd.read_csv(file_path)
-    elif isinstance(file_path, pd.DataFrame):
-        df_samples = file_path
-    else:
-        raise TypeError('File of type: {} not supported!'.format(file_extention))
+    with Lock():
+        _, file_extention = os.path.splitext(file_path)
+        if file_extention == '.h5':
+            assert os.path.isfile(file_path), "Given h5-file '{}' doesn't exist.".format(file_path)
+            store = pd.HDFStore(file_path)
+            keys = store.keys()
+            assert len(keys) == 1, "There must be only one key stored in pandas.HDFStore in '{}'!".format(file_path)
+            df_samples = store.get(keys[0])
+            store.close()
+        elif file_extention == '.flut':
+            # import pyflut  # TODO: nur laden when package available --> import ... wenn nicht geladen, fehler!
+            raise NotImplementedError('not implemented yet -> flut datatype unknown')  # TODO: implement pyflut datatype
+        elif file_extention == '.csv' or file_extention == '.txt':
+            df_samples = pd.read_csv(file_path)
+        elif isinstance(file_path, pd.DataFrame):
+            df_samples = file_path
+        else:
+            raise TypeError('File of type: {} not supported!'.format(file_extention))
 
     return df_samples

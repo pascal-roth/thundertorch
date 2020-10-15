@@ -5,15 +5,15 @@ try:
     import torch
     import torch.nn as nn
     import torch.nn.functional as F
-
+    torch.set_default_dtype(torch.float64)
 
     import pandas as pd
     import numpy as np
     import matplotlib.pyplot as plt
     from tqdm.auto import tqdm
     from .models import *
-    from .losses import *
-    from .regularizers import *
+    from stfs_pytoolbox.ML_Utils.models._losses import *
+    from stfs_pytoolbox.ML_Utils.models._regularizers import *
 
     import os
     import sys

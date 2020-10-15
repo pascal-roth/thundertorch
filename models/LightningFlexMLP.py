@@ -12,8 +12,8 @@ import torch
 import yaml
 import pytorch_lightning as pl
 from argparse import Namespace
-from stfs_pytoolbox.ML_Utils.losses import RelativeMSELoss
 
+from stfs_pytoolbox.ML_Utils.models import _losses
 
 # flexible MLP class
 class LightningFlexMLP(pl.LightningModule):
@@ -70,8 +70,8 @@ class LightningFlexMLP(pl.LightningModule):
 
         if hasattr(self.hparams, 'loss'):
             assert isinstance(self.hparams.loss, str), 'Loss function type has to be of type str'
-            assert hasattr(torch.nn.functional, self.hparams.loss), 'Loss function {} not implemented in ' \
-                                                                    'torch'.format(self.hparams.loss)
+            assert hasattr(torch.nn.functional, self.hparams.loss) or hasattr(_losses, self.hparams.loss), \
+                'Loss function {} not implemented in torch and not included in "_losses.py"'.format(self.hparams.loss)
         else:
             self.hparams.loss = 'mse_loss'
 
@@ -126,8 +126,11 @@ class LightningFlexMLP(pl.LightningModule):
         -------
         loss        - float
         """
-        loss_fn = getattr(torch.nn.functional, self.hparams.loss, 'mse_loss')
-        return loss_fn(y_hat, y)
+        if hasattr(torch.nn.functional, self.hparams.loss):
+            loss = getattr(torch.nn.functional, self.hparams.loss)(y_hat, y)
+        else:
+            loss = getattr(_losses, self.hparams.loss).loss_fn(y_hat, y)
+        return loss
 
     def forward(self, x):
         """

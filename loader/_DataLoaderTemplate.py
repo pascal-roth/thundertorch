@@ -247,7 +247,7 @@ class DataLoaderTemplate:
     @classmethod
     def read_from_checkpoint(cls, ckpt_file):
         """
-        Construct DataLoader with information saved in Model Checkpoint
+        Construct DataLoader with information saved in Model Checkpointing
         """
         model = LightningFlexMLP.load_from_checkpoint(ckpt_file)
 

@@ -40,7 +40,7 @@ class TabularLoader:
         self.lparams.labels = labels
         self.check_lparams()
 
-        # self.samples = df_samples  # TODO: mit Julian besprechen, weil führt zu einem increase in memory consumption
+        # self.samples = df_samples
         # self.x_train = self.samples[features]
         # self.y_train = self.samples[labels]
         self.x_train = df_samples[features]
@@ -146,14 +146,14 @@ class TabularLoader:
 
         self.x_train = self.lparams.x_scaler.transform(self.x_train)
         self.y_train = self.lparams.y_scaler.transform(self.y_train)
-        tensor = torch.utils.data.TensorDataset(torch.tensor(self.x_train).float(), torch.tensor(self.y_train).float())  # TODO: find solution, Julians wants it without float() but then error
+        tensor = torch.utils.data.TensorDataset(torch.tensor(self.x_train), torch.tensor(self.y_train))  # TODO: find solution, Julians wants it without float() but then error
         return torch.utils.data.DataLoader(tensor, batch_size=self.lparams.batch, num_workers=self.lparams.num_workers,
                                            **kwargs)
 
     def val_dataloader(self, **kwargs):
         self.x_val = self.lparams.x_scaler.transform(self.x_val)
         self.y_val = self.lparams.y_scaler.transform(self.y_val)
-        tensor = torch.utils.data.TensorDataset(torch.tensor(self.x_val).float(), torch.tensor(self.y_val).float())
+        tensor = torch.utils.data.TensorDataset(torch.tensor(self.x_val), torch.tensor(self.y_val))
         return torch.utils.data.DataLoader(tensor, batch_size=self.lparams.batch, num_workers=self.lparams.num_workers,
                                            **kwargs)
 
@@ -161,7 +161,7 @@ class TabularLoader:
         assert self.x_test is not None, 'Test data has to be assigned before test_dataloader is created'  # TODO: schauen ob dann default genommen werden kann, wenn man alle samples als Eintrag hat
         self.x_test = self.lparams.x_scaler.transform(self.x_test)
         self.y_test = self.lparams.y_scaler.transform(self.y_test)
-        tensor = torch.utils.data.TensorDataset(torch.tensor(self.x_test).float(), torch.tensor(self.y_test).float())
+        tensor = torch.utils.data.TensorDataset(torch.tensor(self.x_test), torch.tensor(self.y_test))
         return torch.utils.data.DataLoader(tensor, batch_size=self.lparams.batch, num_workers=self.lparams.num_workers,
                                            **kwargs)
 

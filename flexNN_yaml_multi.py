@@ -9,6 +9,7 @@ import argparse
 import logging
 import multiprocessing.pool
 from stfs_pytoolbox.ML_Utils.flexNN_yaml_single import main as execute_run
+from stfs_pytoolbox.ML_Utils.utils import *
 
 
 class NoDaemonProcess(multiprocessing.Process):
@@ -24,58 +25,6 @@ class NoDaemonProcess(multiprocessing.Process):
 
 class MyPool(multiprocessing.pool.Pool):
     Process = NoDaemonProcess
-
-
-def parse_yaml():
-    parser = argparse.ArgumentParser()
-    parser.add_argument('-n', '--name_yaml', type=str, default='input_MultiModelTraining.yaml',
-                        help='Name of yaml file to construct Neural Network')
-    args = parser.parse_args()
-
-    return yaml.load(open(args.name_yaml), Loader=yaml.FullLoader)
-
-
-def replace_keys(dictionary, yamlTemplate):
-    def recursion(document, key_list, yamlTemplate):
-        if isinstance(document, dict):
-            for key, value in document.items():
-                key_list.append(key)
-                yamlTemplate, key_list = recursion(document=value, key_list=key_list, yamlTemplate=yamlTemplate)
-                key_list = key_list[:-1]
-        else:
-            print(key_list)
-            if len(key_list) == 2:
-                if all(key not in ['params', 'val_params', 'test_params'] for key in key_list):
-                    assert key_list[1] in yamlTemplate[key_list[0]], \
-                        'Key {} not included in yaml_template'.format(key_list)
-                yamlTemplate[key_list[0]].update({key_list[1]: document})
-
-            elif len(key_list) == 3:
-                if all(key not in ['params', 'val_params', 'test_params'] for key in key_list):
-                    assert key_list[2] in yamlTemplate[key_list[0]][key_list[1]], \
-                        'Key {} not included in yaml_template'.format(key_list)
-                yamlTemplate[key_list[0]][key_list[1]].update({key_list[2]: document})
-
-            elif len(key_list) == 4:
-                if all(key not in ['params', 'val_params', 'test_params'] for key in key_list):
-                    assert key_list[3] in yamlTemplate[key_list[0]][key_list[1]][key_list[2]], \
-                        'Key {} not included in yaml_template'.format(key_list)
-                yamlTemplate[key_list[0]][key_list[1]][key_list[2]].update({key_list[3]: document})
-
-            elif len(key_list) == 5:
-                if all(key not in ['params', 'val_params', 'test_params'] for key in key_list):
-                    assert key_list[4] in yamlTemplate[key_list[0]][key_list[1]][key_list[2]][key_list[3]], \
-                        'Key {} not included in yaml_template'.format(key_list)
-                yamlTemplate[key_list[0]][key_list[1]][key_list[2]][key_list[3]].update({key_list[4]: document})
-
-            else:
-                raise IndexError('Depth of multi yaml (={}) is out of range of template (=5)'.format(len(key_list)))
-
-        return yamlTemplate, key_list
-
-    yamlTemplate, _ = recursion(document=dictionary, key_list=list([]), yamlTemplate=yamlTemplate)
-
-    return yamlTemplate
 
 
 def runModel(args):
@@ -104,6 +53,8 @@ def main(argsMulti):
 
     # get nbr of parallel processes for multiprocessing
     nbr_process = argsMulti.pop('Nbr_processes', 4)
+    # nbr_process = os.cpu_count()  # nbr of available CPUs
+    # nbr_process = torch.cuda.device_count()  # nbr of available GPUs
     gpu_per_process = argsMulti.pop('GPU_per_model', 1)
     assert nbr_process != 0, 'Number of processes must be > 0'
     if gpu_per_process != 0:
@@ -117,6 +68,8 @@ def main(argsMulti):
 
     pool = MyPool(nbr_process)
     pool.map(runModel, zip(argsModels, itertools.repeat(argsModels), list_gpu))
+    pool.close()
+    pool.join()
 
 
 if __name__ == '__main__':
