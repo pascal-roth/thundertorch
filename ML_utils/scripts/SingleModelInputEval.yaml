@@ -65,16 +65,16 @@ Trainer:
     gpus: 0
     profiler: True
     fast_dev_run: True
-    # resume_from_checkpoint: False
+    checkpoint_callback: False
   callbacks:
     - type: EarlyStopping
       params:
         monitor: val_loss
         patience: 12
         mode: min
-#    - type: lr_logger  # TODO: solve error
-#    - type: ModelCheckpoint
-#      params:
-#        filepath: None
-#        save_top_k: 1  # other params in documentation
-#   logger: tensorboard  # TODO: solve error
+#    - type: lr_logger
+    - type: Checkpointing
+      params:
+        filepath: None
+        save_top_k: 1  # other params in documentation
+#   logger: tensorboard

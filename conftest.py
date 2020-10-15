@@ -34,6 +34,7 @@ def create_TabularLoader(create_random_df):
 
 @pytest.fixture(scope="session", autouse=True)
 def finalizer(request):
-    def clean_lightning_logs():
+    def clean_directories():
         shutil.rmtree('lightning_logs')
-    request.addfinalizer(clean_lightning_logs)
+        shutil.rmtree('checkpoints')
+    request.addfinalizer(clean_directories)

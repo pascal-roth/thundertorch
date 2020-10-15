@@ -28,6 +28,17 @@ Model001:
       max_epochs: 3
       fast_dev_run: True
       profiler: True
+    callbacks:
+      - type: EarlyStopping
+        params:
+          monitor: val_loss
+          patience: 12
+          mode: min
+#     - type: lr_logger
+      - type: Checkpointing
+        params:
+          filepath: None
+          save_top_k: 1
 
 Model002:
   Template: input_LightningFlexMLP_single.yaml
@@ -54,3 +65,14 @@ Model002:
       max_epochs: 3
       fast_dev_run: True
       profiler: True
+    callbacks:
+      - type: EarlyStopping
+        params:
+          monitor: val_loss
+          patience: 12
+          mode: min
+#     - type: lr_logger
+      - type: Checkpointing
+        params:
+          filepath: None
+          save_top_k: 1

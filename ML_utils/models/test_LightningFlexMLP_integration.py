@@ -110,7 +110,7 @@ def generate_samples():
     return samples
 
 
-@pytest.mark.dependency(depends=["models/test_LightningFlexMLP_unit.py::test_init"], scope='session')
+# @pytest.mark.dependency(depends=["./test_LightningFlexMLP_unit.py::test_init"], scope='session')
 def test_LightningFlexMLP_integration():
     hparams = argparse.Namespace(**{'n_inp': 2, 'n_out': 3, 'hidden_layer': [64, 64]})
     model = LightningFlexMLP(hparams)
