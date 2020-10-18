@@ -5,7 +5,6 @@
 # import packages
 import argparse
 import logging
-import os
 import pytorch_lightning as pl
 
 from stfs_pytoolbox.ML_Utils import models     # Models that are defined in __all__ in the __init__ file
@@ -18,26 +17,20 @@ def get_model(argsModel):
     if isinstance(argsModel, dict):
         argsModel = argparse.Namespace(**argsModel)
 
-    if hasattr(argsModel, 'load_model') and hasattr(argsModel, 'create_model') and argsModel.source == 'load':
-        model = getattr(models, argsModel.type).load_from_checkpoint(argsModel.load_model['path'])
-    elif hasattr(argsModel, 'load_model') and hasattr(argsModel, 'create_model') and argsModel.source == 'create':
-        model = getattr(models, argsModel.type)(hparams=argparse.Namespace(**argsModel.create_model))
-    elif hasattr(argsModel, 'load_model'):
+    if hasattr(argsModel, 'load_model'):
         model = getattr(models, argsModel.type).load_from_checkpoint(argsModel.load_model['path'])
     elif hasattr(argsModel, 'create_model'):
         model = getattr(models, argsModel.type)(hparams=argparse.Namespace(**argsModel.create_model))
 
-    model.hparams_update(update_dict=argsModel.params)
+    if hasattr(argsModel, 'params'):
+        model.hparams_update(update_dict=argsModel.params)
     return model.double()
 
 
-def get_dataLoader(argsLoader, model):
-    if isinstance(argsLoader, dict):
-        argsLoader = argparse.Namespace(**argsLoader)
-
-    dataLoader = getattr(loader, argsLoader.type).read_from_yaml(argsLoader, batch=model.hparams.batch,
-                                                                 num_workers=model.hparams.num_workers)
-    model.hparams_update(update_dict=dataLoader.lparams)
+def get_dataLoader(argsLoader: dict, model: pl.LightningModule):
+    dataLoader = getattr(loader, argsLoader['type']).read_from_yaml(argsLoader, batch=model.hparams.batch,
+                                                                    num_workers=model.hparams.num_workers)
+    model.hparams_update(update_dict={'lparams': dataLoader.lparams})
     return dataLoader
 
 

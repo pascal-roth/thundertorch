@@ -6,39 +6,34 @@
 # Generate class including train, val and test data
 DataLoader:
   type: TabularLoader
-  source: create                            # load / create
-  load_DataLoader:
-    path: TabularLoader_example.pkl
+#  load_DataLoader:
+#    path: TabularLoader_example.pkl
   create_DataLoader:
     raw_data_path: example_samples.csv                            # .h5, .csv, .txt
     features: [T_0, PV]
     labels: [T, wH2O, yCO2]
     validation_data:
-      source: split               # TODO: idea to make default as a thrid option
-      load_data:
-        path: None                                  # add_file_path_path
+#      load_data:
+#        path: None                                  # add_file_path_path
       split_data:
         method: explicit                            # options=[random, explicit, percentage]
-        val_params:                                     # only select if method == explicit, percentage
+        params:
           T_0: [940]                                        # adjust feature name
     test_data:
-      source: split
-      load_data:
-        path: None
+#      load_data:
+#        path: None
       split_data:
         method: explicit
-        test_params:                                    # only select if method == sample
+        params:                                    # only select if method == sample
           T_0: [945]                                       # change name of feature
-    save_Loader:
-      execute: False
-      path: TabularLoader_example.pkl
+#    save_Loader:
+#      path: TabularLoader_example.pkl
 
 # hparams for model
 Model:
   type: LightningFlexMLP
-  source: create
-  load_model:
-    path: lightning_logs/version_19/checkpoints/epoch=14.ckpt
+#  load_model:
+#    path: lightning_logs/version_19/checkpoints/epoch=14.ckpt
   create_model:
     n_inp: 2
     n_out: 3
@@ -69,15 +64,15 @@ Trainer:
     profiler: True
     # resume_from_checkpoint: False                       # can only be true if model loaded from checkpoint
   callbacks:
-#    - type: EarlyStopping
-#      params:
-#        monitor: val_loss
-#        patience: 12
-#        mode: min
-#    - type: lr_logger  # TODO: solve error
+    - type: EarlyStopping
+      params:
+        monitor: val_loss
+        patience: 12
+        mode: min
+    - type: LearningRateLogger  # TODO: solve error
     - type: Checkpointing
       params:
-        filepath: checkpoints/haha_wurst
+        filepath: checkpoints/try
         save_top_k: 1  # other params in documentation
         period: 0
 #  logger:

@@ -7,9 +7,11 @@ import yaml
 import itertools
 import argparse
 import logging
+import multiprocessing
 import multiprocessing.pool
 from stfs_pytoolbox.ML_Utils.flexNN_yaml_single import main as execute_run
 from stfs_pytoolbox.ML_Utils.utils import *
+from stfs_pytoolbox.ML_Utils.loader._utils import init_mp
 
 
 class NoDaemonProcess(multiprocessing.Process):
@@ -66,7 +68,8 @@ def main(argsMulti):
     else:
         list_gpu = itertools.repeat(0)
 
-    pool = MyPool(nbr_process)
+    l = multiprocessing.Lock()
+    pool = MyPool(nbr_process, initializer=init_mp, initargs=(l,))
     pool.map(runModel, zip(argsModels, itertools.repeat(argsModels), list_gpu))
     pool.close()
     pool.join()

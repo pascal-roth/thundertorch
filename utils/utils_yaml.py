@@ -15,6 +15,7 @@ from stfs_pytoolbox.ML_Utils import models  # Models that are defined in __all__
 from stfs_pytoolbox.ML_Utils import loader  # Loader that are defined in __all__ in the __init__ file
 from stfs_pytoolbox.ML_Utils import logger  # Logger that are defined in __all__ in the __init__ file
 from stfs_pytoolbox.ML_Utils import callbacks  # Callbacks that are defined in __all__ in the __init__ file
+from stfs_pytoolbox.ML_Utils.utils.utils_option_class import OptionClass
 
 
 def parse_yaml() -> dict:
@@ -34,50 +35,26 @@ def check_args(argsModel, argsLoader, argsTrainer) -> None:
     check_argsTrainer(argsTrainer)
 
 
-def check_argsModel(argsModel) -> None:
-    if isinstance(argsModel, dict):
-        argsModel = argparse.Namespace(**argsModel)
+def check_argsModel(argsModel: dict) -> None:
+    options = {'Model': OptionClass(template=models.LightningModelTemplate.yaml_template(['Model']))}
+    options['Model'].add_key('type', dtype=str, required=True, attr_of=models)
+    options['Model'].add_key('load_model', dtype=dict, mutually_exclusive=['create_model'])
+    options['Model'].add_key('create_model', dtype=dict, mutually_exclusive=['load_model'], param_dict=True)
+    options['Model'].add_key('params', dtype=dict)
 
-    # check model type
-    assert hasattr(argsModel, 'type'), 'Model requires "type" definition! Please follow the template: \n{}'. \
-        format(models.LightningTemplateModel.yaml_template(['Model']))
+    options['load_model'] = OptionClass(template=models.LightningModelTemplate.yaml_template(['Model', 'load_model']))
+    options['load_model'].add_key('path', dtype=str, required=True)
 
-    assert hasattr(models, argsModel.type), '"{}" not an implemented model! Possible options are: "LightningFlexMLP",' \
-                                            ' "LightningFLexCNN" (more will come soon)'.format(argsModel.type)
+    OptionClass.checker(input_dict={'Model': argsModel}, option_classes=options)
 
     # warn if no model params defined
-    if not hasattr(argsModel, 'params'):
+    if 'params' not in argsModel:
         logging.warning('Parameter dict not defined! Default values will be taken. Structure of the params dict is as '
                         'follows: \n{}'.format(getattr(models, argsModel.type).yaml_template(['Model', 'params'])))
 
     # check model source
-    if hasattr(argsModel, 'load_model') and hasattr(argsModel, 'create_model'):
-        assert hasattr(argsModel, 'source'), 'Both dicts "load_model" and "create_model" are defined. Either define ' \
-                                             'source flag or remove unintended dict'
-        assert argsModel.source in ['load', 'create'], 'Source flag is either "load" or "create". "{}" not valid!'. \
-            format(argsModel.source)
-
-    elif hasattr(argsModel, 'source'):
-        if argsModel.source == 'load':
-            assert hasattr(argsModel, 'load_model'), 'Parameter dict: "load_model" is required if source=load. ' \
-                                                     '"load_model" has following structure: \n{}'. \
-                format(getattr(models, argsModel.type).yaml_template(['Model', 'load_model']))
-
-        elif argsModel.source == 'create':
-            assert hasattr(argsModel, 'create_model'), 'Parameter dict: "create_model" is required if source=create. ' \
-                                                       '"create_model" has following structure: \n{}'. \
-                format(getattr(models, argsModel.type).yaml_template(['Model', 'create_model']))
-
-        else:
-            raise ValueError(
-                'Model neither loaded nor created! Set source value to "load" or "create" and include corresponding '
-                'dict."{}" not a valid source'.format(argsModel.source))
-
-    elif not hasattr(argsModel, 'load_model') and hasattr(argsModel, 'create_model'):
+    if 'load_model' not in argsModel and 'create_model' not in argsModel:
         raise KeyError('Definition of load or create model dict necessary!')
-
-    if hasattr(argsModel, 'load_model'):
-        assert 'path' in argsModel.load_model, 'Definition of path to load model is missing!'
 
 
 def check_argsLoader(argsLoader) -> None:
@@ -121,7 +98,7 @@ def check_yaml_structure(args_yaml: dict) -> None:
     assert 'Model' in args_yaml, 'Neural Network Model definition is missing! Possible models are {}. The template ' \
                                  'yml structure for the Models is defined as follows: \n{}'.\
         format(glob.glob(os.path.dirname(inspect.getfile(models)) + '/Lightning*'),
-               models.LightningTemplateModel.yaml_template([]))
+               models.LightningModelTemplate.yaml_template([]))
 
     assert 'Trainer' in args_yaml, 'No Trainer of the Network defined! The trainer is responsible for automating ' \
                                    'network training, tesing and saving. A detailed description of the possible ' \

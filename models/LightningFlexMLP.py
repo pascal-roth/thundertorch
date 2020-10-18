@@ -12,8 +12,11 @@ import torch
 import yaml
 import pytorch_lightning as pl
 from argparse import Namespace
+from sklearn.preprocessing import MinMaxScaler
 
 from stfs_pytoolbox.ML_Utils.models import _losses
+from stfs_pytoolbox.ML_Utils.utils.utils_option_class import OptionClass
+
 
 # flexible MLP class
 class LightningFlexMLP(pl.LightningModule):
@@ -33,6 +36,7 @@ class LightningFlexMLP(pl.LightningModule):
 
         self.hparams = hparams
         self.check_hparams()
+        self.get_default()
         self.min_val_loss = None
 
         # Construct MLP with a variable number of hidden layers
@@ -42,76 +46,30 @@ class LightningFlexMLP(pl.LightningModule):
         self.output = torch.nn.Linear(self.hparams.hidden_layer[-1], self.hparams.n_out)
 
     def check_hparams(self) -> None:
-        # check model building hparams -> do not have default values
-        assert hasattr(self.hparams, 'n_inp'), 'Definition of input dimension is missing! Define "n_inp" as type ' \
-                                               'int. The necessary params to construct the model are: \n{}'.\
-            format(self.yaml_template(['Model', 'create_model']))
-        assert isinstance(self.hparams.n_inp, int), 'Size of input layer has to be of type int'
+        options = self.get_OptionClass()
+        OptionClass.checker(input_dict={'hparams': vars(self.hparams)}, option_classes=options)
 
-        assert hasattr(self.hparams, 'n_out'), 'Definition of output dimension is missing! Define "n_out" as type ' \
-                                               'int. The necessary params to construct the model are: \n{}'.\
-            format(self.yaml_template(['Model', 'create_model']))
-        assert isinstance(self.hparams.n_out, int), 'Size of output layer has to be of type int'
-
-        assert hasattr(self.hparams, 'hidden_layer'), 'Definition of hidden layer dimension(s) is missing! ' \
-                                                      'Define "hidden_layer" as list of int(s). Necessary params to ' \
-                                                      'create the model are: \n{}'.\
-            format(self.yaml_template(['Model', 'create_model']))
-        if not isinstance(self.hparams.hidden_layer, list): self.hparams.hidden_layer = [self.hparams.hidden_layer]
-        assert all(isinstance(elem, int) for elem in self.hparams.hidden_layer), 'Size of hidden layer must be type int'
-
-        # check functions
-        if hasattr(self.hparams, 'activation'):
-            assert isinstance(self.hparams.activation, str), 'Activation function type has to be of type str'
-            assert hasattr(torch.nn.functional, self.hparams.activation), ('Activation function {} not implemented in '
-                                                                           'torch'.format(self.hparams.activation))
-        else:
+    def get_default(self) -> None:
+        if not hasattr(self.hparams, 'activation'):
             self.hparams.activation = 'relu'
 
-        if hasattr(self.hparams, 'loss'):
-            assert isinstance(self.hparams.loss, str), 'Loss function type has to be of type str'
-            assert hasattr(torch.nn.functional, self.hparams.loss) or hasattr(_losses, self.hparams.loss), \
-                'Loss function {} not implemented in torch and not included in "_losses.py"'.format(self.hparams.loss)
-        else:
+        if not hasattr(self.hparams, 'loss'):
             self.hparams.loss = 'mse_loss'
 
-        if hasattr(self.hparams, 'optimizer'):
-            assert self.hparams.optimizer, 'Optimizer params are missing. Attach dict with structure: \n{}'.\
-                format(self.yaml_template(['Model', 'params', 'optimizer']))
-            assert isinstance(self.hparams.optimizer['type'], str), 'Optimizer function type has to be of type str'
-            assert hasattr(torch.optim, self.hparams.optimizer['type']), 'Optimizer function {} not implemented in ' \
-                                                                         'torch'.format(self.hparams.optimizer['type'])
-        else:
+        if not hasattr(self.hparams, 'optimizer'):
             self.hparams.optimizer = {'type': 'Adam', 'params': {'lr': 1e-3}}
 
-        if hasattr(self.hparams, 'scheduler'):
-            assert self.hparams.scheduler, 'Scheduler params are missing. Attach dict with structure: \n{}'.\
-                format(self.yaml_template(['Model', 'params', 'scheduler']))
-            if self.hparams.scheduler['execute']:
-                assert isinstance(self.hparams.scheduler['type'], str), 'Scheduler function type has to be of type str'
-                assert hasattr(torch.optim.lr_scheduler, self.hparams.scheduler['type']), \
-                    'Scheduler function {} not implemented in torch'.format(self.hparams.scheduler['type'])
-        else:
+        if not hasattr(self.hparams, 'scheduler'):
             self.hparams.scheduler = {'execute': False}
 
-        # introduce default values
         if not hasattr(self.hparams, 'num_workers'):
             self.hparams.num_workers = 10
-        else:
-            assert isinstance(self.hparams.num_workers, int), 'Num_workers has to be of type int, not {}!'. \
-                format(type(self.hparams.num_workers))
 
         if not hasattr(self.hparams, 'batch'):
             self.hparams.batch = 64
-        else:
-            assert isinstance(self.hparams.batch, int), 'Batch size has to be of type int, not {}!'. \
-                format(type(self.hparams.batch))
 
         if not hasattr(self.hparams, 'output_relu'):
             self.hparams.output_relu = False
-        else:
-            assert isinstance(self.hparams.output_relu, bool), 'Output_relu has to be of type bool, not {}!'. \
-                format(type(self.hparams.output_relu))
 
     def loss_fn(self, y, y_hat):
         """
@@ -238,6 +196,7 @@ class LightningFlexMLP(pl.LightningModule):
             update_dict = vars(update_dict)
 
         update_hparams(vars(self.hparams), update_dict)
+        self.check_hparams()
 
     # def add_model_specific_args(parent_parser):
     #     parser = argparse.ArgumentParser(parents=[parent_parser])
@@ -247,9 +206,34 @@ class LightningFlexMLP(pl.LightningModule):
     #     return parser
 
     @staticmethod
+    def get_OptionClass():
+        options = {'hparams': OptionClass()}
+        options['hparams'].add_key('n_inp', dtype=int, required=True)
+        options['hparams'].add_key('n_out', dtype=int, required=True)
+        options['hparams'].add_key('hidden_layer', dtype=list, required=True)
+        options['hparams'].add_key('output_relu', dtype=bool)
+        options['hparams'].add_key('activation', dtype=str, attr_of=torch.nn.functional)
+        options['hparams'].add_key('loss', dtype=str, attr_of=[torch.nn.functional, _losses])
+        options['hparams'].add_key('optimizer', dtype=dict)
+        options['hparams'].add_key('scheduler', dtype=dict)
+        options['hparams'].add_key('num_workers', dtype=int)
+        options['hparams'].add_key('batch', dtype=int)
+        options['hparams'].add_key('lparams', dtype=Namespace)
+
+        options['optimizer'] = OptionClass()
+        options['optimizer'].add_key('type', dtype=str, attr_of=torch.optim)
+        options['optimizer'].add_key('params', dtype=dict, param_dict=True)
+
+        options['scheduler'] = OptionClass()
+        options['scheduler'].add_key('execute', dtype=bool)
+        options['scheduler'].add_key('type', dtype=str, attr_of=torch.optim.lr_scheduler)
+        options['scheduler'].add_key('params', dtype=dict, param_dict=True)
+
+        return options
+
+    @staticmethod
     def yaml_template(key_list):
         template = {'Model': {'type': 'LightningFlexMLP',
-                              'source': 'load/ create',
                               'load_model': {'path': 'name.ckpt'},
                               'create_model': {'n_inp': 'int',  'n_out': 'int', 'hidden_layer': '[int, int, int]',
                                                'output_relu': 'bool (default: False)', 'activation':
