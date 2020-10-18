@@ -16,9 +16,6 @@ Model001:
       features: [T_0]
       labels: [yCO2, wH2O]
   Model:
-    source: create
-    load_model:
-      path: None
     create_model:
       n_inp: 1
       n_out: 2
@@ -48,9 +45,6 @@ Model002:
       features: [T_0, P_0]
       labels: [yCO2, wH2O]
   Model:
-    source: create
-    load_model:
-      path: None
     create_model:
       n_inp: 2
       n_out: 2

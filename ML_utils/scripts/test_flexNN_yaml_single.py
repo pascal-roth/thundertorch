@@ -21,6 +21,6 @@ def path():
 def test_complete_script(path, create_random_df, tmp_path):
     yaml_file = yaml.load(open(path / 'SingleModelInputEval.yaml'), Loader=yaml.FullLoader)
     create_random_df.to_csv(tmp_path / 'example_samples.csv')
-    yaml_file['DataLoader']['create_DataLoader']['raw_data_path'] = tmp_path / 'example_samples.csv'
+    yaml_file['DataLoader']['create_DataLoader']['raw_data_path'] = str(tmp_path / 'example_samples.csv')
     yaml_file['Trainer']['callbacks'][1]['params']['filepath'] = tmp_path / 'model'
     main(yaml_file)

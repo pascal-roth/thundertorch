@@ -25,41 +25,9 @@ Model:
   create_model:
     n_inp: 2
     n_out: 2
-    hidden_layer: [64, 128, 64]
-    output_relu: True  # optional
-    activation: relu  # optional
-  params:  # all have defaults
-    loss: mse_loss
-    optimizer:
-      type: Adam
-      params:
-        lr: 1.e-3
-    scheduler:
-      execute: True
-      type: ReduceLROnPlateau
-      params:
-        cooldown: 2
-        patience: 3
-        min_lr: 1.e-8
-    num_workers: 5
-    batch: 64
+    hidden_layer: [64, 64]
 
 # training parameters of flexMLP
 Trainer:
   params:
-    gpus: 0
-    profiler: True
     fast_dev_run: True
-    checkpoint_callback: False
-  callbacks:
-    - type: EarlyStopping
-      params:
-        monitor: val_loss
-        patience: 12
-        mode: min
-#    - type: lr_logger
-    - type: Checkpointing
-      params:
-        filepath: None
-        save_top_k: 1  # other params in documentation
-#   logger: tensorboard

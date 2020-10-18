@@ -27,14 +27,13 @@ def create_LightningFlexMLP():
 @pytest.fixture(scope='session')
 def create_TabularLoader(create_random_df):
     argsLoader = {'df_samples': create_random_df, 'features': ['T_0', 'P_0'], 'labels': ['yCO2', 'wH2O'],
-                  'val_split': {'method': 'percentage', 'val_params': {'T_0': 0.25}},
-                  'test_split': {'method': 'percentage', 'test_params': {'T_0': 0.25}}}
+                  'val_split': {'method': 'percentage', 'params': {'T_0': 0.25}},
+                  'test_split': {'method': 'percentage', 'params': {'T_0': 0.25}}}
     return TabularLoader(**argsLoader)
 
 
 @pytest.fixture(scope="session", autouse=True)
 def finalizer(request):
     def clean_directories():
-        shutil.rmtree('lightning_logs')
         shutil.rmtree('checkpoints')
     request.addfinalizer(clean_directories)

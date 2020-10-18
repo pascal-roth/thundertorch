@@ -22,7 +22,7 @@ def path():
 
 
 def test_get_model(path):
-    yaml_file = yaml.load(open(path / 'SingleModelInputEval.yaml'), Loader=yaml.FullLoader)
+    yaml_file = yaml.load(open(path / 'MinimalSingleModelInputEval.yml'), Loader=yaml.FullLoader)
     yaml_file = yaml_file.pop('Model')
     model = get_model(yaml_file)
     assert isinstance(model, pl.LightningModule)
@@ -30,16 +30,15 @@ def test_get_model(path):
 
 
 def test_get_dataloader(path, create_LightningFlexMLP, tmp_path, create_random_df):
-    yaml_file = yaml.load(open(path / 'SingleModelInputEval.yaml'), Loader=yaml.FullLoader)
+    yaml_file = yaml.load(open(path / 'MinimalSingleModelInputEval.yml'), Loader=yaml.FullLoader)
     create_random_df.to_csv(tmp_path / 'example_samples.csv')
-    yaml_file['DataLoader']['create_DataLoader']['raw_data_path'] = tmp_path / 'example_samples.csv'
+    yaml_file['DataLoader']['create_DataLoader']['raw_data_path'] = str(tmp_path / 'example_samples.csv')
     argsLoader = yaml_file.pop('DataLoader')
     dataLoader = get_dataLoader(argsLoader, create_LightningFlexMLP)
     assert isinstance(dataLoader, TabularLoader)
 
 
 def test_train_model(path, create_LightningFlexMLP, create_TabularLoader, tmp_path):
-    yaml_file = yaml.load(open(path / 'SingleModelInputEval.yaml'), Loader=yaml.FullLoader)
+    yaml_file = yaml.load(open(path / 'MinimalSingleModelInputEval.yml'), Loader=yaml.FullLoader)
     argsTrainer = yaml_file.pop('Trainer')
-    argsTrainer['callbacks'][1]['params']['filepath'] = tmp_path / 'model'
     train_model(create_LightningFlexMLP, create_TabularLoader, argsTrainer)

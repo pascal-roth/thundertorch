@@ -12,7 +12,7 @@ def test_init(create_TabularLoader):
     Loader = create_TabularLoader
     hparams = argparse.Namespace(**{'n_inp': 2, 'n_out': 2, 'hidden_layer': [16, 16]})
     model = LightningFlexMLP(hparams)
-    trainer = pl.Trainer(fast_dev_run=True)
+    trainer = pl.Trainer(fast_dev_run=True, logger=False)
     trainer.fit(model, train_dataloader=Loader.train_dataloader(), val_dataloaders=Loader.val_dataloader())
     trainer.test(model, test_dataloaders=Loader.test_dataloader())
 
@@ -20,7 +20,7 @@ def test_init(create_TabularLoader):
 @pytest.mark.dependency(depends=['test_init'])
 def test_check_hparams():
     # check of hparams without default
-    with pytest.raises(AssertionError):  # 'n_int' missing
+    with pytest.raises(AssertionError):  # 'n_inp' missing
         hparams = argparse.Namespace(**{'n_out': 3, 'hidden_layer': [16, 16]})
         LightningFlexMLP(hparams)
     with pytest.raises(AssertionError):  # 'n_out' missing
@@ -35,10 +35,7 @@ def test_check_hparams():
     with pytest.raises(AssertionError):  # 'n_out' wrong type
         hparams = argparse.Namespace(**{'n_inp': 3, 'n_out': 3.0, 'hidden_layer': [16, 16]})
         LightningFlexMLP(hparams)
-    with pytest.raises(AssertionError):  # 'hidden_layer' wrong type
-        hparams = argparse.Namespace(**{'n_inp': 3, 'n_out': 3, 'hidden_layer': [16, '5']})
-        LightningFlexMLP(hparams)
-    with pytest.raises(AssertionError):  # 'hidden_layer' wrong type
+    with pytest.raises(TypeError):  # 'hidden_layer' wrong type
         hparams = argparse.Namespace(**{'n_inp': 3, 'n_out': 3, 'hidden_layer': [16, '5']})
         LightningFlexMLP(hparams)
 

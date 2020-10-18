@@ -124,8 +124,8 @@ def test_LightningFlexMLP_integration():
 
     data = generate_samples()
     argsLoader = {'df_samples': data, 'features': ['T_0', 'time'], 'labels': ['T', 'yCO2', 'wH2O'],
-                  'val_split': {'method': 'explicit', 'val_params': {'T_0': 1550}},
-                  'test_split': {'method': 'explicit', 'test_params': {'T_0': 1575}}}
+                  'val_split': {'method': 'explicit', 'params': {'T_0': 1550}},
+                  'test_split': {'method': 'explicit', 'params': {'T_0': 1575}}}
     dataLoader = TabularLoader(**argsLoader, batch=model.hparams.batch, num_workers=model.hparams.num_workers)
 
     trainer = pl.Trainer(max_epochs=10, logger=False)
