@@ -60,21 +60,25 @@ def test_check_argsModel():
 def test_check_argsLoader():
     yamlTemplate = DataLoaderTemplate.yaml_template(key_list=['DataLoader'])
     argsLoader = yaml.load(yamlTemplate, Loader=yaml.FullLoader)
+    _ = argsLoader.pop('load_DataLoader')
     check_argsLoader(argsLoader)
 
     with pytest.raises(AssertionError):
         argsLoader = yaml.load(yamlTemplate, Loader=yaml.FullLoader)
         _ = argsLoader.pop('type')
+        _ = argsLoader.pop('load_DataLoader')
         check_argsLoader(argsLoader)
     with pytest.raises(AssertionError):
         argsLoader = yaml.load(yamlTemplate, Loader=yaml.FullLoader)
         argsLoader['type'] = 'some other fkt'
+        _ = argsLoader.pop('load_DataLoader')
         check_argsLoader(argsLoader)
 
 
 def test_check_argsTrainer():
     yamlTemplate = trainer_yml_template(key_list=['Trainer'])
     argsTrainer = yaml.load(yamlTemplate, Loader=yaml.FullLoader)
+    _ = argsTrainer['params'].pop('gpus')
     check_argsTrainer(argsTrainer)
 
     with pytest.raises(AssertionError):
@@ -96,21 +100,9 @@ def test_replace_keys(path):
     yaml_file = replace_keys(yaml_file, yamlTemplate)
     assert yaml_file['DataLoader']['create_DataLoader']['features'] == ['T_0', 'PV'], 'Replacement of keys fails'
 
-    with pytest.raises(AssertionError):  # highest level key not included in the Template
-        yaml_file = yaml.load(open(path / 'scripts/MultiModelInputEval.yaml'), Loader=yaml.FullLoader)
-        yaml_file = yaml_file.pop('Model001')
-        _ = yaml_file.pop('Template')
-        yaml_file['Model']['create_model']['n_int'] = 7
-        replace_keys(yaml_file, yamlTemplate)
     with pytest.raises(KeyError):  # error in the key_path to the highest level key
         yaml_file = yaml.load(open(path / 'scripts/MultiModelInputEval.yaml'), Loader=yaml.FullLoader)
         yaml_file = yaml_file.pop('Model001')
         _ = yaml_file.pop('Template')
         yaml_file['Model']['create_modle']['n_inp'] = 7
-        replace_keys(yaml_file, yamlTemplate)
-    with pytest.raises(IndexError):
-        yaml_file = yaml.load(open(path / 'scripts/MultiModelInputEval.yaml'), Loader=yaml.FullLoader)
-        yaml_file = yaml_file.pop('Model002')
-        _ = yaml_file.pop('Template')
-        yaml_file['Model']['params']['optimizer']['params']['new_key'] = {'new_key': 7}
         replace_keys(yaml_file, yamlTemplate)
