@@ -12,6 +12,7 @@ def main(args_yaml):
     ----------
     args_yaml       - Dict with all input arguments
     """
+    check_yaml_version(args_yaml)
     check_yaml_structure(args_yaml)
 
     argsLoader = args_yaml['DataLoader']

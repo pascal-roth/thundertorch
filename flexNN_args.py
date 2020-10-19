@@ -92,7 +92,7 @@ def parseArguments():
     # train_parser.add_argument('-e', '--epochs', type=int, dest='epochs', default=10,
     #                           help='Number of epochs to train')
     train_parser.add_argument('--output', '-out', dest='output', required=False, default='TorchModel.pt',
-                              help='file name of best model that is saved')  # TODO: Ueberlegen ob wirklich location defined werden soll oder einfach immer in den lightning_logs
+                              help='file name of best model that is saved')
 
     args = train_parser.parse_args()
 

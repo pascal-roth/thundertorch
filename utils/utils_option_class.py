@@ -69,14 +69,15 @@ class OptionClass:
             'Function "{}" not implemented in "{}"!'.format(item, self.keylist[key].get('attr_of'))
 
     @staticmethod
-    def checker(input_dict, option_classes):
+    def checker(input_dict: dict, option_classes):
+
         def recursion(input_dict, param_dicts):
             for key, value in input_dict.items():
                 if isinstance(value, dict) and key not in param_dicts:
-                    try:
-                        param_dicts = option_classes[key].check_dict(value, input_key=key)
-                        recursion(input_dict=value, param_dicts=param_dicts)
-                    except KeyError:
-                        logging.info('')
+                    param_dicts = option_classes[key].check_dict(value, input_key=key)
+                    recursion(input_dict=value, param_dicts=param_dicts)
+                elif isinstance(value, list) and all(isinstance(elem, dict) for elem in value):
+                    for list_dict in value:
+                        param_dicts = option_classes[key].check_dict(list_dict, input_key=key)
 
         recursion(input_dict=input_dict, param_dicts=[])

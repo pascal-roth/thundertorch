@@ -10,7 +10,10 @@ import glob
 import inspect
 import os
 import pytorch_lightning as pl
+from functools import reduce
+import operator
 
+import stfs_pytoolbox
 from stfs_pytoolbox.ML_Utils import models  # Models that are defined in __all__ in the __init__ file
 from stfs_pytoolbox.ML_Utils import loader  # Loader that are defined in __all__ in the __init__ file
 from stfs_pytoolbox.ML_Utils import logger  # Logger that are defined in __all__ in the __init__ file
@@ -20,7 +23,7 @@ from stfs_pytoolbox.ML_Utils.utils.utils_option_class import OptionClass
 
 def parse_yaml() -> dict:
     parser = argparse.ArgumentParser()
-    parser.add_argument('-n', '--name_yaml', type=str, default='input_LightningFlexMLP_single.yaml',
+    parser.add_argument('-n', '--name_yaml', type=str, default='input_MultiModelTraining.yaml',
                         help='Name of yaml file to construct Neural Network')
     args = parser.parse_args()
 
@@ -28,7 +31,12 @@ def parse_yaml() -> dict:
     return yaml.load(flexMLP_yaml, Loader=yaml.FullLoader)
 
 
-def check_args(argsModel, argsLoader, argsTrainer) -> None:
+def check_yaml_version(args_yaml: dict) -> None:  # TODO: assert error if yaml file changed with a new version
+    # stfs_pytoolbox.__version__
+    pass
+
+
+def check_args(argsModel: dict, argsLoader: dict, argsTrainer: dict) -> None:
     # transform to namespace objects
     check_argsModel(argsModel)
     check_argsLoader(argsLoader)
@@ -40,7 +48,7 @@ def check_argsModel(argsModel: dict) -> None:
     options['Model'].add_key('type', dtype=str, required=True, attr_of=models)
     options['Model'].add_key('load_model', dtype=dict, mutually_exclusive=['create_model'])
     options['Model'].add_key('create_model', dtype=dict, mutually_exclusive=['load_model'], param_dict=True)
-    options['Model'].add_key('params', dtype=dict)
+    options['Model'].add_key('params', dtype=dict, param_dict=True)
 
     options['load_model'] = OptionClass(template=models.LightningModelTemplate.yaml_template(['Model', 'load_model']))
     options['load_model'].add_key('path', dtype=str, required=True)
@@ -57,35 +65,33 @@ def check_argsModel(argsModel: dict) -> None:
         raise KeyError('Definition of load or create model dict necessary!')
 
 
-def check_argsLoader(argsLoader) -> None:
-    if isinstance(argsLoader, dict):
-        argsLoader = argparse.Namespace(**argsLoader)
+def check_argsLoader(argsLoader: dict) -> None:
+    options = {'DataLoader': OptionClass(template=loader.DataLoaderTemplate.yaml_template(['DataLoader']))}
+    options['DataLoader'].add_key('type', dtype=str, required=True, attr_of=loader)
+    options['DataLoader'].add_key('load_DataLoader', dtype=dict, mutually_exclusive=['create_DataLoader'], param_dict=True)
+    options['DataLoader'].add_key('create_DataLoader', dtype=dict, mutually_exclusive=['load_DataLoader'], param_dict=True)
 
-    assert hasattr(argsLoader, 'type'), 'DataLoader requires "type" definition! Please follow the template: \n{}'. \
-        format(loader.DataLoaderTemplate.yaml_template(['DataLoader']))
-    assert hasattr(loader, argsLoader.type), '{} not an implemented loader'.format(argsLoader.type)
+    OptionClass.checker(input_dict={'DataLoader': argsLoader}, option_classes=options)
 
 
-def check_argsTrainer(argsTrainer) -> None:
-    if isinstance(argsTrainer, dict):
-        argsTrainer = argparse.Namespace(**argsTrainer)
+def check_argsTrainer(argsTrainer: dict) -> None:
+    options = {'Trainer': OptionClass(template=trainer_yml_template(['Trainer']))}
+    options['Trainer'].add_key('params', dtype=dict, param_dict=True)
+    options['Trainer'].add_key('callbacks', dtype=[dict, list])
+    options['Trainer'].add_key('logger', dtype=[dict, list])
 
-    if hasattr(argsTrainer, 'callbacks'):
-        if not isinstance(argsTrainer.callbacks, list): argsTrainer.callbacks = list(argsTrainer.callbacks)
+    options['callbacks'] = OptionClass(template=trainer_yml_template(['Trainer', 'callbacks']))
+    options['callbacks'].add_key('type', dtype=str, required=True, attr_of=[pl.callbacks, callbacks])
+    options['callbacks'].add_key('params', dtype=dict, param_dict=True)
 
-        assert all('type' in callback for callback in argsTrainer.callbacks), \
-            'Each callback requires definition of the "type". Please follow the structure defined as follows: \n{}'. \
-            format(trainer_yml_template(['Trainer', 'callbacks']))
+    options['logger'] = OptionClass(template=trainer_yml_template(['Trainer', 'logger']))
+    options['logger'].add_key('type', dtype=str, required=True)
+    options['logger'].add_key('params', dtype=dict, param_dict=True)
 
-        assert all((hasattr(pl.callbacks, callback['type']) or hasattr(callbacks, callback['type'])) for callback in argsTrainer.callbacks),\
-            'Callback not available in lightning and not self-implemented'
+    OptionClass.checker(input_dict={'Trainer': argsTrainer}, option_classes=options)
 
-    if hasattr(argsTrainer, 'logger'):
-        if not isinstance(argsTrainer.logger, list): argsTrainer.logger = list(argsTrainer.logger)
-
-        assert all('type' in logger for logger in argsTrainer.logger), \
-            'Each logger_fn requires definition of the "type". Please follow the structure defined as follows: \n{}'. \
-            format(trainer_yml_template(['Trainer', 'logger_fn']))
+    if all(elem in argsTrainer['params'] for elem in ['gpus', 'profiler']) and argsTrainer['params']['gpus'] != 0:
+        raise KeyError('In multi GPU training, profiler cannot be active!')
 
 
 def check_yaml_structure(args_yaml: dict) -> None:
@@ -126,43 +132,43 @@ def trainer_yml_template(key_list) -> dict:
 
 
 def replace_keys(dictionary, yamlTemplate):
-    def recursion(document, key_list, yamlTemplate):
+    def recursion_search(document, key_list, yamlTemplate):
         if isinstance(document, dict):
             for key, value in document.items():
                 key_list.append(key)
-                yamlTemplate, key_list = recursion(document=value, key_list=key_list, yamlTemplate=yamlTemplate)
+                yamlTemplate, key_list = recursion_search(document=value, key_list=key_list, yamlTemplate=yamlTemplate)
                 key_list = key_list[:-1]
+
+        elif isinstance(document, list) and all(isinstance(elem, dict) for elem in document):
+            for list_dict in document:
+                yamlTemplate_list_dict = get_by_path(yamlTemplate, key_list)
+                yamlTemplate_list_dict_nbr = next((i for i, item in enumerate(yamlTemplate_list_dict) if item["type"] == list_dict['type']))
+                key_list.extend([yamlTemplate_list_dict_nbr, 'params'])
+                yamlTemplate, key_list = recursion_search(document=list_dict['params'], key_list=key_list, yamlTemplate=yamlTemplate)
+                key_list = key_list[:-2]
+
         else:
-
-            if len(key_list) == 2:
-                if all(key not in ['params', 'val_params', 'test_params'] for key in key_list):
-                    assert key_list[1] in yamlTemplate[key_list[0]], \
-                        'Key {} not included in yaml_template'.format(key_list)
-                yamlTemplate[key_list[0]].update({key_list[1]: document})
-
-            elif len(key_list) == 3:
-                if all(key not in ['params', 'val_params', 'test_params'] for key in key_list):
-                    assert key_list[2] in yamlTemplate[key_list[0]][key_list[1]], \
-                        'Key {} not included in yaml_template'.format(key_list)
-                yamlTemplate[key_list[0]][key_list[1]].update({key_list[2]: document})
-
-            elif len(key_list) == 4:
-                if all(key not in ['params', 'val_params', 'test_params'] for key in key_list):
-                    assert key_list[3] in yamlTemplate[key_list[0]][key_list[1]][key_list[2]], \
-                        'Key {} not included in yaml_template'.format(key_list)
-                yamlTemplate[key_list[0]][key_list[1]][key_list[2]].update({key_list[3]: document})
-
-            elif len(key_list) == 5:
-                if all(key not in ['params', 'val_params', 'test_params'] for key in key_list):
-                    assert key_list[4] in yamlTemplate[key_list[0]][key_list[1]][key_list[2]][key_list[3]], \
-                        'Key {} not included in yaml_template'.format(key_list)
-                yamlTemplate[key_list[0]][key_list[1]][key_list[2]][key_list[3]].update({key_list[4]: document})
-
-            else:
-                raise IndexError('Depth of multi yaml key {} is out of range of template keys'.format(key_list))
+            set_by_path(yamlTemplate, key_list, document)
 
         return yamlTemplate, key_list
 
-    yamlTemplate, _ = recursion(document=dictionary, key_list=list([]), yamlTemplate=yamlTemplate)
+    yamlTemplate, _ = recursion_search(document=dictionary, key_list=list([]), yamlTemplate=yamlTemplate)
 
     return yamlTemplate
+
+
+# get, set and del keys in nested dict structure
+def get_by_path(root, items):
+    """Access a nested object in root by item sequence."""
+    return reduce(operator.getitem, items, root)
+
+
+def set_by_path(root, items, value):
+    """Set a value in a nested object in root by item sequence."""
+    get_by_path(root, items[:-1])[items[-1]] = value
+
+
+def del_by_path(root, items):
+    """Delete a key-value in a nested object in root by item sequence."""
+    del get_by_path(root, items[:-1])[items[-1]]
+

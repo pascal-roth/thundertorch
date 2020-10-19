@@ -50,7 +50,7 @@ def train_model(model, dataLoader, argsTrainer) -> None:
                     callback = getattr(pl.callbacks, argsTrainer.callbacks[i]['type'])(
                         **argsTrainer.callbacks[i]['params'])
                 else:
-                    callback = getattr(pl.callbacks, argsTrainer.callbacks[i]['type'])
+                    callback = getattr(pl.callbacks, argsTrainer.callbacks[i]['type'])()
                 callback_list.append(callback)
             else:
                 checkpoint = callbacks.Checkpointing(**argsTrainer.callbacks[i]['params'])

@@ -7,8 +7,12 @@ import yaml
 import itertools
 import argparse
 import logging
+import torch
+import os
+
 import multiprocessing
 import multiprocessing.pool
+
 from stfs_pytoolbox.ML_Utils.flexNN_yaml_single import main as execute_run
 from stfs_pytoolbox.ML_Utils.utils import *
 from stfs_pytoolbox.ML_Utils.loader._utils import init_mp
@@ -54,12 +58,26 @@ def main(argsMulti):
         logging.info('No Models excluded! All models selected for training!')
 
     # get nbr of parallel processes for multiprocessing
-    nbr_process = argsMulti.pop('Nbr_processes', 4)
-    # nbr_process = os.cpu_count()  # nbr of available CPUs
-    # nbr_process = torch.cuda.device_count()  # nbr of available GPUs
+    nbr_cpu = os.cpu_count()  # nbr of available CPUs
+    nbr_gpu = torch.cuda.device_count()  # nbr of available GPUs
+    if 'Nbr_processes' in argsMulti:
+        nbr_process = argsMulti.pop('Nbr_processes')
+        assert nbr_process != 0, 'Number of processes must be > 0'
+
+        if nbr_gpu != 0:
+            assert nbr_process <= nbr_gpu, 'The number of intended processes exceeds the number of available GPUs!'
+        else:
+            logging.info('No GPU available!')
+            assert nbr_process <= nbr_cpu, 'The number of intended processes exceeds the number of available CPUs!'
+
+    else:
+        if nbr_gpu != 0:
+            nbr_process = nbr_gpu
+        else:
+            nbr_process = 1
+
     gpu_per_process = argsMulti.pop('GPU_per_model', 1)
-    assert nbr_process != 0, 'Number of processes must be > 0'
-    if gpu_per_process != 0:
+    if gpu_per_process != 0 and nbr_gpu != 0:
         list_gpu = []
         gpu_available = list(range(0, nbr_process))
         for i in range(int(nbr_process / gpu_per_process)):

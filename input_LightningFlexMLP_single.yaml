@@ -59,7 +59,7 @@ Model:
 # training parameters of flexMLP
 Trainer:
   params:
-    gpus: 0
+    gpus: 4
     max_epochs: 10
     profiler: True
     # resume_from_checkpoint: False                       # can only be true if model loaded from checkpoint
@@ -69,7 +69,7 @@ Trainer:
         monitor: val_loss
         patience: 12
         mode: min
-    - type: LearningRateLogger  # TODO: solve error
+#    - type: LearningRateLogger  # only working if lr scheduler active and if a logger is selected
     - type: Checkpointing
       params:
         filepath: checkpoints/try

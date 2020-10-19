@@ -12,7 +12,6 @@ import torch
 import yaml
 import pytorch_lightning as pl
 from argparse import Namespace
-from sklearn.preprocessing import MinMaxScaler
 
 from stfs_pytoolbox.ML_Utils.models import _losses
 from stfs_pytoolbox.ML_Utils.utils.utils_option_class import OptionClass

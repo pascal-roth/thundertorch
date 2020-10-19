@@ -177,19 +177,19 @@ class TabularLoader:
         self.lparams.filename = filename
 
     @classmethod
-    def load(cls, filename):
+    def load(cls, filename: str) -> object:
         with open(filename, 'rb') as input:
             return pickle.load(input)
 
     # classmethods ####################################################################################################
     @classmethod
-    def read_from_file(cls, file, features, labels, **kwargs):
+    def read_from_file(cls, file, features, labels, **kwargs) -> object:
         df_samples = _utils.read_df_from_file(file)
         return cls(df_samples, features, labels, data_path=file,
                    **kwargs)
 
     @classmethod
-    def read_from_yaml(cls, argsLoader, **kwargs) -> object:
+    def read_from_yaml(cls, argsLoader: dict, **kwargs) -> object:
         options = TabularLoader.get_OptionClass()
         OptionClass.checker(input_dict=argsLoader, option_classes=options)
 
