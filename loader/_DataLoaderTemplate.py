@@ -11,7 +11,7 @@ import yaml
 from sklearn import preprocessing
 from argparse import Namespace
 
-from stfs_pytoolbox.ML_Utils.models.LightningFlexMLP import LightningFlexMLP
+from stfs_pytoolbox.ML_Utils import models
 from stfs_pytoolbox.ML_Utils.loader import _utils
 from stfs_pytoolbox.ML_Utils.utils.utils_option_class import OptionClass
 
@@ -225,7 +225,7 @@ class DataLoaderTemplate:
         """
         Construct DataLoader with information saved in Model Checkpointing
         """
-        model = LightningFlexMLP.load_from_checkpoint(ckpt_file)
+        model = models.LightningFlexMLP.load_from_checkpoint(ckpt_file)
 
         assert hasattr(model.hparams, 'data_path'), 'Data cannot be reloaded because the pass is missing'
         _, file_extention = os.path.splitext(model.hparams.data_path)

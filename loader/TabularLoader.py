@@ -256,9 +256,9 @@ class TabularLoader:
         -------
         Loader          - TabularLoader class object
         """
-        from stfs_pytoolbox.ML_Utils.models import LightningFlexMLP
+        from stfs_pytoolbox.ML_Utils import models
 
-        model = LightningFlexMLP.load_from_checkpoint(ckpt_file)  # TODO: implement for all model types
+        model = models.LightningFlexMLP.load_from_checkpoint(ckpt_file)  # TODO: implement for all model types
         lparams = model.hparams.lparams
 
         assert hasattr(lparams, 'data_path'), 'Data cannot be reloaded because the pass is missing'

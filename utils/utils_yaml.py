@@ -23,7 +23,7 @@ from stfs_pytoolbox.ML_Utils.utils.utils_option_class import OptionClass
 
 def parse_yaml() -> dict:
     parser = argparse.ArgumentParser()
-    parser.add_argument('-n', '--name_yaml', type=str, default='input_MultiModelTraining.yaml',
+    parser.add_argument('-n', '--name_yaml', type=str, default='input_LightningFlexCNN_single.yaml',
                         help='Name of yaml file to construct Neural Network')
     args = parser.parse_args()
 

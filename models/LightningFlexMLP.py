@@ -206,7 +206,7 @@ class LightningFlexMLP(pl.LightningModule):
 
     @staticmethod
     def get_OptionClass():
-        options = {'hparams': OptionClass()}
+        options = {'hparams': OptionClass(template=LightningFlexMLP.yaml_template(['Model', 'params']))}
         options['hparams'].add_key('n_inp', dtype=int, required=True)
         options['hparams'].add_key('n_out', dtype=int, required=True)
         options['hparams'].add_key('hidden_layer', dtype=list, required=True)
@@ -219,11 +219,11 @@ class LightningFlexMLP(pl.LightningModule):
         options['hparams'].add_key('batch', dtype=int)
         options['hparams'].add_key('lparams', dtype=Namespace)
 
-        options['optimizer'] = OptionClass()
+        options['optimizer'] = OptionClass(template=LightningFlexMLP.yaml_template(['Model', 'params', 'optimizer']))
         options['optimizer'].add_key('type', dtype=str, attr_of=torch.optim)
         options['optimizer'].add_key('params', dtype=dict, param_dict=True)
 
-        options['scheduler'] = OptionClass()
+        options['scheduler'] = OptionClass(template=LightningFlexMLP.yaml_template(['Model', 'params', 'scheduler']))
         options['scheduler'].add_key('execute', dtype=bool)
         options['scheduler'].add_key('type', dtype=str, attr_of=torch.optim.lr_scheduler)
         options['scheduler'].add_key('params', dtype=dict, param_dict=True)

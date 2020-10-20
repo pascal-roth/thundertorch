@@ -59,7 +59,7 @@ Model:
 # training parameters of flexMLP
 Trainer:
   params:
-    gpus: 4
+    # gpus: 4
     max_epochs: 10
     profiler: True
     # resume_from_checkpoint: False                       # can only be true if model loaded from checkpoint

@@ -74,7 +74,7 @@ def main(argsMulti):
         if nbr_gpu != 0:
             nbr_process = nbr_gpu
         else:
-            nbr_process = 1
+            nbr_process = nbr_cpu
 
     gpu_per_process = argsMulti.pop('GPU_per_model', 1)
     if gpu_per_process != 0 and nbr_gpu != 0:

@@ -2,7 +2,7 @@ import torch
 import torch.nn.functional as F
 
 
-class RelativeMSELoss:
+class RelativeMSELoss:  # TODO: wieder umschreiben zur forward function
     @staticmethod
     def loss_fn(y_hat, y):
         r = 0.01
