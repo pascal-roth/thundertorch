@@ -12,6 +12,7 @@ try:
     import matplotlib.pyplot as plt
     from tqdm.auto import tqdm
     from .models import *
+    from .loader import *
     from stfs_pytoolbox.ML_Utils.models._losses import *
     from stfs_pytoolbox.ML_Utils.models._regularizers import *
 
