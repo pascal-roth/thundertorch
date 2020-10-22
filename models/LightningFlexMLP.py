@@ -33,9 +33,13 @@ class LightningFlexMLP(pl.LightningModule):
         """
         super().__init__()
 
+        self.loss_fn = None
+        self.activation_fn = None
+
         self.hparams = hparams
         self.check_hparams()
         self.get_default()
+        self.get_functions()
         self.min_val_loss = None
 
         # Construct MLP with a variable number of hidden layers
@@ -43,6 +47,29 @@ class LightningFlexMLP(pl.LightningModule):
         layer_sizes = zip(self.hparams.hidden_layer[:-1], self.hparams.hidden_layer[1:])
         self.layers.extend([torch.nn.Linear(h1, h2) for h1, h2 in layer_sizes])
         self.output = torch.nn.Linear(self.hparams.hidden_layer[-1], self.hparams.n_out)
+
+    # def get_hparams(self, args, kwargs):
+    #     # check args
+    #     if len(args) == 1:
+    #         if isinstance(args[0], Namespace): self.hparams = args[0]
+    #         elif isinstance(args[0], dict): self.hparams = Namespace(**args[0])
+    #         else: raise TypeError('Wrong datatype')
+    #     elif len(args) == 3:
+    #         assert isinstance(args[0], int)
+    #         assert isinstance(args[1], int)
+    #         assert isinstance(args[2], list)
+    #         self.hparams = Namespace()
+    #         self.hparams.n_inp, self.hparams.n_out, self.hparams.hidden_layer = args[0], args[1], args[2]
+    #
+    #     # check kwargs
+    #     if 'hparams' in kwargs:
+    #         assert self.hparams is None, 'Required hparams already satisfied with args'
+    #         if isinstance(kwargs['hparams'], Namespace): self.hparams = kwargs['hparams']
+    #         elif isinstance(kwargs['hparams'], dict): self.hparams = Namespace(**kwargs['hparams'])
+    #         else: raise TypeError('wrong datatype')
+    #
+    #     if len(kwargs) != 0:
+    #         self.hparams_update(**kwargs)
 
     def check_hparams(self) -> None:
         options = self.get_OptionClass()
@@ -70,24 +97,14 @@ class LightningFlexMLP(pl.LightningModule):
         if not hasattr(self.hparams, 'output_relu'):
             self.hparams.output_relu = False
 
-    def loss_fn(self, y, y_hat):
-        """
-        compute loss
+    def get_functions(self):
+        self.activation_fn = getattr(torch.nn.functional, self.hparams.activation)
 
-        Parameters
-        ----------
-        y           - target tensor of network
-        y_hat       - tensor output of network
-
-        Returns
-        -------
-        loss        - float
-        """
         if hasattr(torch.nn.functional, self.hparams.loss):
-            loss = getattr(torch.nn.functional, self.hparams.loss)(y_hat, y)
+            self.loss_fn = getattr(torch.nn.functional, self.hparams.loss)
         else:
-            loss = getattr(_losses, self.hparams.loss).loss_fn(y_hat, y)
-        return loss
+            loss_module = getattr(_losses, self.hparams.loss)
+            self.loss_fn = loss_module.forward
 
     def forward(self, x):
         """
@@ -102,8 +119,7 @@ class LightningFlexMLP(pl.LightningModule):
         x           - output tensor of the pytorch.nn.Linear layer
         """
         for layer in self.layers:
-            activation_fn = getattr(torch.nn.functional, self.hparams.activation)
-            x = activation_fn(layer(x))
+            x = self.activation_fn(layer(x))
 
         if self.hparams.output_relu:
             x = torch.nn.functional.relu(self.output(x))

@@ -9,12 +9,6 @@ import numpy as np
 import os
 from sklearn.model_selection import train_test_split
 
-# init function for model multiprocessing #############################################################################
-lock = None
-def init_mp(l):
-    global lock
-    lock = l
-
 
 # data split ##########################################################################################################
 def data_split_random(x_samples, y_samples, split_params):  #  -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.DataFrame]
@@ -95,9 +89,6 @@ def read_df_from_file(file_path) -> pd.DataFrame:
     -------
     df_samples      - pd.DataFrame including samples
     """
-    if lock is not None:
-        lock.acquire()
-
     _, file_extention = os.path.splitext(file_path)
     if file_extention == '.h5':
         assert os.path.isfile(file_path), "Given h5-file '{}' doesn't exist.".format(file_path)
@@ -115,8 +106,5 @@ def read_df_from_file(file_path) -> pd.DataFrame:
         df_samples = file_path
     else:
         raise TypeError('File of type: {} not supported!'.format(file_extention))
-
-    if lock is not None:
-        lock.release()
 
     return df_samples

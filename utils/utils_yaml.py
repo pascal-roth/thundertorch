@@ -23,9 +23,12 @@ from stfs_pytoolbox.ML_Utils.utils.utils_option_class import OptionClass
 
 def parse_yaml() -> dict:
     parser = argparse.ArgumentParser()
-    parser.add_argument('-n', '--name_yaml', type=str, default='input_LightningFlexCNN_single.yaml',
+    parser.add_argument('-n', '--name_yaml', type=str, default='input_MultiModelTraining.yaml',
                         help='Name of yaml file to construct Neural Network')
+    parser.add_argument('-l', '--logging', type=str, default='WARNING')
     args = parser.parse_args()
+
+    logging.basicConfig(level=getattr(logging, args.logging))
 
     flexMLP_yaml = open(args.name_yaml)
     return yaml.load(flexMLP_yaml, Loader=yaml.FullLoader)

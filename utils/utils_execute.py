@@ -20,7 +20,7 @@ def get_model(argsModel):
     if hasattr(argsModel, 'load_model'):
         model = getattr(models, argsModel.type).load_from_checkpoint(argsModel.load_model['path'])
     elif hasattr(argsModel, 'create_model'):
-        model = getattr(models, argsModel.type)(hparams=argparse.Namespace(**argsModel.create_model))
+        model = getattr(models, argsModel.type)(argparse.Namespace(**argsModel.create_model))
 
     if hasattr(argsModel, 'params'):
         model.hparams_update(update_dict=argsModel.params)

@@ -266,7 +266,7 @@ class AssemblyModel(torch.nn.Module):
 
         """
         X = Xorg.clone()
-        X.requires_grad_(False)
+        X.requires_grad_(False)  
         X = (X - self.X_min) / (self.X_max - self.X_min)
         # If input are out of range of trained scales, set value to border
         if self.limit_scale:
