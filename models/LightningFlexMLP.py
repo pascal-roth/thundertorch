@@ -60,7 +60,8 @@ class LightningFlexMLP(pl.LightningModule):
             self.hparams.loss = 'mse_loss'
 
         if not hasattr(self.hparams, 'optimizer'):
-            self.hparams.optimizer = {'type': 'Adam', 'params': {'lr': 1e-3}}
+            self.hparams.lr = 1e-3
+            self.hparams.optimizer = {'type': 'Adam', 'params': {'lr': self.hparams.lr}}
 
         if not hasattr(self.hparams, 'scheduler'):
             self.hparams.scheduler = {'execute': False}
@@ -212,6 +213,7 @@ class LightningFlexMLP(pl.LightningModule):
         options['hparams'].add_key('num_workers', dtype=int)
         options['hparams'].add_key('batch', dtype=int)
         options['hparams'].add_key('lparams', dtype=Namespace)
+        options['hparams'].add_key('lr', dtype=float)
 
         options['optimizer'] = OptionClass(template=LightningFlexMLP.yaml_template(['Model', 'params', 'optimizer']))
         options['optimizer'].add_key('type', dtype=str, attr_of=torch.optim)

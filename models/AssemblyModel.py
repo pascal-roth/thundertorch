@@ -64,7 +64,7 @@ class AssemblyModel(torch.nn.Module):
         ----------
         path: str   path + file name of model
         """
-        n_inp = self.models[0].n_inp
+        n_inp = self.models[0].hparams.n_inp
         sample_input = torch.ones([8, n_inp], dtype=torch.float64)
         b = self.forward(sample_input)
         with torch.no_grad():
