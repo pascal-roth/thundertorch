@@ -19,11 +19,14 @@ def get_model(argsModel):
 
     if hasattr(argsModel, 'load_model'):
         model = getattr(models, argsModel.type).load_from_checkpoint(argsModel.load_model['path'])
+        logging.debug('Model has been loaded')
     elif hasattr(argsModel, 'create_model'):
         model = getattr(models, argsModel.type)(argparse.Namespace(**argsModel.create_model))
+        logging.debug('Model has been created')
 
     if hasattr(argsModel, 'params'):
         model.hparams_update(update_dict=argsModel.params)
+        logging.debug('model default hparams updated by argsModel.params')
     return model.double()
 
 
@@ -31,6 +34,7 @@ def get_dataLoader(argsLoader: dict, model: pl.LightningModule):
     dataLoader = getattr(loader, argsLoader['type']).read_from_yaml(argsLoader, batch=model.hparams.batch,
                                                                     num_workers=model.hparams.num_workers)
     model.hparams_update(update_dict={'lparams': dataLoader.lparams})
+    logging.debug('DataLoader generated and Loader params included in model.hparams')
     return dataLoader
 
 

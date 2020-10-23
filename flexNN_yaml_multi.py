@@ -5,17 +5,16 @@
 # import packages
 import yaml
 import logging
+# logging.basicConfig(level=logging.DEBUG)
 import os
 import time
 import torch
 
 import torch.multiprocessing as mp
-lock = mp.Lock()
-
 from stfs_pytoolbox.ML_Utils.utils import *
 
 
-def execute_model(model_dict):
+def execute_model(model_dict, lock):
     check_yaml_version(model_dict)
     check_yaml_structure(model_dict)
 
@@ -26,11 +25,13 @@ def execute_model(model_dict):
     check_args(argsModel, argsLoader, argsTrainer)
 
     model = get_model(argsModel)
+
     with lock:
         logging.debug('Lock DataLoader active')
         dataLoader = get_dataLoader(argsLoader, model)
 
     logging.debug('Lock DataLoader deactivated')
+
     train_model(model, dataLoader, argsTrainer)
 
 
@@ -77,8 +78,8 @@ def get_num_processes(argsMulti, argsModels):
 
     if gpu_per_process != 0 and nbr_gpu != 0:
         list_gpu = []
-        gpu_available = list(range(0, nbr_process))
-        for i in range(int(nbr_process / gpu_per_process)):
+        gpu_available = list(range(0, nbr_gpu))
+        for i in range(nbr_process):
             list_gpu.append(gpu_available[0:gpu_per_process])
             del gpu_available[0:gpu_per_process]
     else:
@@ -107,7 +108,7 @@ def main(argsMulti):
     model_dicts = get_argsDict(argsModels)
 
     mp_fn = mp.get_context('spawn')
-
+    lock = mp.Manager().Lock()
     tic1 = time.time()
     processes = []
     ii = 0
@@ -116,7 +117,8 @@ def main(argsMulti):
         for i in range(nbr_process):
             logging.debug('Process started')
             model_dicts[ii]['Trainer']['params']['gpus'] = list_gpu[i]
-            p = mp_fn.Process(target=execute_model, args=(model_dicts[ii], ))
+            model_dicts[ii]['Trainer']['params']['process_position'] = i
+            p = mp_fn.Process(target=execute_model, args=(model_dicts[ii], lock))
             processes.append(p)
             p.start()
             ii += 1
@@ -139,7 +141,7 @@ def main(argsMulti):
 
     tic2 = time.time()
     parallel_forward_pass = tic2 - tic1
-    logging.info('Time = ', parallel_forward_pass)
+    logging.info('Time = {}'.format(parallel_forward_pass))
 
 
 if __name__ == '__main__':

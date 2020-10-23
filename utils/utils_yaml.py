@@ -23,7 +23,7 @@ from stfs_pytoolbox.ML_Utils.utils.utils_option_class import OptionClass
 
 def parse_yaml() -> dict:
     parser = argparse.ArgumentParser()
-    parser.add_argument('-n', '--name_yaml', type=str, default='input_MultiModelTraining.yaml',
+    parser.add_argument('-n', '--name_yaml', type=str, default='jbissantz_try.yaml',
                         help='Name of yaml file to construct Neural Network')
     parser.add_argument('-l', '--logging', type=str, default='WARNING')
     args = parser.parse_args()
@@ -93,7 +93,8 @@ def check_argsTrainer(argsTrainer: dict) -> None:
 
     OptionClass.checker(input_dict={'Trainer': argsTrainer}, option_classes=options)
 
-    if all(elem in argsTrainer['params'] for elem in ['gpus', 'profiler']) and argsTrainer['params']['gpus'] != 0:
+    if all(elem in argsTrainer['params'] for elem in ['gpus', 'profiler']) and argsTrainer['params']['gpus'] != 0 and \
+            argsTrainer['params']['profiler'] is True:
         raise KeyError('In multi GPU training, profiler cannot be active!')
 
 

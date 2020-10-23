@@ -48,29 +48,6 @@ class LightningFlexMLP(pl.LightningModule):
         self.layers.extend([torch.nn.Linear(h1, h2) for h1, h2 in layer_sizes])
         self.output = torch.nn.Linear(self.hparams.hidden_layer[-1], self.hparams.n_out)
 
-    # def get_hparams(self, args, kwargs):
-    #     # check args
-    #     if len(args) == 1:
-    #         if isinstance(args[0], Namespace): self.hparams = args[0]
-    #         elif isinstance(args[0], dict): self.hparams = Namespace(**args[0])
-    #         else: raise TypeError('Wrong datatype')
-    #     elif len(args) == 3:
-    #         assert isinstance(args[0], int)
-    #         assert isinstance(args[1], int)
-    #         assert isinstance(args[2], list)
-    #         self.hparams = Namespace()
-    #         self.hparams.n_inp, self.hparams.n_out, self.hparams.hidden_layer = args[0], args[1], args[2]
-    #
-    #     # check kwargs
-    #     if 'hparams' in kwargs:
-    #         assert self.hparams is None, 'Required hparams already satisfied with args'
-    #         if isinstance(kwargs['hparams'], Namespace): self.hparams = kwargs['hparams']
-    #         elif isinstance(kwargs['hparams'], dict): self.hparams = Namespace(**kwargs['hparams'])
-    #         else: raise TypeError('wrong datatype')
-    #
-    #     if len(kwargs) != 0:
-    #         self.hparams_update(**kwargs)
-
     def check_hparams(self) -> None:
         options = self.get_OptionClass()
         OptionClass.checker(input_dict={'hparams': vars(self.hparams)}, option_classes=options)
@@ -103,7 +80,7 @@ class LightningFlexMLP(pl.LightningModule):
         if hasattr(torch.nn.functional, self.hparams.loss):
             self.loss_fn = getattr(torch.nn.functional, self.hparams.loss)
         else:
-            loss_module = getattr(_losses, self.hparams.loss)
+            loss_module = getattr(_losses, self.hparams.loss)()
             self.loss_fn = loss_module.forward
 
     def forward(self, x):
@@ -212,6 +189,7 @@ class LightningFlexMLP(pl.LightningModule):
 
         update_hparams(vars(self.hparams), update_dict)
         self.check_hparams()
+        self.get_functions()
 
     # def add_model_specific_args(parent_parser):
     #     parser = argparse.ArgumentParser(parents=[parent_parser])
