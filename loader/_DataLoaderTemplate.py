@@ -8,7 +8,6 @@ import torch
 import pickle
 import logging
 import yaml
-from sklearn import preprocessing
 from argparse import Namespace
 
 from stfs_pytoolbox.ML_Utils import models
@@ -19,12 +18,12 @@ from stfs_pytoolbox.ML_Utils.utils.utils_option_class import OptionClass
 class DataLoaderTemplate:
     """
     Template class to create DataLoaders which get a certain input data, do preprocessing and can finally create PyTorch
-    DataLoader that are used as input of the Lightning Trainer
+    DataLoader that are used as input of the Lightning Trainer class
     """
 
     def __init__(self, param_1, param_2, **kwargs) -> None:
         """
-        Create class
+        Create object
 
         Parameters
         ----------

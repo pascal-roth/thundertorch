@@ -13,7 +13,18 @@ from stfs_pytoolbox.ML_Utils import logger     # Logger that are defined in __al
 from stfs_pytoolbox.ML_Utils import callbacks  # Callbacks that are defined in __all__ in the __init__ file
 
 
-def get_model(argsModel):
+def get_model(argsModel) -> pl.LightningModule:
+    """
+    Load/ create the model given the model arguments
+
+    Parameters
+    ----------
+    argsModel       - model arguments either as dict or Namespace object
+
+    Returns
+    -------
+    model           - LightningModule
+    """
     if isinstance(argsModel, dict):
         argsModel = argparse.Namespace(**argsModel)
 
@@ -31,6 +42,19 @@ def get_model(argsModel):
 
 
 def get_dataLoader(argsLoader: dict, model: pl.LightningModule):
+    """
+    Load/ create DataLoader object
+
+    Parameters
+    ----------
+    argsLoader      - loader arguments
+    model           - LightningModule that includes batch_size and num_workers parameters that are necessary for the
+                      PyTorch DataLoaders as pl.Trainer input
+
+    Returns
+    -------
+    dataLoader
+    """
     dataLoader = getattr(loader, argsLoader['type']).read_from_yaml(argsLoader, batch=model.hparams.batch,
                                                                     num_workers=model.hparams.num_workers)
     model.hparams_update(update_dict={'lparams': dataLoader.lparams})
@@ -38,7 +62,16 @@ def get_dataLoader(argsLoader: dict, model: pl.LightningModule):
     return dataLoader
 
 
-def train_model(model, dataLoader, argsTrainer) -> None:
+def train_model(model: pl.LightningModule, dataLoader, argsTrainer) -> None:
+    """
+    Train a given model with the data included in the DataLoader object
+
+    Parameters
+    ----------
+    model           - LightningModule
+    dataLoader      - DataLoader object including training, validation and test dataset
+    argsTrainer     - Trainer arguments
+    """
     if isinstance(argsTrainer, dict):
         argsTrainer = argparse.Namespace(**argsTrainer)
 

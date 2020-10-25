@@ -21,15 +21,30 @@ from stfs_pytoolbox.ML_Utils.utils.utils_option_class import OptionClass
 class LightningFlexMLP(pl.LightningModule):
     """
     Create flexMLP as PyTorch LightningModule
+
+    Hyperparameters of the model
+    ----------------------------
+    - n_inp:            int         Input dimension (required)
+    - n_out:            int         Output dimension (required)
+    - hidden_layer:     list        List of hidden layers with number of hidden neurons as layer entry (required)
+    - activation:       str         activation fkt that is included in torch.nn.functional (default: relu)
+    - loss:             str         loss fkt that is included in torch.nn.functional (default: mse_loss)
+    - optimizer:        dict        dict including optimizer fkt type and possible parameters, optimizer has to be
+                                    included in torch.optim (default: {'type': Adam, 'params': {'lr': 1e-3}})
+    - scheduler:        dict        dict including execute flag, scheduler fkt type and possible parameters, scheduler
+                                    has to be included in torch.optim.lr_scheduler (default: {'execute': False})
+    - num_workers:      int         number of workers in DataLoaders (default: 10)
+    - batch:            int         batch size of DataLoaders (default: 64)
+    - output_relu:      bool        relu fkt at the output layer (default: False)
     """
 
-    def __init__(self, hparams):
+    def __init__(self, hparams: Namespace) -> None:
         """
         Initializes a flexMLP model based on the provided parameters
 
         Parameters
         ----------
-        hparams         - Namespace object including hyperparameters (features, labels, lr, activation fn, ...)
+        hparams         - Namespace object including hyperparameters
         """
         super().__init__()
 
@@ -75,7 +90,7 @@ class LightningFlexMLP(pl.LightningModule):
         if not hasattr(self.hparams, 'output_relu'):
             self.hparams.output_relu = False
 
-    def get_functions(self):
+    def get_functions(self) -> None:
         self.activation_fn = getattr(torch.nn.functional, self.hparams.activation)
 
         if hasattr(torch.nn.functional, self.hparams.loss):
@@ -128,7 +143,7 @@ class LightningFlexMLP(pl.LightningModule):
         else:
             return optimizer
 
-    def training_step(self, batch, batch_idx):
+    def training_step(self, batch, batch_idx) -> dict:
         x, y = batch
         y_hat = self(x)
         loss = self.loss_fn(y, y_hat)
@@ -136,13 +151,13 @@ class LightningFlexMLP(pl.LightningModule):
         results = {'loss': loss, 'log': log}
         return results
 
-    def validation_step(self, batch, batch_idx):
+    def validation_step(self, batch, batch_idx) -> dict:
         x, y = batch
         y_hat = self(x)
         val_loss = self.loss_fn(y, y_hat)
         return {'val_loss': val_loss}
 
-    def validation_epoch_end(self, outputs):
+    def validation_epoch_end(self, outputs) -> dict:
         val_loss = torch.stack([x['val_loss'] for x in outputs]).mean()
         if self.current_epoch == 0: self.min_val_loss = val_loss
         if val_loss < self.min_val_loss:
@@ -152,13 +167,13 @@ class LightningFlexMLP(pl.LightningModule):
         results = {'log': log, 'val_loss': val_loss, 'progress_bar': pbar}
         return results
 
-    def test_step(self, batch, batch_idx):
+    def test_step(self, batch, batch_idx) -> dict:
         x, y = batch
         y_hat = self(x)
         loss = self.loss_fn(y, y_hat)
         return {'test_loss': loss}
 
-    def test_epoch_end(self, outputs):
+    def test_epoch_end(self, outputs) -> dict:
         test_loss = torch.stack([x['test_loss'] for x in outputs]).mean()
         log = {'avg_test_loss': test_loss}
         results = {'log': log, 'test_loss': test_loss}
@@ -177,7 +192,7 @@ class LightningFlexMLP(pl.LightningModule):
 
     def hparams_update(self, update_dict) -> None:
         """
-        Update hyparams dict
+        Update hyparams of the model
 
         Parameters
         ----------
@@ -228,6 +243,9 @@ class LightningFlexMLP(pl.LightningModule):
 
     @staticmethod
     def yaml_template(key_list):
+        """
+        Yaml template for LightningFlexMLP
+        """
         template = {'Model': {'type': 'LightningFlexMLP',
                               'load_model': {'path': 'name.ckpt'},
                               'create_model': {'n_inp': 'int',  'n_out': 'int', 'hidden_layer': '[int, int, int]',

@@ -22,6 +22,9 @@ from stfs_pytoolbox.ML_Utils.utils.utils_option_class import OptionClass
 
 
 def parse_yaml() -> dict:
+    """
+    Parse yaml file and change logging default
+    """
     parser = argparse.ArgumentParser()
     parser.add_argument('-n', '--name_yaml', type=str, default='input_LightningFlexMLP_single.yaml',
                         help='Name of yaml file to construct Neural Network')
@@ -47,6 +50,14 @@ def check_args(argsModel: dict, argsLoader: dict, argsTrainer: dict) -> None:
 
 
 def check_argsModel(argsModel: dict) -> None:
+    """
+    Control Model arguments regarding included keys, dtypes of the keys, mutually_exclusive relations and whether
+    the intended attr of a function exists
+
+    Parameters
+    ----------
+    argsModel       - Dict including the model arguments of a yaml file
+    """
     options = {'Model': OptionClass(template=models.LightningModelTemplate.yaml_template(['Model']))}
     options['Model'].add_key('type', dtype=str, required=True, attr_of=models)
     options['Model'].add_key('load_model', dtype=dict, mutually_exclusive=['create_model'])
@@ -69,6 +80,14 @@ def check_argsModel(argsModel: dict) -> None:
 
 
 def check_argsLoader(argsLoader: dict) -> None:
+    """
+    Control DataLoader arguments regarding included keys, dtypes of the keys, mutually_exclusive relations and whether
+    the intended attr of a function exists
+
+    Parameters
+    ----------
+    argsLoader      - Dict including the DataLoader arguments of a yaml file
+    """
     options = {'DataLoader': OptionClass(template=loader.DataLoaderTemplate.yaml_template(['DataLoader']))}
     options['DataLoader'].add_key('type', dtype=str, required=True, attr_of=loader)
     options['DataLoader'].add_key('load_DataLoader', dtype=dict, mutually_exclusive=['create_DataLoader'], param_dict=True)
@@ -78,6 +97,14 @@ def check_argsLoader(argsLoader: dict) -> None:
 
 
 def check_argsTrainer(argsTrainer: dict) -> None:
+    """
+    Control Trainer arguments regarding included keys, dtypes of the keys, mutually_exclusive relations and whether
+    the intended attr of a function exists
+
+    Parameters
+    ----------
+    argsTrainer     - Dict including the trainer arguments of a yaml file
+    """
     options = {'Trainer': OptionClass(template=trainer_yml_template(['Trainer']))}
     options['Trainer'].add_key('params', dtype=dict, param_dict=True)
     options['Trainer'].add_key('callbacks', dtype=[dict, list])
@@ -99,6 +126,13 @@ def check_argsTrainer(argsTrainer: dict) -> None:
 
 
 def check_yaml_structure(args_yaml: dict) -> None:
+    """
+    Control if yaml file consist out of DataLoader, Model and Trainer argument dicts
+
+    Parameters
+    ----------
+    args_yaml       - parsed yaml dict
+    """
     assert 'DataLoader' in args_yaml, 'Training a model requires some data which is packed inside a DataLoader! ' \
                                       'Definiton of the DataLoader type and the corresponding parameters is missing. ' \
                                       'DataLoaders can be found under stfs_pytoolbox/ML_utils/loader. The tempolate ' \
@@ -117,7 +151,10 @@ def check_yaml_structure(args_yaml: dict) -> None:
         format(trainer_yml_template([]))
 
 
-def trainer_yml_template(key_list) -> dict:
+def trainer_yml_template(key_list: list) -> dict:
+    """
+    Trainer yaml template
+    """
     template = {'Trainer': {'params': {'gpus': 'int', 'max_epochs': 'int', 'profiler': 'bool'},
                             'callbacks': [{'type': 'EarlyStopping',
                                            'params': {'monitor': 'val_loss', 'patience': 'int', 'mode': 'min'}},
@@ -135,30 +172,61 @@ def trainer_yml_template(key_list) -> dict:
     return yaml.dump(template, sort_keys=False)
 
 
-def replace_keys(dictionary, yamlTemplate):
-    def recursion_search(document, key_list, yamlTemplate):
+def replace_keys(dictMultiModel: dict, dictSingleModel: dict) -> dict:
+    """
+    Take keys given in the definition of a Model in the MultiModel file and either add them to the template SingleModel
+    file or replace the corresponding key value in it
+
+    Parameters
+    ----------
+    dictMultiModel      - dict including all keys that should be add/ changed in template
+    dictSingleModel     - template model dict
+
+    Returns
+    -------
+    dictRunModel        - adjusted model dict
+    """
+
+    def recursion_search(document: dict, key_list: list, dictModel: dict):
+        """
+        Recursive function to add/ replace key in a nested dict
+
+        Parameters
+        ----------
+        document        - dict with the keys that should be add
+        key_list        - key path in the nested dict to the final key
+        dictModel       - model dict where the keys are changed/ added
+
+        Returns
+        -------
+        dictModel       - model dict where the keys are changed/ added
+        key_list        - key path in the nested dict to the final key
+        """
         if isinstance(document, dict):
             for key, value in document.items():
                 key_list.append(key)
-                yamlTemplate, key_list = recursion_search(document=value, key_list=key_list, yamlTemplate=yamlTemplate)
+                dictModel, key_list = recursion_search(document=value, key_list=key_list,
+                                                       dictModel=dictModel)
                 key_list = key_list[:-1]
 
         elif isinstance(document, list) and all(isinstance(elem, dict) for elem in document):
             for list_dict in document:
-                yamlTemplate_list_dict = get_by_path(yamlTemplate, key_list)
-                yamlTemplate_list_dict_nbr = next((i for i, item in enumerate(yamlTemplate_list_dict) if item["type"] == list_dict['type']))
-                key_list.extend([yamlTemplate_list_dict_nbr, 'params'])
-                yamlTemplate, key_list = recursion_search(document=list_dict['params'], key_list=key_list, yamlTemplate=yamlTemplate)
+                dictSingleModel_list_dict = get_by_path(dictModel, key_list)
+                dictSingleModel_list_dict_nbr = next((i for i, item in enumerate(dictSingleModel_list_dict)
+                                                      if item["type"] == list_dict['type']))
+                key_list.extend([dictSingleModel_list_dict_nbr, 'params'])
+                dictModel, key_list = recursion_search(document=list_dict['params'], key_list=key_list,
+                                                       dictModel=dictModel)
                 key_list = key_list[:-2]
 
         else:
-            set_by_path(yamlTemplate, key_list, document)
+            set_by_path(dictModel, key_list, document)
 
-        return yamlTemplate, key_list
+        return dictModel, key_list
 
-    yamlTemplate, _ = recursion_search(document=dictionary, key_list=list([]), yamlTemplate=yamlTemplate)
+    dictRunModel, _ = recursion_search(document=dictMultiModel, key_list=list([]), dictModel=dictSingleModel)
 
-    return yamlTemplate
+    return dictRunModel
 
 
 # get, set and del keys in nested dict structure

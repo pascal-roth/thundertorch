@@ -7,7 +7,7 @@ class AssemblyModel(torch.nn.Module):
     model that combines various single torch models that have the same input but different output
     into one model for later convenience
     """
-    def __init__(self, models, x_min, x_max, y_min, y_max, limit_scale=False):
+    def __init__(self, models: list, x_min, x_max, y_min, y_max, limit_scale: bool = False) -> None:
         """
 
         Parameters
@@ -27,7 +27,7 @@ class AssemblyModel(torch.nn.Module):
         self.Y_min = y_min if isinstance(y_min, torch.Tensor) else torch.tensor(y_min, dtype=torch.float64)
         self.limit_scale = limit_scale
 
-    def forward(self, Xorg):
+    def forward(self, Xorg: torch.tensor):
         """
         Forward pass of model
             runs forward pass through all submodels and scales all in- and outputs
@@ -56,7 +56,7 @@ class AssemblyModel(torch.nn.Module):
             outputs.append(out)
         return torch.cat(outputs, 1)
 
-    def toTorchScript(self, path):
+    def toTorchScript(self, path: str) -> None:
         """
         saves assembly model as torch-script for application in C++ Code
 
