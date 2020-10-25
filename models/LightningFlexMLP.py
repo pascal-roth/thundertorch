@@ -10,7 +10,9 @@
 # import packages
 import torch
 import yaml
+import numpy as np
 import pytorch_lightning as pl
+from sklearn.metrics import r2_score
 from argparse import Namespace
 
 from stfs_pytoolbox.ML_Utils.models import _losses
@@ -147,23 +149,26 @@ class LightningFlexMLP(pl.LightningModule):
         x, y = batch
         y_hat = self(x)
         loss = self.loss_fn(y, y_hat)
-        log = {'train_loss': loss}
-        results = {'loss': loss, 'log': log}
+        r2 = r2_score(y.detach().numpy(), y_hat.detach().numpy())
+        log = {'train_loss': loss, 'train_r2': r2}
+        results = {'loss': loss, 'r2': r2, 'log': log}
         return results
 
     def validation_step(self, batch, batch_idx) -> dict:
         x, y = batch
         y_hat = self(x)
         val_loss = self.loss_fn(y, y_hat)
-        return {'val_loss': val_loss}
+        r2 = r2_score(y.detach().numpy(), y_hat.detach().numpy())
+        return {'val_loss': val_loss, 'val_r2': r2}
 
     def validation_epoch_end(self, outputs) -> dict:
         val_loss = torch.stack([x['val_loss'] for x in outputs]).mean()
+        val_r2 = np.stack([x['val_r2'] for x in outputs]).mean()
         if self.current_epoch == 0: self.min_val_loss = val_loss
         if val_loss < self.min_val_loss:
             self.min_val_loss = val_loss
-        log = {'avg_val_loss': val_loss}
-        pbar = {'val_loss': val_loss, 'min_val_loss': self.min_val_loss}
+        log = {'avg_val_loss': val_loss, 'avg_val_r2': val_r2}
+        pbar = {'val_loss': val_loss, 'min_val_loss': self.min_val_loss, 'val_r2': val_r2}
         results = {'log': log, 'val_loss': val_loss, 'progress_bar': pbar}
         return results
 
@@ -171,12 +176,14 @@ class LightningFlexMLP(pl.LightningModule):
         x, y = batch
         y_hat = self(x)
         loss = self.loss_fn(y, y_hat)
-        return {'test_loss': loss}
+        r2 = r2_score(y.detach().numpy(), y_hat.detach().numpy())
+        return {'test_loss': loss, 'test_r2': r2}
 
     def test_epoch_end(self, outputs) -> dict:
         test_loss = torch.stack([x['test_loss'] for x in outputs]).mean()
-        log = {'avg_test_loss': test_loss}
-        results = {'log': log, 'test_loss': test_loss}
+        test_r2 = np.stack([x['test_r2'] for x in outputs]).mean()
+        log = {'avg_test_loss': test_loss, 'avg_test_r2': test_r2}
+        results = {'log': log, 'test_loss': test_loss, 'test_r2': test_r2}
         return results
 
     def hparams_save(self, path) -> None:
