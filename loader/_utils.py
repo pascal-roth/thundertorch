@@ -39,8 +39,8 @@ def data_split_random(x_samples: pd.DataFrame, y_samples: pd.DataFrame, split_pa
 
 def data_split_percentage(x_samples: pd.DataFrame, y_samples: pd.DataFrame, split_params: dict) -> tuple:
     """
-    Split the data by extracting the different values of a feature and randomly pick a certain of it. All samples
-    whereas the feature is equal to one of those values, the sample is extracted into x_split / y_split. However,
+    Split the data by extracting the different values of a feature and randomly pick a certain percentage of it. All
+    samples where the feature is equal to one of those values are extracted into x_split / y_split. However,
     if the feature has a different value for each sample, the method is equal to random. Furthermore, the size of
     x_split / y_split can differ from the percentage of values taken. In split_params the percentage can be defined
     for an arbitrary number of features.

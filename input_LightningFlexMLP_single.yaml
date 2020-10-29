@@ -62,7 +62,7 @@ Trainer:
     # gpus: 4
     max_epochs: 10
     profiler: True
-    auto_lr_find: True
+    # auto_lr_find: True
     # resume_from_checkpoint: False                       # can only be true if model loaded from checkpoint
   callbacks:
     - type: EarlyStopping

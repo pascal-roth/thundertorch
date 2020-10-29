@@ -79,6 +79,8 @@ def get_num_processes(argsMulti, argsModels):
     if gpu_per_process != 0 and nbr_gpu != 0:
         list_gpu = []
         gpu_available = list(range(0, nbr_gpu))
+        assert gpu_per_process * nbr_process <= nbr_gpu, 'The number of GPUs per process exceeds the number of ' \
+                                                         'available GPUs'
         for i in range(nbr_process):
             list_gpu.append(gpu_available[0:gpu_per_process])
             del gpu_available[0:gpu_per_process]

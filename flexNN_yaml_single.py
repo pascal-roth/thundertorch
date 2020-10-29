@@ -22,7 +22,7 @@ def main(args_yaml):
     check_args(argsModel, argsLoader, argsTrainer)
 
     model = get_model(argsModel)
-    dataLoader = get_dataLoader(argsLoader, model)
+    dataLoader = get_dataLoader(argsLoader, model=model)
     train_model(model, dataLoader, argsTrainer)
 
 

@@ -41,7 +41,7 @@ def get_model(argsModel) -> pl.LightningModule:
     return model.double()
 
 
-def get_dataLoader(argsLoader: dict, model: pl.LightningModule):
+def get_dataLoader(argsLoader: dict, model: pl.LightningModule = None):
     """
     Load/ create DataLoader object
 
@@ -55,10 +55,16 @@ def get_dataLoader(argsLoader: dict, model: pl.LightningModule):
     -------
     dataLoader
     """
-    dataLoader = getattr(loader, argsLoader['type']).read_from_yaml(argsLoader, batch=model.hparams.batch,
-                                                                    num_workers=model.hparams.num_workers)
-    model.hparams_update(update_dict={'lparams': dataLoader.lparams})
-    logging.debug('DataLoader generated and Loader params included in model.hparams')
+    if model:
+        dataLoader = getattr(loader, argsLoader['type']).read_from_yaml(argsLoader, batch=model.hparams.batch,
+                                                                        num_workers=model.hparams.num_workers)
+        model.hparams_update(update_dict={'lparams': dataLoader.lparams})
+        logging.info('DataLoader generated using batch_size and num_workers from model. Loader params are included '
+                     'in model.hparams')
+    else:
+        dataLoader = getattr(loader, argsLoader['type']).read_from_yaml(argsLoader)
+        logging.info('DataLoader generated without model information and Loader params not included in model')
+
     return dataLoader
 
 
@@ -82,7 +88,7 @@ def train_model(model: pl.LightningModule, dataLoader, argsTrainer) -> None:
 
         for i in range(len(argsTrainer.callbacks)):
 
-            if argsTrainer.callbacks[i]['type'] != 'Checkpointing':
+            if argsTrainer.callbacks[i]['type'] != 'Checkpointing':  # TODO: Early Stopping Callback also has extra keyword
                 if 'params' in argsTrainer.callbacks[i]:
                     callback = getattr(pl.callbacks, argsTrainer.callbacks[i]['type'])(
                         **argsTrainer.callbacks[i]['params'])

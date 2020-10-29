@@ -17,6 +17,7 @@ from argparse import Namespace
 
 from stfs_pytoolbox.ML_Utils.models import _losses
 from stfs_pytoolbox.ML_Utils.utils.utils_option_class import OptionClass
+from stfs_pytoolbox.ML_Utils import metrics
 
 
 # flexible MLP class
@@ -58,6 +59,10 @@ class LightningFlexMLP(pl.LightningModule):
         self.get_default()
         self.get_functions()
         self.min_val_loss = None
+
+        self.explained_variance_train = metrics.ExplainedVariance()
+        self.explained_variance_val = metrics.ExplainedVariance()
+        self.explained_variance_test = metrics.ExplainedVariance()
 
         # Construct MLP with a variable number of hidden layers
         self.layers = torch.nn.ModuleList([torch.nn.Linear(self.hparams.n_inp, self.hparams.hidden_layer[0])])
@@ -149,26 +154,30 @@ class LightningFlexMLP(pl.LightningModule):
         x, y = batch
         y_hat = self(x)
         loss = self.loss_fn(y, y_hat)
-        r2 = r2_score(y.detach().numpy(), y_hat.detach().numpy())
-        log = {'train_loss': loss, 'train_r2': r2}
-        results = {'loss': loss, 'r2': r2, 'log': log}
+        train_ExpVar = self.explained_variance_train(y_hat, y)
+        log = {'train_loss': loss, 'train_ExpVar_step': train_ExpVar}
+        results = {'loss': loss, 'train_ExpVar_step': train_ExpVar, 'log': log}
         return results
+
+    def training_epoch_end(self, outs):
+        log = {'train_ExpVar_epoch': self.explained_variance_train.compute()}
+        return {'log': log}
 
     def validation_step(self, batch, batch_idx) -> dict:
         x, y = batch
         y_hat = self(x)
         val_loss = self.loss_fn(y, y_hat)
-        r2 = r2_score(y.detach().numpy(), y_hat.detach().numpy())
-        return {'val_loss': val_loss, 'val_r2': r2}
+        self.explained_variance_val(y_hat, y)
+        return {'val_loss': val_loss}
 
     def validation_epoch_end(self, outputs) -> dict:
         val_loss = torch.stack([x['val_loss'] for x in outputs]).mean()
-        val_r2 = np.stack([x['val_r2'] for x in outputs]).mean()
+        val_ExpVar = self.explained_variance_val.compute()
         if self.current_epoch == 0: self.min_val_loss = val_loss
         if val_loss < self.min_val_loss:
             self.min_val_loss = val_loss
-        log = {'avg_val_loss': val_loss, 'avg_val_r2': val_r2}
-        pbar = {'val_loss': val_loss, 'min_val_loss': self.min_val_loss, 'val_r2': val_r2}
+        log = {'avg_val_loss': val_loss, 'val_ExpVar': val_ExpVar}
+        pbar = {'val_loss': val_loss, 'min_val_loss': self.min_val_loss, 'val_ExpVar': val_ExpVar}
         results = {'log': log, 'val_loss': val_loss, 'progress_bar': pbar}
         return results
 
@@ -176,14 +185,14 @@ class LightningFlexMLP(pl.LightningModule):
         x, y = batch
         y_hat = self(x)
         loss = self.loss_fn(y, y_hat)
-        r2 = r2_score(y.detach().numpy(), y_hat.detach().numpy())
-        return {'test_loss': loss, 'test_r2': r2}
+        self.explained_variance_test(y_hat, y)
+        return {'test_loss': loss}
 
     def test_epoch_end(self, outputs) -> dict:
         test_loss = torch.stack([x['test_loss'] for x in outputs]).mean()
-        test_r2 = np.stack([x['test_r2'] for x in outputs]).mean()
-        log = {'avg_test_loss': test_loss, 'avg_test_r2': test_r2}
-        results = {'log': log, 'test_loss': test_loss, 'test_r2': test_r2}
+        test_ExpVar = self.explained_variance_test.compute()
+        log = {'avg_test_loss': test_loss, 'test_ExpVar': test_ExpVar}
+        results = {'log': log, 'test_loss': test_loss, 'test_ExpVar': test_ExpVar}
         return results
 
     def hparams_save(self, path) -> None:
