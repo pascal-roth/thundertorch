@@ -66,7 +66,7 @@ def parseArguments():
     # if temp_args.model_name == 'MLP':
     #     parser = LightningFlexMLP.add_model_specific_args(parser)
     # elif temp_args.model_name == 'CNN':
-    #    parser = LightningFlexCNN.add_model_specific_args(parser)
+    #    parser = LightningFlexNN.add_model_specific_args(parser)
 
     hparams = hparams_parser.parse_args()
 
@@ -116,7 +116,7 @@ def main(hparams, args):
     # if args.model_name == 'MLP':
     #     model = LightningFlexMLP(hparams=args)
     # elif args.model_name == 'CNN':
-    #     model = LightningFlexCNN(hparams=args)
+    #     model = LightningFlexNN(hparams=args)
 
     hparams.n_inp = len(hparams.features)
     hparams.n_out = len(hparams.labels)

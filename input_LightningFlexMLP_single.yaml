@@ -39,7 +39,7 @@ Model:
     n_out: 3
     hidden_layer: [64, 128, 64]
     output_relu: False  # optional
-    activation: relu  # optional
+    activation: ReLU  # optional
   params:  # all have defaults
     loss: RelativeMSELoss
     optimizer:

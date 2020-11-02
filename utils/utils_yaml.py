@@ -26,7 +26,7 @@ def parse_yaml() -> dict:
     Parse yaml file and change logging default
     """
     parser = argparse.ArgumentParser()
-    parser.add_argument('-n', '--name_yaml', type=str, default='input_LightningFlexMLP_single.yaml',
+    parser.add_argument('-n', '--name_yaml', type=str, default='input_LightningFlexNN_single.yaml',
                         help='Name of yaml file to construct Neural Network')
     parser.add_argument('-l', '--logging', type=str, default='WARNING')
     args = parser.parse_args()

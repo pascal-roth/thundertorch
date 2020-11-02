@@ -34,6 +34,8 @@ def get_model(argsModel) -> pl.LightningModule:
     elif hasattr(argsModel, 'create_model'):
         model = getattr(models, argsModel.type)(argparse.Namespace(**argsModel.create_model))
         logging.debug('Model has been created')
+    else:
+        raise KeyError('Model not generated! Either include load_model or create_model dict!')
 
     if hasattr(argsModel, 'params'):
         model.hparams_update(update_dict=argsModel.params)

@@ -10,9 +10,7 @@
 # import packages
 import torch
 import yaml
-import numpy as np
 import pytorch_lightning as pl
-from sklearn.metrics import r2_score
 from argparse import Namespace
 
 from stfs_pytoolbox.ML_Utils.models import _losses
@@ -30,8 +28,8 @@ class LightningFlexMLP(pl.LightningModule):
     - n_inp:            int         Input dimension (required)
     - n_out:            int         Output dimension (required)
     - hidden_layer:     list        List of hidden layers with number of hidden neurons as layer entry (required)
-    - activation:       str         activation fkt that is included in torch.nn.functional (default: relu)
-    - loss:             str         loss fkt that is included in torch.nn.functional (default: mse_loss)
+    - activation:       str         activation fkt that is included in torch.nn (default: ReLU)
+    - loss:             str         loss fkt that is included in torch.nn (default: MSELoss)
     - optimizer:        dict        dict including optimizer fkt type and possible parameters, optimizer has to be
                                     included in torch.optim (default: {'type': Adam, 'params': {'lr': 1e-3}})
     - scheduler:        dict        dict including execute flag, scheduler fkt type and possible parameters, scheduler
@@ -76,10 +74,10 @@ class LightningFlexMLP(pl.LightningModule):
 
     def get_default(self) -> None:
         if not hasattr(self.hparams, 'activation'):
-            self.hparams.activation = 'relu'
+            self.hparams.activation = 'ReLU'
 
         if not hasattr(self.hparams, 'loss'):
-            self.hparams.loss = 'mse_loss'
+            self.hparams.loss = 'MSELoss'
 
         if not hasattr(self.hparams, 'optimizer'):
             self.hparams.lr = 1e-3
@@ -98,10 +96,10 @@ class LightningFlexMLP(pl.LightningModule):
             self.hparams.output_relu = False
 
     def get_functions(self) -> None:
-        self.activation_fn = getattr(torch.nn.functional, self.hparams.activation)
+        self.activation_fn = getattr(torch.nn, self.hparams.activation)()
 
-        if hasattr(torch.nn.functional, self.hparams.loss):
-            self.loss_fn = getattr(torch.nn.functional, self.hparams.loss)
+        if hasattr(torch.nn, self.hparams.loss):
+            self.loss_fn = getattr(torch.nn, self.hparams.loss)()
         else:
             loss_module = getattr(_losses, self.hparams.loss)()
             self.loss_fn = loss_module.forward
@@ -237,8 +235,8 @@ class LightningFlexMLP(pl.LightningModule):
         options['hparams'].add_key('n_out', dtype=int, required=True)
         options['hparams'].add_key('hidden_layer', dtype=list, required=True)
         options['hparams'].add_key('output_relu', dtype=bool)
-        options['hparams'].add_key('activation', dtype=str, attr_of=torch.nn.functional)
-        options['hparams'].add_key('loss', dtype=str, attr_of=[torch.nn.functional, _losses])
+        options['hparams'].add_key('activation', dtype=str, attr_of=torch.nn)
+        options['hparams'].add_key('loss', dtype=str, attr_of=[torch.nn, _losses])
         options['hparams'].add_key('optimizer', dtype=dict)
         options['hparams'].add_key('scheduler', dtype=dict)
         options['hparams'].add_key('num_workers', dtype=int)
@@ -266,8 +264,8 @@ class LightningFlexMLP(pl.LightningModule):
                               'load_model': {'path': 'name.ckpt'},
                               'create_model': {'n_inp': 'int',  'n_out': 'int', 'hidden_layer': '[int, int, int]',
                                                'output_relu': 'bool (default: False)', 'activation':
-                                                   'str (default: relu)'},
-                              'params': {'loss': 'str (default:mse_loss)', 'optimizer': {'type': 'str (default: Adam)',
+                                                   'str (default: ReLU)'},
+                              'params': {'loss': 'str (default:MSELoss)', 'optimizer': {'type': 'str (default: Adam)',
                                                                                          'params': {'lr': 'float (default: 1.e-3'}},
                                          'scheduler': {'execute': ' bool (default: False)', 'type': 'name',
                                                        'params': {'cooldown': 'int', 'patience': 'int', 'min_lr': 'float'}},
