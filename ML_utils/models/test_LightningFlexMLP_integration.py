@@ -136,4 +136,4 @@ def test_LightningFlexMLP_integration():
     # compare training, validation and test loss
     val_losses = trainer.tng_tqdm_dic
     assert np.round(val_losses['val_loss'], decimals=5) == 0.11361, {'Integration test failed'}
-    assert val_losses['loss']== '0.050', {'Integration test failed'}
+    assert val_losses['loss'] == '0.050', {'Integration test failed'}

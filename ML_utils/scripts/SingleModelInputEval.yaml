@@ -27,9 +27,9 @@ Model:
     n_out: 2
     hidden_layer: [64, 128, 64]
     output_relu: True  # optional
-    activation: relu  # optional
+    activation: ReLU  # optional
   params:  # all have defaults
-    loss: mse_loss
+    loss: MSELoss
     optimizer:
       type: Adam
       params:

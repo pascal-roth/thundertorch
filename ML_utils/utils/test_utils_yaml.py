@@ -61,17 +61,20 @@ def test_check_argsLoader():
     yamlTemplate = DataLoaderTemplate.yaml_template(key_list=['DataLoader'])
     argsLoader = yaml.load(yamlTemplate, Loader=yaml.FullLoader)
     _ = argsLoader.pop('load_DataLoader')
+    _ = argsLoader.pop('###INFO###')
     check_argsLoader(argsLoader)
 
     with pytest.raises(AssertionError):
         argsLoader = yaml.load(yamlTemplate, Loader=yaml.FullLoader)
         _ = argsLoader.pop('type')
         _ = argsLoader.pop('load_DataLoader')
+        _ = argsLoader.pop('###INFO###')
         check_argsLoader(argsLoader)
     with pytest.raises(AssertionError):
         argsLoader = yaml.load(yamlTemplate, Loader=yaml.FullLoader)
         argsLoader['type'] = 'some other fkt'
         _ = argsLoader.pop('load_DataLoader')
+        _ = argsLoader.pop('###INFO###')
         check_argsLoader(argsLoader)
 
 
