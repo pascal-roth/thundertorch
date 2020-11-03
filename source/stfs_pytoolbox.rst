@@ -10,8 +10,11 @@ Subpackages
 -----------
 
 .. toctree::
-   :maxdepth: 2
+   :glob:
+   :maxdepth: 3
    ML_utils/getting_started/Toolbox_concept
+   
+.. toctree::
    stfs_pytoolbox.canteraTools
    stfs_pytoolbox.data_manipulation
    stfs_pytoolbox.math
