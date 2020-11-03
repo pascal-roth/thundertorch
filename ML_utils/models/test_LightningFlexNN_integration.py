@@ -11,7 +11,7 @@ from stfs_pytoolbox.ML_Utils.models import LightningFlexNN
 def test_LightningFlexNN_integration(tmp_path):
     transform = transforms.Compose([transforms.ToTensor(), transforms.Normalize((0.1307,), (0.3081,))])
 
-    mnist_train = datasets.MNIST(tmp_path, train=True, download=True, transform=transform) # TODO: change to tmp_dir
+    mnist_train = datasets.MNIST(tmp_path, train=True, download=True, transform=transform)
     x_train = mnist_train.data[:1000].double()
     x_train = x_train.reshape((1000, 1, 28, 28))
     y_train = mnist_train.targets[:1000].double()
