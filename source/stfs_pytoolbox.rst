@@ -11,6 +11,7 @@ Subpackages
 
 .. toctree::
 
+   ML_utils/getting_started/Toolbox_concept
    stfs_pytoolbox.canteraTools
    stfs_pytoolbox.data_manipulation
    stfs_pytoolbox.math
