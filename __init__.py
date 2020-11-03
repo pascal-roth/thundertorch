@@ -1,5 +1,8 @@
 """
  ML_Utils - a collection of useful routines for machine learning applications
+
+ author: Pascal Roth
+ email:  roth.pascal@outlook.de
 """
 try:
     import torch
