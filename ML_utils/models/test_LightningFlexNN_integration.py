@@ -7,6 +7,7 @@ from torchvision import datasets, transforms
 
 from stfs_pytoolbox.ML_Utils.models import LightningFlexNN
 
+
 def test_LightningFlexNN_integration(tmp_path):
     transform = transforms.Compose([transforms.ToTensor(), transforms.Normalize((0.1307,), (0.3081,))])
 

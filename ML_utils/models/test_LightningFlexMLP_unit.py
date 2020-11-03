@@ -80,11 +80,11 @@ def test_check_hparams():
 @pytest.mark.dependency(depends=['test_init'])
 def test_default_adjustment():
     hparams = argparse.Namespace(**{'n_inp': 2, 'n_out': 2, 'hidden_layer': [16, 16], 'batch': 16, 'num_workers': 4,
-                                    'output_relu': True})
+                                    'output_activation': 'LogSigmoid'})
     model = LightningFlexMLP(hparams)
     assert model.hparams.batch == 16, 'Passed batch value has been overwritten by default!'
     assert model.hparams.num_workers == 4, 'Passed num_workers value has been overwritten by default!'
-    assert model.hparams.output_relu is True, 'Passed output_relu boolean has been overwritten by default!'
+    assert model.hparams.output_activation == 'LogSigmoid', 'Passed output_relu boolean has been overwritten by default!'
 
 
 @pytest.mark.dependency(depends=['test_init'])
@@ -99,8 +99,8 @@ def test_hparams_save(tmp_path):
 def test_hparams_update():
     hparams = argparse.Namespace(**{'n_inp': 2, 'n_out': 2, 'hidden_layer': [16, 16]})
     model = LightningFlexMLP(hparams)
-    update = {'n_out': 3, 'output_relu': True}
+    update = {'n_out': 3, 'output_activation': 'LogSigmoid'}
     model.hparams_update(update)
     assert model.hparams.n_out == 3
-    assert model.hparams.output_relu is True
+    assert model.hparams.output_activation == 'LogSigmoid'
 

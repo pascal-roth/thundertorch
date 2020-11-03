@@ -117,10 +117,9 @@ def test_LightningFlexMLP_integration():
 
     # initialize weights constant (necessary for integration test)
     for layer in model.layers:
-        torch.nn.init.constant_(layer.weight, val=0.1)
-        torch.nn.init.constant_(layer.bias, val=0.1)
-    torch.nn.init.constant_(model.output.weight, val=0.1)
-    torch.nn.init.constant_(model.output.bias, val=0.1)
+        if isinstance(layer, (torch.nn.Conv2d, torch.nn.Linear, )):
+            torch.nn.init.constant_(layer.weight, val=0.1)
+            torch.nn.init.constant_(layer.bias, val=0.1)
 
     data = generate_samples()
     argsLoader = {'df_samples': data, 'features': ['T_0', 'time'], 'labels': ['T', 'yCO2', 'wH2O'],

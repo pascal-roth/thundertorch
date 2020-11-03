@@ -26,7 +26,7 @@ Model:
     n_inp: 2
     n_out: 2
     hidden_layer: [64, 128, 64]
-    output_relu: True  # optional
+    # output_activation: LogSigmoid  # optional
     activation: ReLU  # optional
   params:  # all have defaults
     loss: MSELoss
