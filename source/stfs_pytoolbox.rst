@@ -15,3 +15,12 @@ Subpackages
    stfs_pytoolbox.data_manipulation
    stfs_pytoolbox.math
    stfs_pytoolbox.plotting
+
+pyFLUT modules overview
+=======================
+
+.. toctree::
+    :glob:
+    :maxdepth: 1
+
+    ML_utils/Toolbox_concept
