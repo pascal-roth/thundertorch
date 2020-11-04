@@ -128,7 +128,8 @@ the TabularLoader is as follows:
     from stfs_pytoolbox.ML_Utils import Loader
     
     # load validation and test data within initialization
-    dataLoader = loader.TabularLoader.read_from_file('file_path.csv', features, labels, val_path='path_to_val_data.csv', test_path='path_to_test_data.csv')
+    dataLoader = loader.TabularLoader.read_from_file('file_path.csv', features, labels, val_path='path_to_val_data.csv', 
+                                                     test_path='path_to_test_data.csv')
     
     # load data after initialization
     dataLoader = loader.TabularLoader.read_from_file('file_path.csv', features, labels)
@@ -172,7 +173,8 @@ TabularLoader is shown:
     from stfs_pytoolbox.ML_Utils import Loader
     
     # load validation and test data within initialization
-    dataLoader = loader.TabularLoader.read_from_file('file_path.csv', features, labels, val_split={'method': 'random', 'params': 0.2}, test_split={'method': 'percentage', 'params': {'feature_1': 0.2}})
+    dataLoader = loader.TabularLoader.read_from_file('file_path.csv', features, labels, val_split={'method': 'random', 'params': 0.2}, 
+                                                     test_split={'method': 'percentage', 'params': {'feature_1': 0.2}})
     
     # load data after initialization
     dataLoader = loader.TabularLoader.read_from_file('file_path.csv', features, labels)

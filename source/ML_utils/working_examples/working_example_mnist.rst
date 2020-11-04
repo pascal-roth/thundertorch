@@ -113,27 +113,29 @@ it an empty list and then copy the output into a yaml file:
     
 
 
-Model:
-  type: LightningFlexNN
-  create_model:
-    width: 28
-    height: 28
-    depth: 1
-    layers:
-    - type: Conv2d
+.. code:: python
+
+    Model:
+      type: LightningFlexNN
+      create_model:
+        width: 28
+        height: 28
+        depth: 1
+        layers:
+        - type: Conv2d
+          params:
+            kernel_size: 3
+            channels: 16
+        - type: MaxPool2d
+          params:
+            kernel_size: 2
+        MLP_layer:
+          n_out: 10
+          hidden_layer:
+          - 64
+        output_activation: LogSigmoid
       params:
-        kernel_size: 3
-        channels: 16
-    - type: MaxPool2d
-      params:
-        kernel_size: 2
-    MLP_layer:
-      n_out: 10
-      hidden_layer:
-      - 64
-    output_activation: LogSigmoid
-  params:
-    loss: CrossEntropyLoss
+        loss: CrossEntropyLoss
 
 After adjusting the yaml file for the used case, the model is created
 using the utils function “get_model”. It is further recommended to use
@@ -153,7 +155,7 @@ Create Model by direct implementation
 -------------------------------------
 
 Different ways to construct the Namespace object needed to construct a
-model are given in `Model Documentation <>`__. Here the Namespace is
+model are given in `Model Documentation <../getting_started/Models.html>`__. Here the Namespace is
 converted out of a dict. In order to quickly generated the dict, it can
 be copied out of the yml template function of the used model and then
 adjusted. It is possible to pass the dict again to the get_model

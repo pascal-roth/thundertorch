@@ -67,10 +67,10 @@ It is recommended to use the `Comet
 Logger <https://www.comet.ml/site/>`__. In order to use this logger, a
 profile has to be made and the code has to be equipped with:
 
--  api_key: ENlkidpOntcgkoGGs5nkyhFv5
--  project_name: general
--  workspace: proth
--  experiment_name: try_out
+-  api_key: personal api
+-  project_name: str
+-  workspace: str
+-  experiment_name: str
 
 However, the usage of other logger systems is possible. An overview is
 given in the `PyTorch Lightning
