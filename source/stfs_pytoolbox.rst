@@ -10,17 +10,11 @@ Subpackages
 -----------
 
 .. toctree::
+   :maxdepth: 1
+
    stfs_pytoolbox.ML_Utils
+   stfs_pytoolbox.RDM
    stfs_pytoolbox.canteraTools
    stfs_pytoolbox.data_manipulation
    stfs_pytoolbox.math
    stfs_pytoolbox.plotting
-
-ML_utils module overview
-=======================
-
-.. toctree::
-    :glob:
-    :maxdepth: 1
-
-    ML_utils/Toolbox_concept

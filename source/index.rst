@@ -13,6 +13,15 @@ Welcome to pythonToolBox's documentation!
     stfs_pytoolbox
 
 
+ML_utils module overview
+=======================
+
+.. toctree::
+    :glob:
+    :maxdepth: 1
+
+    ML_utils/Toolbox_concept
+    
 Indices and tables
 ==================
 

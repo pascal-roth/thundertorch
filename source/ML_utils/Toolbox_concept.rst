@@ -14,17 +14,17 @@ typical ML tasks in the toolbox requires three different parts which
 have their own detailed explanation:
 
 1. The data samples to train and test the network included in a
-   `DataLoader <./getting_started/DataLoader.rst>`__
-2. The `Model <./getting_started/Models.rst>`__ itself
-3. The `Trainer <./getting_started/Trainer.rst>`__ that takes the
-   `Model <./getting_started/Models.rst>`__ and trains, as well as test it with the
-   data included in the `DataLoader <./getting_started/DataLoader.rst>`__
+   `DataLoader <./getting_started/DataLoader.html>`__
+2. The `Model <./getting_started/Models.html>`__ itself
+3. The `Trainer <./getting_started/Trainer.html>`__ that takes the
+   `Model <./getting_started/Models.html>`__ and trains, as well as test it with the
+   data included in the `DataLoader <./getting_started/DataLoader.html>`__
 
 Construction of the different parts can be done in two different ways
 (which also can be combined):
 
 -  by a code implementation (`Working Example:
-   Code <.working_examples/working_example_code.rst>`__)
+   Code <.working_examples/working_example_code.html>`__)
 
    -  the different models and loaders can be included and used to
       construct any desired script
@@ -32,10 +32,10 @@ Construction of the different parts can be done in two different ways
 -  by using the yaml interface
 
    -  for a single model: (`Working Example:
-      Yaml <./working_examples/working_example_yaml.rst>`__)
+      Yaml <./working_examples/working_example_yaml.html>`__)
    -  for an arbriary number of models as a queue of parallel processes
       which is explained separately
-      `here <./getting_started/MultiModelTraining.rst>`__
+      `here <./getting_started/MultiModelTraining.html>`__
 
 To use the full potential of the different classes, you are encourage to
 use the different instructions as well as the documentation for the
