@@ -5,7 +5,6 @@
 # import packages
 import argparse
 import logging
-import os
 import pytorch_lightning as pl
 
 from stfs_pytoolbox.ML_Utils import models     # Models that are defined in __all__ in the __init__ file
@@ -14,34 +13,73 @@ from stfs_pytoolbox.ML_Utils import logger     # Logger that are defined in __al
 from stfs_pytoolbox.ML_Utils import callbacks  # Callbacks that are defined in __all__ in the __init__ file
 
 
-def get_model(argsModel):
+def get_model(argsModel) -> pl.LightningModule:
+    """
+    Load/ create the model given the model arguments
+
+    Parameters
+    ----------
+    argsModel       - model arguments either as dict or Namespace object
+
+    Returns
+    -------
+    model           - LightningModule
+    """
     if isinstance(argsModel, dict):
         argsModel = argparse.Namespace(**argsModel)
 
-    if hasattr(argsModel, 'load_model') and hasattr(argsModel, 'create_model') and argsModel.source == 'load':
+    if hasattr(argsModel, 'load_model'):
         model = getattr(models, argsModel.type).load_from_checkpoint(argsModel.load_model['path'])
-    elif hasattr(argsModel, 'load_model') and hasattr(argsModel, 'create_model') and argsModel.source == 'create':
-        model = getattr(models, argsModel.type)(hparams=argparse.Namespace(**argsModel.create_model))
-    elif hasattr(argsModel, 'load_model'):
-        model = getattr(models, argsModel.type).load_from_checkpoint(argsModel.load_model['path'])
+        logging.debug('Model has been loaded')
     elif hasattr(argsModel, 'create_model'):
-        model = getattr(models, argsModel.type)(hparams=argparse.Namespace(**argsModel.create_model))
+        model = getattr(models, argsModel.type)(argparse.Namespace(**argsModel.create_model))
+        logging.debug('Model has been created')
+    else:
+        raise KeyError('Model not generated! Either include load_model or create_model dict!')
 
-    model.hparams_update(update_dict=argsModel.params)
+    if hasattr(argsModel, 'params'):
+        model.hparams_update(update_dict=argsModel.params)
+        logging.debug('model default hparams updated by argsModel.params')
     return model.double()
 
 
-def get_dataLoader(argsLoader, model):
-    if isinstance(argsLoader, dict):
-        argsLoader = argparse.Namespace(**argsLoader)
+def get_dataLoader(argsLoader: dict, model: pl.LightningModule = None):
+    """
+    Load/ create DataLoader object
 
-    dataLoader = getattr(loader, argsLoader.type).read_from_yaml(argsLoader, batch=model.hparams.batch,
-                                                                 num_workers=model.hparams.num_workers)
-    model.hparams_update(update_dict=dataLoader.lparams)
+    Parameters
+    ----------
+    argsLoader      - loader arguments
+    model           - LightningModule that includes batch_size and num_workers parameters that are necessary for the
+                      PyTorch DataLoaders as pl.Trainer input
+
+    Returns
+    -------
+    dataLoader
+    """
+    if model:
+        dataLoader = getattr(loader, argsLoader['type']).read_from_yaml(argsLoader, batch=model.hparams.batch,
+                                                                        num_workers=model.hparams.num_workers)
+        model.hparams_update(update_dict={'lparams': dataLoader.lparams})
+        logging.info('DataLoader generated using batch_size and num_workers from model. Loader params are included '
+                     'in model.hparams')
+    else:
+        dataLoader = getattr(loader, argsLoader['type']).read_from_yaml(argsLoader)
+        logging.info('DataLoader generated without model information and Loader params not included in model')
+
     return dataLoader
 
 
-def train_model(model, dataLoader, argsTrainer) -> None:
+def train_model(model: pl.LightningModule, dataLoader, argsTrainer) -> None:
+    """
+    Train a given model with the data included in the DataLoader object
+
+    Parameters
+    ----------
+    model           - LightningModule
+    dataLoader      - DataLoader object including training, validation and test dataset
+    argsTrainer     - Trainer arguments
+    """
     if isinstance(argsTrainer, dict):
         argsTrainer = argparse.Namespace(**argsTrainer)
 
@@ -52,12 +90,12 @@ def train_model(model, dataLoader, argsTrainer) -> None:
 
         for i in range(len(argsTrainer.callbacks)):
 
-            if argsTrainer.callbacks[i]['type'] != 'Checkpointing':
+            if argsTrainer.callbacks[i]['type'] != 'Checkpointing':  # TODO: Early Stopping Callback also has extra keyword
                 if 'params' in argsTrainer.callbacks[i]:
                     callback = getattr(pl.callbacks, argsTrainer.callbacks[i]['type'])(
                         **argsTrainer.callbacks[i]['params'])
                 else:
-                    callback = getattr(pl.callbacks, argsTrainer.callbacks[i]['type'])
+                    callback = getattr(pl.callbacks, argsTrainer.callbacks[i]['type'])()
                 callback_list.append(callback)
             else:
                 checkpoint = callbacks.Checkpointing(**argsTrainer.callbacks[i]['params'])

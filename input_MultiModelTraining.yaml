@@ -3,10 +3,10 @@
 ####################################################################################################
 
 Nbr_processes: 4
-GPU_per_model: 0
-Model_run:
-  # - Model001
-  - Model002
+GPU_per_model: 2
+#Model_run:
+#  - Model001
+#  - Model002
 
 Model001:
   Template: input_LightningFlexMLP_single.yaml
@@ -16,9 +16,8 @@ Model001:
       features: [T_0, PV]
       labels: [T, yCO2]
   Model:
-    source: create
-    load_model:
-      path: None
+#    load_model:
+#      path: None
     create_model:
       n_inp: 2
       n_out: 2
@@ -26,7 +25,11 @@ Model001:
   Trainer:
     params:
       max_epochs: 3
-      profiler: True
+#      profiler: True
+    callbacks:
+      - type: Checkpointing
+        params:
+          filepath: checkpoints/try
 
 Model002:
   Template: input_LightningFlexMLP_single.yaml
@@ -36,9 +39,8 @@ Model002:
       features: [T_0, PV]
       labels: [T, yCO2]
   Model:
-    source: create
-    load_model:
-      path: None
+#    load_model:
+#      path: None
     create_model:
       n_inp: 2
       n_out: 2
@@ -51,4 +53,4 @@ Model002:
   Trainer:
     params:
       max_epochs: 3
-      profiler: True
+#       profiler: True

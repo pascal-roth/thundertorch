@@ -8,36 +8,61 @@ import torch
 import pickle
 import logging
 import yaml
+import pandas as pd
 from sklearn import preprocessing
 from argparse import Namespace
 
-from stfs_pytoolbox.ML_Utils.models.LightningFlexMLP import LightningFlexMLP
 from stfs_pytoolbox.ML_Utils.loader import _utils
+from stfs_pytoolbox.ML_Utils.utils.utils_option_class import OptionClass
 
 
 class TabularLoader:
     """
-    Class to create pyTorch DataLoaders for Tabular input data
+    DataLoader for tabular data. All parameters used to construct the Loader are saved as Namespace object under the
+    key lparams. At the point where the TabularLoader is used to generate PyTorch DataLoader as an input of the
+    pl.Trainer class, the Loader is required to have training, validation and test data. If validation and test data
+    have not been defined (either by loading seperate datafiles or by a split operation) the training data is randomly
+    split in 73% training, 20% validation and 7% test data.
+
+    Possibilities to create a TabularLoader object
+    ----------------------------------------------
+    - read from a file (possible dtypes: ".csv", ".txt", ".h5")
+    - load a saved TabularLoader
+    - restore from model checkpoint (NOTE: in order to restore a Loader using a ckpt, the lparams have to be saved
+    in the hparams namespace of the model. Thereby, the hparams update fkt can be used. An example is found under
+    stfs_pytoolbox.ML_Utils.utils.utils_execute.get_dataLoader)
     """
 
-    def __init__(self, df_samples, features, labels, **kwargs) -> None:
+    def __init__(self, df_samples: pd.DataFrame, features: list, labels: list, **kwargs) -> None:
         """
-        Create class
+        Create TabularLoader object
 
         Parameters
         ----------
         df_samples      - pd.DataFrame of samples
         features        - list of str: including features
         labels          - list of str: including labels
+        kwargs
+            x_scaler: MinMaxScaler          - sklearn.preprocessing MinMaxScaler for input samples
+            y_scaler: MinMaxScaler          - sklearn.preprocessing MinMaxScaler for target samples
+            batch: int                      - batch_size of the PyTorch DataLoader
+            num_workers: int                - num_workers of the PyTorch DataLoader
+            data_path: str                  - Path to the training data used to create DataLoader
+            val_split: dict                 - dict including method and split_params to separate training samples in
+                                              train and val set
+            val_path: str                   - path to validation data
+            test_split: dict                - dict including method and split_params to separate training samples in
+                                              train and test set
+            test_path: str                  - path to test data
         """
-        self.lparams = Namespace()  # TODO: Idea to allow initialization without data and make function to add training data
+        self.lparams = Namespace()
+        self.lparams.features = features
+        self.lparams.labels = labels
         self.lparams.x_scaler = kwargs.pop('x_scaler', None)
         self.lparams.y_scaler = kwargs.pop('y_scaler', None)
         self.lparams.batch = kwargs.pop('batch', 64)
         self.lparams.num_workers = kwargs.pop('num_workers', 10)
         self.lparams.data_path = kwargs.pop('data_path', None)
-        self.lparams.features = features
-        self.lparams.labels = labels
         self.check_lparams()
 
         # self.samples = df_samples
@@ -63,7 +88,10 @@ class TabularLoader:
             y_min_max_scaler = preprocessing.MinMaxScaler()
             self.lparams.y_scaler = y_min_max_scaler.fit(self.y_train)
 
-    def check_lparams(self):
+        if len(kwargs) != 0:
+            logging.warning('Additional/ unexpected kwargs are given!')
+
+    def check_lparams(self) -> None:
         assert all(isinstance(elem, str) for elem in self.lparams.features), "Given features is not a list of strings!"
         assert all(isinstance(elem, str) for elem in self.lparams.labels), "Given labels is not a list of strings!"
         assert all(elem not in self.lparams.labels for elem in self.lparams.features), "Feature is included in labels"
@@ -82,6 +110,7 @@ class TabularLoader:
         if self.x_train is not None: logging.warning('Train data overwritten')
         self.x_train = samples_train[self.lparams.features]
         self.y_train = samples_train[self.lparams.labels]
+        logging.debug(f'Train samples added from file {path}!')
 
     # validation_data #################################################################################################
     def add_val_data(self, path) -> None:
@@ -92,24 +121,31 @@ class TabularLoader:
         ----------
         val_samples     - file path
         """
-        self.lparams.val_path = path
+        self.lparams.val = {'path': path}
         samples_val = _utils.read_df_from_file(path)
         if self.x_val is not None: logging.warning('Validation data overwritten')
         self.x_val = samples_val[self.lparams.features]
         self.y_val = samples_val[self.lparams.labels]
+        logging.debug(f'Validation samples added from file {path}!')
 
     def val_split(self, **kwargs) -> None:
         """
         Split available samples into training and validation set
-        """
-        self.lparams.val_method = kwargs.pop('method', 'random')
-        self.lparams.val_params = kwargs.pop('val_params', 0.2)
 
-        self.x_train, self.x_val, self.y_train, self.y_val = getattr(_utils, 'data_split_' + self.lparams.val_method) \
-            (self.x_train, self.y_train, self.lparams.val_params)
+        Parameters
+        ----------
+        kwargs
+            method: str                 - method to split training data
+            params: float/ dict         - parameters of the split
+        """
+        self.lparams.val = {'method': kwargs.pop('method', 'random'), 'params': kwargs.pop('params', 0.2)}
+
+        self.x_train, self.x_val, self.y_train, self.y_val = getattr(_utils, 'data_split_' + self.lparams.val['method']) \
+            (self.x_train, self.y_train, self.lparams.val['params'])
+        logging.debug('Validation set split performed!')
 
         if len(kwargs) != 0:
-            logging.warning('Additional, unexpected kwargs are given! Only expected args are: "method", "val_params"')
+            logging.warning('Additional, unexpected kwargs are given! Only expected args are: "method", "params"')
 
     # test_data #######################################################################################################
     def add_test_data(self, path) -> None:
@@ -120,44 +156,60 @@ class TabularLoader:
         ----------
         test_samples     - file path
         """
-        self.lparams.test_path = path
+        self.lparams.test = {'path': path}
         samples_test = _utils.read_df_from_file(path)
         if self.x_test is not None: logging.warning('Test data overwritten')
         self.x_test = samples_test[self.lparams.features]
         self.y_test = samples_test[self.lparams.labels]
+        logging.debug(f'Test samples added from file {path}!')
 
     def test_split(self, **kwargs) -> None:
         """
         Split available samples into training and test set
-        """
-        self.lparams.test_method = kwargs.pop('method', 'random')
-        self.lparams.test_params = kwargs.pop('test_params', 0.2)
 
-        self.x_train, self.x_test, self.y_train, self.y_test = getattr(_utils, 'data_split_' + self.lparams.test_method) \
-            (self.x_train, self.y_train, self.lparams.test_params)
+        Parameters
+        ----------
+        kwargs
+            method: str                 - method to split training data
+            params: float/ dict         - parameters of the split
+        """
+        self.lparams.test = {'method': kwargs.pop('method', 'random'), 'params': kwargs.pop('params', 0.2)}
+
+        self.x_train, self.x_test, self.y_train, self.y_test = getattr(_utils, 'data_split_' + self.lparams.test['method']) \
+            (self.x_train, self.y_train, self.lparams.test['params'])
+        logging.debug('Test set split performed!')
 
         if len(kwargs) != 0:
-            logging.warning('Additional, unexpected kwargs are given! Only expected args are: "method", "test_params"')
+            logging.warning('Additional, unexpected kwargs are given! Only expected args are: "method", "params"')
 
     # create pytorch dataloaders ######################################################################################
-    def train_dataloader(self, **kwargs):
+    def train_dataloader(self, **kwargs) -> torch.utils.data.DataLoader:
+        """
+        Generate PyTorch DataLoader for the training data (all kwargs of the PyTorch DataLoader can be used)
+        """
         if self.x_val is None: self.val_split()  # TODO: maybe find a better solution to add an default
         if self.x_test is None: self.test_split()
 
         self.x_train = self.lparams.x_scaler.transform(self.x_train)
         self.y_train = self.lparams.y_scaler.transform(self.y_train)
-        tensor = torch.utils.data.TensorDataset(torch.tensor(self.x_train), torch.tensor(self.y_train))  # TODO: find solution, Julians wants it without float() but then error
+        tensor = torch.utils.data.TensorDataset(torch.tensor(self.x_train), torch.tensor(self.y_train))
         return torch.utils.data.DataLoader(tensor, batch_size=self.lparams.batch, num_workers=self.lparams.num_workers,
                                            **kwargs)
 
-    def val_dataloader(self, **kwargs):
+    def val_dataloader(self, **kwargs) -> torch.utils.data.DataLoader:
+        """
+        Generate PyTorch DataLoader for the validation data (all kwargs of the PyTorch DataLoader can be used)
+        """
         self.x_val = self.lparams.x_scaler.transform(self.x_val)
         self.y_val = self.lparams.y_scaler.transform(self.y_val)
         tensor = torch.utils.data.TensorDataset(torch.tensor(self.x_val), torch.tensor(self.y_val))
         return torch.utils.data.DataLoader(tensor, batch_size=self.lparams.batch, num_workers=self.lparams.num_workers,
                                            **kwargs)
 
-    def test_dataloader(self, **kwargs):
+    def test_dataloader(self, **kwargs) -> torch.utils.data.DataLoader:
+        """
+        Generate PyTorch DataLoader for the test data (all kwargs of the PyTorch DataLoader can be used)
+        """
         assert self.x_test is not None, 'Test data has to be assigned before test_dataloader is created'  # TODO: schauen ob dann default genommen werden kann, wenn man alle samples als Eintrag hat
         self.x_test = self.lparams.x_scaler.transform(self.x_test)
         self.y_test = self.lparams.y_scaler.transform(self.y_test)
@@ -177,101 +229,102 @@ class TabularLoader:
         with open(filename, 'wb') as output:  # Overwrites any existing file.
             pickle.dump(self, output, pickle.HIGHEST_PROTOCOL)
         self.lparams.filename = filename
+        logging.info('TabularLoader object saved')
 
     @classmethod
-    def load(cls, filename):
+    def load(cls, filename: str) -> object:
         with open(filename, 'rb') as input:
             return pickle.load(input)
 
     # classmethods ####################################################################################################
     @classmethod
-    def read_from_file(cls, file, features, labels, **kwargs):
+    def read_from_file(cls, file, features: list, labels: list, **kwargs) -> object:
+        """
+        Create TabularLoader object from file
+
+        Parameters
+        ----------
+        file            - file path
+        features        - list of features
+        labels          - list of labels
+        kwargs          - see kwargs __init__
+
+        Returns
+        -------
+        object          - TabularLoader object
+        """
         df_samples = _utils.read_df_from_file(file)
         return cls(df_samples, features, labels, data_path=file,
                    **kwargs)
 
     @classmethod
-    def read_from_yaml(cls, argsLoader, **kwargs) -> object:
-        assert hasattr(argsLoader, 'source'), 'Define source of DataLoader! Can be either set to "load" or "create".'
-        assert argsLoader.source in ['load', 'create'], 'Decide if source is "load" or "create"! "{}" not a valid ' \
-                                                        'source'.format(argsLoader.source)
+    def read_from_yaml(cls, argsLoader: dict, **kwargs) -> object:
+        """
+        Create TabularLoader object from a dict similar to the one given under yml_template
 
-        if argsLoader.source == 'load':
-            assert hasattr(argsLoader, 'load_DataLoader'), '"Load" source flag requires dict "load_DataLoader" with ' \
-                                                           'following structure: \n{}'.format(
-                TabularLoader.yaml_template(['DataLoader', 'load_DataLoader']))
-            assert 'path' in argsLoader.load_DataLoader, 'Path in dict "load_DataLoader" is missing! DataLoader cannot be restored!'
+        Parameters
+        ----------
+        argsLoader      - arguments to create the Loader
+        kwargs          - see kwargs __init__
 
-            _, file_extention = os.path.splitext(argsLoader.load_DataLoader['path'])
+        Returns
+        -------
+        object          - TabularLoader object
+        """
+        options = TabularLoader.get_OptionClass()
+        OptionClass.checker(input_dict=argsLoader, option_classes=options)
+
+        if 'load_DataLoader' in argsLoader:
+            _, file_extention = os.path.splitext(argsLoader['load_DataLoader']['path'])
             if file_extention == '.pkl':
-                Loader = TabularLoader.load(argsLoader.load_DataLoader['path'])
-                Loader.lparams.data_path = argsLoader.load_DataLoader['path']
+                Loader = TabularLoader.load(argsLoader['load_DataLoader']['path'])
+                Loader.lparams.data_path = argsLoader['load_DataLoader']['path']
             elif file_extention == '.ckpt':
-                Loader = TabularLoader.read_from_checkpoint(argsLoader.load_DataLoader['path'])
+                Loader = TabularLoader.read_from_checkpoint(argsLoader['load_DataLoader']['path'])
             else:
                 raise TypeError('Not supported file type to load DataLoader! Only supported are ".pkl" and ".ckpt"')
 
-            if kwargs['batch'] is not None:
+            if kwargs.get('batch'):
                 Loader.lparams.batch = kwargs.pop('batch')
                 logging.info('Batch size stored in file in overwritten by kwargs argument')
-            if kwargs['num_workers'] is not None:
+            if kwargs.get('num_workers'):
                 Loader.lparams.num_workers = kwargs.pop('num_workers')
                 logging.info('Num_workers stored in file in overwritten by kwargs argument')
 
-        elif argsLoader.source == 'create':
-            assert hasattr(argsLoader, 'create_DataLoader'), '"Create" source flag requires dict "create_DataLoader" ' \
-                                                             'with following structure: \n{}'.format(
-                TabularLoader.yaml_template(['DataLoader', 'create_DataLoader']))
-            argsLoader = Namespace(**argsLoader.create_DataLoader)
+        elif 'create_DataLoader' in argsLoader:
+            argsCreate = argsLoader['create_DataLoader']
 
             # create Loader
-            assert hasattr(argsLoader, 'raw_data_path'), 'Argument "raw_data_path" missing! Define location of data to ' \
-                                                         'construct DataLoader!'
-            assert hasattr(argsLoader, 'features'), 'Argument "features" missing! Define features as list of str, e. g.' \
-                                                    ' [PV, t, T_0]'
-            assert hasattr(argsLoader, 'labels'), 'Argument "labels" missing! Define labels as list of str, e. g.' \
-                                                  ' [yCO2, wCO]'
-            Loader = TabularLoader.read_from_file(argsLoader.raw_data_path, features=argsLoader.features,
-                                                  labels=argsLoader.labels, **kwargs)
+            Loader = TabularLoader.read_from_file(argsCreate.pop('raw_data_path'), features=argsCreate.pop('features'),
+                                                  labels=argsCreate.pop('labels'), **kwargs)
 
             # validation data
-            assert hasattr(argsLoader, 'validation_data'), 'Definition of validation data missing! Insert dict ' \
-                                                           '"validation_data" with following structure \n{}'. \
-                format(TabularLoader.yaml_template(['DataLoader', 'create_DataLoader', 'validation_data']))
-            assert 'source' in argsLoader.validation_data, 'Define source of Validation data! Can be either set to ' \
-                                                           '"load" or "split".'
-            if argsLoader.validation_data['source'] == 'load':
-                assert 'load_data' in argsLoader.validation_data, 'Parameters to perform data load are missing!'
-                Loader.add_val_data(**argsLoader.validation_data['load_data'])
-            elif argsLoader.validation_data['source'] == 'split':
-                assert 'split_data' in argsLoader.validation_data, 'Parameters to perform data split are missing!'
-                Loader.val_split(**argsLoader.validation_data['split_data'])
+            if 'load_data' in argsCreate['validation_data']:
+                Loader.add_val_data(**argsCreate['validation_data']['load_data'])
+            elif 'split_data' in argsCreate['validation_data']:
+                Loader.val_split(**argsCreate['validation_data']['split_data'])
             else:
-                raise TypeError('No validation data selected! Either set source flag to "load" or "split"')
+                raise KeyError('No validation data selected! Either include dict "load_data" or "split_data".')
 
             # test data
-            assert hasattr(argsLoader, 'test_data'), 'Definition of test data missing! Insert dict "test_data" with ' \
-                                                     'following structure \n{}'.\
-                format(TabularLoader.yaml_template(['DataLoader', 'create_DataLoader', 'test_data']))
-            assert 'source' in argsLoader.test_data, 'Define source of test data! Can be set to "load" or "split"'
-            if argsLoader.test_data['source'] == 'load':
-                assert 'load_data' in argsLoader.test_data, 'Parameters to perform data load are missing!'
-                Loader.add_test_data(**argsLoader.test_data['load_data'])
-            elif argsLoader.test_data['source'] == 'split':
-                assert 'split_data' in argsLoader.test_data, 'Parameters to perform data split are missing!'
-                Loader.test_split(**argsLoader.test_data['split_data'])
+            if 'load_data' in argsCreate['test_data']:
+                Loader.add_test_data(**argsCreate['test_data']['load_data'])
+            elif 'split_data' in argsCreate['test_data']:
+                Loader.test_split(**argsCreate['test_data']['split_data'])
             else:
-                raise TypeError('No test data selected! Either set source flag to "load" or "split"')
+                raise KeyError('No test data selected! Either include dict "load_data" or "split_data".')
 
             # save loader
-            if hasattr(argsLoader, 'save_Loader'):
-                if argsLoader.save_Loader['execute']:
-                    Loader.save(argsLoader.save_Loader['path'])
+            if 'save_Loader' in argsCreate:
+                Loader.save(argsCreate['save_Loader']['path'])
+
+        else:
+            raise KeyError('No DataLoader generated! Either include dict "load_DataLoader" or "create_DataLoader"!')
 
         return Loader
 
     @classmethod
-    def read_from_checkpoint(cls, ckpt_file):
+    def read_from_checkpoint(cls, ckpt_file) -> object:
         """
         Create cls TabluarLoader from pytorch lightning checkpoint
         !! Hparams of the checkpoint had to be updated with lparams of the Loader in order to reconstruct the Loader!!
@@ -282,56 +335,103 @@ class TabularLoader:
 
         Returns
         -------
-        Loader          - TabularLoader class object
+        object          - TabularLoader object
         """
-        model = LightningFlexMLP.load_from_checkpoint(ckpt_file)  # TODO: implement for all model types
+        from stfs_pytoolbox.ML_Utils import models
 
-        assert hasattr(model.hparams, 'data_path'), 'Data cannot be reloaded because the pass is missing'
-        _, file_extention = os.path.splitext(model.hparams.data_path)
+        model = models.LightningFlexMLP.load_from_checkpoint(ckpt_file)  # TODO: implement for all model types
+        lparams = model.hparams.lparams
+
+        assert hasattr(lparams, 'data_path'), 'Data cannot be reloaded because the pass is missing'
+        _, file_extention = os.path.splitext(lparams.data_path)
 
         if file_extention == '.pkl':
-            Loader = TabularLoader.load(model.hparams.data_path)
+            Loader = TabularLoader.load(lparams.data_path)
         else:
-            assert all(hasattr(model.hparams, elem) for elem in ['features', 'labels', 'batch', 'num_workers',
-                                                                 'x_scaler', 'y_scaler']), 'Parameters missing!'
-            Loader = TabularLoader.read_from_file(model.hparams.data_path, features=model.hparams.features,
-                                                  labels=model.hparams.labels, batch=model.hparams.batch,
-                                                  num_workers=model.hparams.num_workers,
-                                                  x_scaler=model.hparams.x_scaler, y_scaler=model.hparams.y_scaler)
+            assert all(hasattr(lparams, elem) for elem in ['features', 'labels', 'batch', 'num_workers',
+                                                           'x_scaler', 'y_scaler']), 'Parameters missing!'
+            Loader = TabularLoader.read_from_file(lparams.data_path, features=lparams.features,
+                                                  labels=lparams.labels, batch=lparams.batch,
+                                                  num_workers=lparams.num_workers,
+                                                  x_scaler=lparams.x_scaler, y_scaler=lparams.y_scaler)
 
-        if hasattr(model.hparams, 'val_path'):
-            Loader.add_val_data(model.hparams.val_path)
-        elif all(hasattr(model.hparams, attr) for attr in ['val_method', 'val_params']):
-            Loader.val_split(method=model.hparams.val_method, val_params=model.hparams.val_params)
+        if 'path' in lparams.val:
+            Loader.add_val_data(lparams.val.path)
+        elif all(elem in lparams.val for elem in ['method', 'params']):
+            Loader.val_split(method=lparams.val['method'], params=lparams.val['params'])
         else:
             raise KeyError('Keys to assign validation data are missing/ not complete')
 
-        if hasattr(model.hparams, 'test_path'):
-            Loader.add_val_data(model.hparams.test_path)
-        elif all(hasattr(model.hparams, attr) for attr in ['test_method', 'test_params']):
-            Loader.val_split(method=model.hparams.test_method, val_params=model.hparams.test_params)
+        if 'path' in lparams.test:
+            Loader.add_val_data(lparams.test.path)
+        elif all(elem in lparams.test for elem in ['method', 'params']):
+            Loader.val_split(method=lparams.test['method'], params=lparams.test['params'])
         else:
             raise KeyError('Keys to assign validation data are missing/ not complete')
 
         return Loader
 
     @staticmethod
-    def yaml_template(key_list):
+    def get_OptionClass() -> dict:
+        options = {'DataLoader': OptionClass(template=TabularLoader.yaml_template(['DataLoader']))}
+        options['DataLoader'].add_key('type', dtype=str, required=True)
+        options['DataLoader'].add_key('load_DataLoader', dtype=dict, mutually_exclusive=['create_DataLoader'])
+        options['DataLoader'].add_key('create_DataLoader', dtype=dict, mutually_exclusive=['load_DataLoader'])
+
+        options['load_DataLoader'] = OptionClass(template=TabularLoader.yaml_template(['DataLoader', 'load_DataLoader']))
+        options['load_DataLoader'].add_key('path', dtype=str, required=True)
+
+        options['create_DataLoader'] = OptionClass(template=TabularLoader.yaml_template(['DataLoader', 'create_DataLoader']))
+        options['create_DataLoader'].add_key('raw_data_path', dtype=str, required=True)
+        options['create_DataLoader'].add_key('features', dtype=list, required=True)
+        options['create_DataLoader'].add_key('labels', dtype=list, required=True)
+        options['create_DataLoader'].add_key('validation_data', dtype=dict, required=True)
+        options['create_DataLoader'].add_key('test_data', dtype=dict, required=True)
+        options['create_DataLoader'].add_key('save_Loader', dtype=dict)
+
+        options['validation_data'] = OptionClass(template=TabularLoader.yaml_template(['DataLoader', 'create_DataLoader',
+                                                                                       'validation_data']))
+        options['validation_data'].add_key('load_data', dtype=dict, mutually_exclusive=['split_data'])
+        options['validation_data'].add_key('split_data', dtype=dict, mutually_exclusive=['load_data'])
+        options['test_data'] = options['validation_data']
+        options['test_data'].template = TabularLoader.yaml_template(['DataLoader', 'create_DataLoader', 'test_data'])
+
+        options['load_data'] = OptionClass(template=TabularLoader.yaml_template(['DataLoader', 'create_DataLoader',
+                                                                                 'validation_data', 'load_data']))
+        options['load_data'].add_key('path', dtype=str, required=True)
+
+        options['split_data'] = OptionClass(template=TabularLoader.yaml_template(['DataLoader', 'create_DataLoader',
+                                                                                  'validation_data', 'split_data']))
+        options['split_data'].add_key('method', dtype=str, required=True)
+        options['split_data'].add_key('params', dtype=[float, dict], required=True, param_dict=True)
+
+        options['save_Loader'] = OptionClass(template=TabularLoader.yaml_template(['DataLoader', 'create_DataLoader',
+                                                                                   'save_Loader']))
+        options['save_Loader'].add_key('path', dtype=str, required=True)
+
+        return options
+
+    @staticmethod
+    def yaml_template(key_list: list) -> str:
+        """
+        Yaml template of a TabularLoader object
+        """
         template = {'DataLoader': {'type': 'TabularLoader',
-                                   'source': 'load/ create',
+                                   '###INFO###': 'load_DataLoader and create_DataLoader mutually exclusive',
                                    'load_DataLoader': {'path': 'name.pkl or modelXXX.ckpt'},
-                                   'create_DataLoader': {'raw_data_path': 'samples_name.csv, .txt, .h5, .flut',  # TODO: change extension of flut datatype
+                                   'create_DataLoader': {'raw_data_path': 'samples_name.csv, .txt, .h5, .flut',
+                                                         # TODO: change extension of flut datatype
                                                          'features': ['feature_1', 'feature_2', '...'],
                                                          'labels': ['label_1', 'label_2', '...'],
-                                                         'validation_data': {'source': 'load/ split',
-                                                                             'load_data': {'path': 'samples_name.csv, .txt, .h5, .flut'},
-                                                                             'split_data': {'method': 'random/ percentage/ explicit',
-                                                                                            'val_params': 'split_params'}},
-                                                         'test_data': {'source': 'load/ split',
-                                                                       'load_data': {'path': 'samples_name.csv, .txt, .h5, .flut'},
-                                                                       'split_data': {'method': 'random/ percentage/ explicit',
-                                                                                      'test_params': 'split_params'}},
-                                                         'save_Loader': {'execute': 'bool', 'path': 'name.pkl'}}}}
+                                                         'validation_data':
+                                                             {'###INFO###': 'load_data and split_data mutually exclusive',
+                                                              'load_data': {'path': 'samples_name.csv, .txt, .h5, .flut'},
+                                                              'split_data': {'method': 'random/ percentage/ explicit', 'params': 'split_params'}},
+                                                         'test_data':
+                                                             {'###INFO###': 'load_data and split_data mutually exclusive',
+                                                              'load_data': {'path': 'samples_name.csv, .txt, .h5, .flut'},
+                                                              'split_data': {'method': 'random/ percentage/ explicit', 'params': 'split_params'}},
+                                                         'save_Loader': {'path': 'name.pkl'}}}}
 
         for i, key in enumerate(key_list):
             template = template.get(key)

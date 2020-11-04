@@ -10,108 +10,129 @@ import glob
 import inspect
 import os
 import pytorch_lightning as pl
+from functools import reduce
+import operator
 
+import stfs_pytoolbox
 from stfs_pytoolbox.ML_Utils import models  # Models that are defined in __all__ in the __init__ file
 from stfs_pytoolbox.ML_Utils import loader  # Loader that are defined in __all__ in the __init__ file
 from stfs_pytoolbox.ML_Utils import logger  # Logger that are defined in __all__ in the __init__ file
 from stfs_pytoolbox.ML_Utils import callbacks  # Callbacks that are defined in __all__ in the __init__ file
+from stfs_pytoolbox.ML_Utils.utils.utils_option_class import OptionClass
 
 
 def parse_yaml() -> dict:
+    """
+    Parse yaml file and change logging default
+    """
     parser = argparse.ArgumentParser()
     parser.add_argument('-n', '--name_yaml', type=str, default='input_LightningFlexMLP_single.yaml',
                         help='Name of yaml file to construct Neural Network')
+    parser.add_argument('-l', '--logging', type=str, default='WARNING')
     args = parser.parse_args()
+
+    logging.basicConfig(level=getattr(logging, args.logging))
 
     flexMLP_yaml = open(args.name_yaml)
     return yaml.load(flexMLP_yaml, Loader=yaml.FullLoader)
 
 
-def check_args(argsModel, argsLoader, argsTrainer) -> None:
+def check_yaml_version(args_yaml: dict) -> None:  # TODO: assert error if yaml file changed with a new version
+    # stfs_pytoolbox.__version__
+    pass
+
+
+def check_args(argsModel: dict, argsLoader: dict, argsTrainer: dict) -> None:
     # transform to namespace objects
     check_argsModel(argsModel)
     check_argsLoader(argsLoader)
     check_argsTrainer(argsTrainer)
 
 
-def check_argsModel(argsModel) -> None:
-    if isinstance(argsModel, dict):
-        argsModel = argparse.Namespace(**argsModel)
+def check_argsModel(argsModel: dict) -> None:
+    """
+    Control Model arguments regarding included keys, dtypes of the keys, mutually_exclusive relations and whether
+    the intended attr of a function exists
 
-    # check model type
-    assert hasattr(argsModel, 'type'), 'Model requires "type" definition! Please follow the template: \n{}'. \
-        format(models.LightningTemplateModel.yaml_template(['Model']))
+    Parameters
+    ----------
+    argsModel       - Dict including the model arguments of a yaml file
+    """
+    options = {'Model': OptionClass(template=models.LightningModelTemplate.yaml_template(['Model']))}
+    options['Model'].add_key('type', dtype=str, required=True, attr_of=models)
+    options['Model'].add_key('load_model', dtype=dict, mutually_exclusive=['create_model'])
+    options['Model'].add_key('create_model', dtype=dict, mutually_exclusive=['load_model'], param_dict=True)
+    options['Model'].add_key('params', dtype=dict, param_dict=True)
 
-    assert hasattr(models, argsModel.type), '"{}" not an implemented model! Possible options are: "LightningFlexMLP",' \
-                                            ' "LightningFLexCNN" (more will come soon)'.format(argsModel.type)
+    options['load_model'] = OptionClass(template=models.LightningModelTemplate.yaml_template(['Model', 'load_model']))
+    options['load_model'].add_key('path', dtype=str, required=True)
+
+    OptionClass.checker(input_dict={'Model': argsModel}, option_classes=options)
 
     # warn if no model params defined
-    if not hasattr(argsModel, 'params'):
+    if 'params' not in argsModel:
         logging.warning('Parameter dict not defined! Default values will be taken. Structure of the params dict is as '
                         'follows: \n{}'.format(getattr(models, argsModel.type).yaml_template(['Model', 'params'])))
 
     # check model source
-    if hasattr(argsModel, 'load_model') and hasattr(argsModel, 'create_model'):
-        assert hasattr(argsModel, 'source'), 'Both dicts "load_model" and "create_model" are defined. Either define ' \
-                                             'source flag or remove unintended dict'
-        assert argsModel.source in ['load', 'create'], 'Source flag is either "load" or "create". "{}" not valid!'. \
-            format(argsModel.source)
-
-    elif hasattr(argsModel, 'source'):
-        if argsModel.source == 'load':
-            assert hasattr(argsModel, 'load_model'), 'Parameter dict: "load_model" is required if source=load. ' \
-                                                     '"load_model" has following structure: \n{}'. \
-                format(getattr(models, argsModel.type).yaml_template(['Model', 'load_model']))
-
-        elif argsModel.source == 'create':
-            assert hasattr(argsModel, 'create_model'), 'Parameter dict: "create_model" is required if source=create. ' \
-                                                       '"create_model" has following structure: \n{}'. \
-                format(getattr(models, argsModel.type).yaml_template(['Model', 'create_model']))
-
-        else:
-            raise ValueError(
-                'Model neither loaded nor created! Set source value to "load" or "create" and include corresponding '
-                'dict."{}" not a valid source'.format(argsModel.source))
-
-    elif not hasattr(argsModel, 'load_model') and hasattr(argsModel, 'create_model'):
+    if 'load_model' not in argsModel and 'create_model' not in argsModel:
         raise KeyError('Definition of load or create model dict necessary!')
 
-    if hasattr(argsModel, 'load_model'):
-        assert 'path' in argsModel.load_model, 'Definition of path to load model is missing!'
+
+def check_argsLoader(argsLoader: dict) -> None:
+    """
+    Control DataLoader arguments regarding included keys, dtypes of the keys, mutually_exclusive relations and whether
+    the intended attr of a function exists
+
+    Parameters
+    ----------
+    argsLoader      - Dict including the DataLoader arguments of a yaml file
+    """
+    options = {'DataLoader': OptionClass(template=loader.DataLoaderTemplate.yaml_template(['DataLoader']))}
+    options['DataLoader'].add_key('type', dtype=str, required=True, attr_of=loader)
+    options['DataLoader'].add_key('load_DataLoader', dtype=dict, mutually_exclusive=['create_DataLoader'], param_dict=True)
+    options['DataLoader'].add_key('create_DataLoader', dtype=dict, mutually_exclusive=['load_DataLoader'], param_dict=True)
+
+    OptionClass.checker(input_dict={'DataLoader': argsLoader}, option_classes=options)
 
 
-def check_argsLoader(argsLoader) -> None:
-    if isinstance(argsLoader, dict):
-        argsLoader = argparse.Namespace(**argsLoader)
+def check_argsTrainer(argsTrainer: dict) -> None:
+    """
+    Control Trainer arguments regarding included keys, dtypes of the keys, mutually_exclusive relations and whether
+    the intended attr of a function exists
 
-    assert hasattr(argsLoader, 'type'), 'DataLoader requires "type" definition! Please follow the template: \n{}'. \
-        format(loader.DataLoaderTemplate.yaml_template(['DataLoader']))
-    assert hasattr(loader, argsLoader.type), '{} not an implemented loader'.format(argsLoader.type)
+    Parameters
+    ----------
+    argsTrainer     - Dict including the trainer arguments of a yaml file
+    """
+    options = {'Trainer': OptionClass(template=trainer_yml_template(['Trainer']))}
+    options['Trainer'].add_key('params', dtype=dict, param_dict=True)
+    options['Trainer'].add_key('callbacks', dtype=[dict, list])
+    options['Trainer'].add_key('logger', dtype=[dict, list])
 
+    options['callbacks'] = OptionClass(template=trainer_yml_template(['Trainer', 'callbacks']))
+    options['callbacks'].add_key('type', dtype=str, required=True, attr_of=[pl.callbacks, callbacks])
+    options['callbacks'].add_key('params', dtype=dict, param_dict=True)
 
-def check_argsTrainer(argsTrainer) -> None:
-    if isinstance(argsTrainer, dict):
-        argsTrainer = argparse.Namespace(**argsTrainer)
+    options['logger'] = OptionClass(template=trainer_yml_template(['Trainer', 'logger']))
+    options['logger'].add_key('type', dtype=str, required=True)
+    options['logger'].add_key('params', dtype=dict, param_dict=True)
 
-    if hasattr(argsTrainer, 'callbacks'):
-        if not isinstance(argsTrainer.callbacks, list): argsTrainer.callbacks = list(argsTrainer.callbacks)
+    OptionClass.checker(input_dict={'Trainer': argsTrainer}, option_classes=options)
 
-        assert all('type' in callback for callback in argsTrainer.callbacks), \
-            'Each callback requires definition of the "type". Please follow the structure defined as follows: \n{}'. \
-            format(trainer_yml_template(['Trainer', 'callbacks']))
-
-        assert all((hasattr(pl.callbacks, callback['type']) or hasattr(callbacks, callback['type'])) for callback in argsTrainer.callbacks),\
-            'Callback not available in lightning and not self-implemented'
-
-    if hasattr(argsTrainer, 'logger'):
-        if not isinstance(argsTrainer.logger, list): argsTrainer.logger = list(argsTrainer.logger)
-
-        assert all('type' in logger for logger in argsTrainer.logger), \
-            'Each logger_fn requires definition of the "type". Please follow the structure defined as follows: \n{}'. \
-            format(trainer_yml_template(['Trainer', 'logger_fn']))
+    if all(elem in argsTrainer['params'] for elem in ['gpus', 'profiler']) and argsTrainer['params']['gpus'] != 0 and \
+            argsTrainer['params']['profiler'] is True:
+        raise KeyError('In multi GPU training, profiler cannot be active!')
 
 
 def check_yaml_structure(args_yaml: dict) -> None:
+    """
+    Control if yaml file consist out of DataLoader, Model and Trainer argument dicts
+
+    Parameters
+    ----------
+    args_yaml       - parsed yaml dict
+    """
     assert 'DataLoader' in args_yaml, 'Training a model requires some data which is packed inside a DataLoader! ' \
                                       'Definiton of the DataLoader type and the corresponding parameters is missing. ' \
                                       'DataLoaders can be found under stfs_pytoolbox/ML_utils/loader. The tempolate ' \
@@ -121,7 +142,7 @@ def check_yaml_structure(args_yaml: dict) -> None:
     assert 'Model' in args_yaml, 'Neural Network Model definition is missing! Possible models are {}. The template ' \
                                  'yml structure for the Models is defined as follows: \n{}'.\
         format(glob.glob(os.path.dirname(inspect.getfile(models)) + '/Lightning*'),
-               models.LightningTemplateModel.yaml_template([]))
+               models.LightningModelTemplate.yaml_template([]))
 
     assert 'Trainer' in args_yaml, 'No Trainer of the Network defined! The trainer is responsible for automating ' \
                                    'network training, tesing and saving. A detailed description of the possible ' \
@@ -130,11 +151,15 @@ def check_yaml_structure(args_yaml: dict) -> None:
         format(trainer_yml_template([]))
 
 
-def trainer_yml_template(key_list) -> dict:
+def trainer_yml_template(key_list: list) -> dict:
+    """
+    Trainer yaml template
+    """
     template = {'Trainer': {'params': {'gpus': 'int', 'max_epochs': 'int', 'profiler': 'bool'},
                             'callbacks': [{'type': 'EarlyStopping',
                                            'params': {'monitor': 'val_loss', 'patience': 'int', 'mode': 'min'}},
-                                          {'type': 'ModelCheckpoint',
+                                          {'type': 'LearningRateLogger'},
+                                          {'type': 'Checkpointing',
                                            'params': {'filepath': 'None', 'save_top_k': 'int'}},
                                           {'type': 'lr_logger'}],
                             'logger': [{'type': 'Comet-ml',
@@ -148,44 +173,75 @@ def trainer_yml_template(key_list) -> dict:
     return yaml.dump(template, sort_keys=False)
 
 
-def replace_keys(dictionary, yamlTemplate):
-    def recursion(document, key_list, yamlTemplate):
+def replace_keys(dictMultiModel: dict, dictSingleModel: dict) -> dict:
+    """
+    Take keys given in the definition of a Model in the MultiModel file and either add them to the template SingleModel
+    file or replace the corresponding key value in it
+
+    Parameters
+    ----------
+    dictMultiModel      - dict including all keys that should be add/ changed in template
+    dictSingleModel     - template model dict
+
+    Returns
+    -------
+    dictRunModel        - adjusted model dict
+    """
+
+    def recursion_search(document: dict, key_list: list, dictModel: dict):
+        """
+        Recursive function to add/ replace key in a nested dict
+
+        Parameters
+        ----------
+        document        - dict with the keys that should be add
+        key_list        - key path in the nested dict to the final key
+        dictModel       - model dict where the keys are changed/ added
+
+        Returns
+        -------
+        dictModel       - model dict where the keys are changed/ added
+        key_list        - key path in the nested dict to the final key
+        """
         if isinstance(document, dict):
             for key, value in document.items():
                 key_list.append(key)
-                yamlTemplate, key_list = recursion(document=value, key_list=key_list, yamlTemplate=yamlTemplate)
+                dictModel, key_list = recursion_search(document=value, key_list=key_list,
+                                                       dictModel=dictModel)
                 key_list = key_list[:-1]
+
+        elif isinstance(document, list) and all(isinstance(elem, dict) for elem in document):
+            for list_dict in document:
+                dictSingleModel_list_dict = get_by_path(dictModel, key_list)
+                dictSingleModel_list_dict_nbr = next((i for i, item in enumerate(dictSingleModel_list_dict)
+                                                      if item["type"] == list_dict['type']))
+                key_list.extend([dictSingleModel_list_dict_nbr, 'params'])
+                dictModel, key_list = recursion_search(document=list_dict['params'], key_list=key_list,
+                                                       dictModel=dictModel)
+                key_list = key_list[:-2]
+
         else:
+            set_by_path(dictModel, key_list, document)
 
-            if len(key_list) == 2:
-                if all(key not in ['params', 'val_params', 'test_params'] for key in key_list):
-                    assert key_list[1] in yamlTemplate[key_list[0]], \
-                        'Key {} not included in yaml_template'.format(key_list)
-                yamlTemplate[key_list[0]].update({key_list[1]: document})
+        return dictModel, key_list
 
-            elif len(key_list) == 3:
-                if all(key not in ['params', 'val_params', 'test_params'] for key in key_list):
-                    assert key_list[2] in yamlTemplate[key_list[0]][key_list[1]], \
-                        'Key {} not included in yaml_template'.format(key_list)
-                yamlTemplate[key_list[0]][key_list[1]].update({key_list[2]: document})
+    dictRunModel, _ = recursion_search(document=dictMultiModel, key_list=list([]), dictModel=dictSingleModel)
 
-            elif len(key_list) == 4:
-                if all(key not in ['params', 'val_params', 'test_params'] for key in key_list):
-                    assert key_list[3] in yamlTemplate[key_list[0]][key_list[1]][key_list[2]], \
-                        'Key {} not included in yaml_template'.format(key_list)
-                yamlTemplate[key_list[0]][key_list[1]][key_list[2]].update({key_list[3]: document})
+    return dictRunModel
 
-            elif len(key_list) == 5:
-                if all(key not in ['params', 'val_params', 'test_params'] for key in key_list):
-                    assert key_list[4] in yamlTemplate[key_list[0]][key_list[1]][key_list[2]][key_list[3]], \
-                        'Key {} not included in yaml_template'.format(key_list)
-                yamlTemplate[key_list[0]][key_list[1]][key_list[2]][key_list[3]].update({key_list[4]: document})
 
-            else:
-                raise IndexError('Depth of multi yaml key {} is out of range of template keys'.format(key_list))
+# get, set and del keys in nested dict structure
+def get_by_path(root, items):
+    """Access a nested object in root by item sequence."""
+    return reduce(operator.getitem, items, root)
 
-        return yamlTemplate, key_list
 
-    yamlTemplate, _ = recursion(document=dictionary, key_list=list([]), yamlTemplate=yamlTemplate)
+def set_by_path(root, items, value):
+    """Set a value in a nested object in root by item sequence."""
+    get_by_path(root, items[:-1])[items[-1]] = value
 
-    return yamlTemplate
+
+def del_by_path(root, items):
+    """Delete a key-value in a nested object in root by item sequence."""
+    del get_by_path(root, items[:-1])[items[-1]]
+

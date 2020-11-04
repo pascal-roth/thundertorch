@@ -10,234 +10,111 @@
 # import packages
 import torch
 import yaml
-import pytorch_lightning as pl
 from argparse import Namespace
 
+from stfs_pytoolbox.ML_Utils.models.ModelBase import LightningModelBase
 from stfs_pytoolbox.ML_Utils.models import _losses
+from stfs_pytoolbox.ML_Utils.utils.utils_option_class import OptionClass
+from stfs_pytoolbox.ML_Utils import metrics
+
 
 # flexible MLP class
-class LightningFlexMLP(pl.LightningModule):
+class LightningFlexMLP(LightningModelBase):
     """
     Create flexMLP as PyTorch LightningModule
+
+    Hyperparameters of the model
+    ----------------------------
+    - n_inp:                int         Input dimension (required)
+    - n_out:                int         Output dimension (required)
+    - hidden_layer:         list        List of hidden layers with number of hidden neurons as layer entry (required)
+    - activation:           str         activation fkt that is included in torch.nn (default: ReLU)
+    - loss:                 str         loss fkt that is included in torch.nn (default: MSELoss)
+    - optimizer:            dict        dict including optimizer fkt type and possible parameters, optimizer has to be
+                                        included in torch.optim (default: {'type': Adam, 'params': {'lr': 1e-3}})
+    - scheduler:            dict        dict including execute flag, scheduler fkt type and possible parameters, scheduler
+                                        has to be included in torch.optim.lr_scheduler (default: {'execute': False})
+    - num_workers:          int         number of workers in DataLoaders (default: 10)
+    - batch:                int         batch size of DataLoaders (default: 64)
+    - output_activation:    str         activation fkt  (default: False)
     """
 
-    def __init__(self, hparams):
+    def __init__(self, hparams: Namespace) -> None:
         """
         Initializes a flexMLP model based on the provided parameters
 
         Parameters
         ----------
-        hparams         - Namespace object including hyperparameters (features, labels, lr, activation fn, ...)
+        hparams         - Namespace object including hyperparameters
         """
         super().__init__()
 
+        self.loss_fn = None
+        self.activation_fn = None
+
         self.hparams = hparams
         self.check_hparams()
+        self.get_default()
+        self.get_functions()
         self.min_val_loss = None
 
+        self.explained_variance_train = metrics.ExplainedVariance()
+        self.explained_variance_val = metrics.ExplainedVariance()
+        self.explained_variance_test = metrics.ExplainedVariance()
+
         # Construct MLP with a variable number of hidden layers
-        self.layers = torch.nn.ModuleList([torch.nn.Linear(self.hparams.n_inp, self.hparams.hidden_layer[0])])
-        layer_sizes = zip(self.hparams.hidden_layer[:-1], self.hparams.hidden_layer[1:])
-        self.layers.extend([torch.nn.Linear(h1, h2) for h1, h2 in layer_sizes])
-        self.output = torch.nn.Linear(self.hparams.hidden_layer[-1], self.hparams.n_out)
+        self.layers = []
+        self.construct_mlp(self.hparams.n_inp, self.hparams.hidden_layer, self.hparams.n_out)
 
-    def check_hparams(self) -> None:
-        # check model building hparams -> do not have default values
-        assert hasattr(self.hparams, 'n_inp'), 'Definition of input dimension is missing! Define "n_inp" as type ' \
-                                               'int. The necessary params to construct the model are: \n{}'.\
-            format(self.yaml_template(['Model', 'create_model']))
-        assert isinstance(self.hparams.n_inp, int), 'Size of input layer has to be of type int'
+        if hasattr(self.hparams, 'output_activation'):
+            self.layers.append(getattr(torch.nn, self.hparams.output_activation)())
 
-        assert hasattr(self.hparams, 'n_out'), 'Definition of output dimension is missing! Define "n_out" as type ' \
-                                               'int. The necessary params to construct the model are: \n{}'.\
-            format(self.yaml_template(['Model', 'create_model']))
-        assert isinstance(self.hparams.n_out, int), 'Size of output layer has to be of type int'
+        self.layers = torch.nn.Sequential(*self.layers)
 
-        assert hasattr(self.hparams, 'hidden_layer'), 'Definition of hidden layer dimension(s) is missing! ' \
-                                                      'Define "hidden_layer" as list of int(s). Necessary params to ' \
-                                                      'create the model are: \n{}'.\
-            format(self.yaml_template(['Model', 'create_model']))
-        if not isinstance(self.hparams.hidden_layer, list): self.hparams.hidden_layer = [self.hparams.hidden_layer]
-        assert all(isinstance(elem, int) for elem in self.hparams.hidden_layer), 'Size of hidden layer must be type int'
-
-        # check functions
-        if hasattr(self.hparams, 'activation'):
-            assert isinstance(self.hparams.activation, str), 'Activation function type has to be of type str'
-            assert hasattr(torch.nn.functional, self.hparams.activation), ('Activation function {} not implemented in '
-                                                                           'torch'.format(self.hparams.activation))
-        else:
-            self.hparams.activation = 'relu'
-
-        if hasattr(self.hparams, 'loss'):
-            assert isinstance(self.hparams.loss, str), 'Loss function type has to be of type str'
-            assert hasattr(torch.nn.functional, self.hparams.loss) or hasattr(_losses, self.hparams.loss), \
-                'Loss function {} not implemented in torch and not included in "_losses.py"'.format(self.hparams.loss)
-        else:
-            self.hparams.loss = 'mse_loss'
-
-        if hasattr(self.hparams, 'optimizer'):
-            assert self.hparams.optimizer, 'Optimizer params are missing. Attach dict with structure: \n{}'.\
-                format(self.yaml_template(['Model', 'params', 'optimizer']))
-            assert isinstance(self.hparams.optimizer['type'], str), 'Optimizer function type has to be of type str'
-            assert hasattr(torch.optim, self.hparams.optimizer['type']), 'Optimizer function {} not implemented in ' \
-                                                                         'torch'.format(self.hparams.optimizer['type'])
-        else:
-            self.hparams.optimizer = {'type': 'Adam', 'params': {'lr': 1e-3}}
-
-        if hasattr(self.hparams, 'scheduler'):
-            assert self.hparams.scheduler, 'Scheduler params are missing. Attach dict with structure: \n{}'.\
-                format(self.yaml_template(['Model', 'params', 'scheduler']))
-            if self.hparams.scheduler['execute']:
-                assert isinstance(self.hparams.scheduler['type'], str), 'Scheduler function type has to be of type str'
-                assert hasattr(torch.optim.lr_scheduler, self.hparams.scheduler['type']), \
-                    'Scheduler function {} not implemented in torch'.format(self.hparams.scheduler['type'])
-        else:
-            self.hparams.scheduler = {'execute': False}
-
-        # introduce default values
-        if not hasattr(self.hparams, 'num_workers'):
-            self.hparams.num_workers = 10
-        else:
-            assert isinstance(self.hparams.num_workers, int), 'Num_workers has to be of type int, not {}!'. \
-                format(type(self.hparams.num_workers))
-
-        if not hasattr(self.hparams, 'batch'):
-            self.hparams.batch = 64
-        else:
-            assert isinstance(self.hparams.batch, int), 'Batch size has to be of type int, not {}!'. \
-                format(type(self.hparams.batch))
-
-        if not hasattr(self.hparams, 'output_relu'):
-            self.hparams.output_relu = False
-        else:
-            assert isinstance(self.hparams.output_relu, bool), 'Output_relu has to be of type bool, not {}!'. \
-                format(type(self.hparams.output_relu))
-
-    def loss_fn(self, y, y_hat):
-        """
-        compute loss
-
-        Parameters
-        ----------
-        y           - target tensor of network
-        y_hat       - tensor output of network
-
-        Returns
-        -------
-        loss        - float
-        """
-        if hasattr(torch.nn.functional, self.hparams.loss):
-            loss = getattr(torch.nn.functional, self.hparams.loss)(y_hat, y)
-        else:
-            loss = getattr(_losses, self.hparams.loss).loss_fn(y_hat, y)
-        return loss
-
-    def forward(self, x):
-        """
-        forward pass through the network
-
-        Parameters
-        ----------
-        x           - input tensor of the pytorch.nn.Linear layer
-
-        Returns
-        -------
-        x           - output tensor of the pytorch.nn.Linear layer
-        """
-        for layer in self.layers:
-            activation_fn = getattr(torch.nn.functional, self.hparams.activation)
-            x = activation_fn(layer(x))
-
-        if self.hparams.output_relu:
-            x = torch.nn.functional.relu(self.output(x))
-        else:
-            x = self.output(x)
-
-        return x
-
-    def configure_optimizers(self):
-        """
-        optimizer and lr scheduler
-
-        Returns
-        -------
-        optimizer       - PyTorch Optimizer function
-        scheduler       - PyTorch Scheduler function
-        """
-        params = list(self.layers.parameters()) + list(self.output.parameters())
-        if 'params' in self.hparams.optimizer:
-            optimizer = getattr(torch.optim, self.hparams.optimizer['type'])(params, **self.hparams.optimizer['params'])
-        else:
-            optimizer = getattr(torch.optim, self.hparams.optimizer['type'])(params)
-
-        if self.hparams.scheduler['execute']:
-            scheduler = getattr(torch.optim.lr_scheduler, self.hparams.scheduler['type'], 'ReduceLROnPlateau')\
-                (optimizer, **self.hparams.scheduler['params'])
-            return [optimizer], [scheduler]
-        else:
-            return optimizer
-
-    def training_step(self, batch, batch_idx):
+    def training_step(self, batch, batch_idx) -> dict:
         x, y = batch
         y_hat = self(x)
-        loss = self.loss_fn(y, y_hat)
-        log = {'train_loss': loss}
-        results = {'loss': loss, 'log': log}
+        loss = self.loss_fn(y_hat, y)
+        train_ExpVar = self.explained_variance_train(y_hat, y)
+        log = {'train_loss': loss, 'train_ExpVar_step': train_ExpVar}
+        results = {'loss': loss, 'train_ExpVar_step': train_ExpVar, 'log': log}
         return results
 
-    def validation_step(self, batch, batch_idx):
+    def training_epoch_end(self, outs):
+        log = {'train_ExpVar_epoch': self.explained_variance_train.compute()}
+        return {'log': log}
+
+    def validation_step(self, batch, batch_idx) -> dict:
         x, y = batch
         y_hat = self(x)
-        val_loss = self.loss_fn(y, y_hat)
+        val_loss = self.loss_fn(y_hat, y)
+        self.explained_variance_val(y_hat, y)
         return {'val_loss': val_loss}
 
-    def validation_epoch_end(self, outputs):
+    def validation_epoch_end(self, outputs) -> dict:
         val_loss = torch.stack([x['val_loss'] for x in outputs]).mean()
+        val_ExpVar = self.explained_variance_val.compute()
         if self.current_epoch == 0: self.min_val_loss = val_loss
         if val_loss < self.min_val_loss:
             self.min_val_loss = val_loss
-        log = {'avg_val_loss': val_loss}
-        pbar = {'val_loss': val_loss, 'min_val_loss': self.min_val_loss}
+        log = {'avg_val_loss': val_loss, 'val_ExpVar': val_ExpVar}
+        pbar = {'val_loss': val_loss, 'min_val_loss': self.min_val_loss, 'val_ExpVar': val_ExpVar}
         results = {'log': log, 'val_loss': val_loss, 'progress_bar': pbar}
         return results
 
-    def test_step(self, batch, batch_idx):
+    def test_step(self, batch, batch_idx) -> dict:
         x, y = batch
         y_hat = self(x)
-        loss = self.loss_fn(y, y_hat)
+        loss = self.loss_fn(y_hat, y)
+        self.explained_variance_test(y_hat, y)
         return {'test_loss': loss}
 
-    def test_epoch_end(self, outputs):
+    def test_epoch_end(self, outputs) -> dict:
         test_loss = torch.stack([x['test_loss'] for x in outputs]).mean()
-        log = {'avg_test_loss': test_loss}
-        results = {'log': log, 'test_loss': test_loss}
+        test_ExpVar = self.explained_variance_test.compute()
+        log = {'avg_test_loss': test_loss, 'test_ExpVar': test_ExpVar}
+        results = {'log': log, 'test_loss': test_loss, 'test_ExpVar': test_ExpVar}
         return results
-
-    def hparams_save(self, path) -> None:
-        """
-        Save hyparams dict to yaml file
-
-        Parameters
-        ----------
-        path             - path where yaml should be saved
-        """
-        from pytorch_lightning.core.saving import save_hparams_to_yaml
-        save_hparams_to_yaml(path, self.hparams)
-
-    def hparams_update(self, update_dict) -> None:
-        """
-        Update hyparams dict
-
-        Parameters
-        ----------
-        update_dict         - dict or namespace object
-        """
-        from pytorch_lightning.core.saving import update_hparams
-
-        if isinstance(update_dict, Namespace):
-            update_dict = vars(update_dict)
-
-        update_hparams(vars(self.hparams), update_dict)
 
     # def add_model_specific_args(parent_parser):
     #     parser = argparse.ArgumentParser(parents=[parent_parser])
@@ -247,14 +124,43 @@ class LightningFlexMLP(pl.LightningModule):
     #     return parser
 
     @staticmethod
+    def get_OptionClass():
+        options = {'hparams': OptionClass(template=LightningFlexMLP.yaml_template(['Model', 'params']))}
+        options['hparams'].add_key('n_inp', dtype=int, required=True)
+        options['hparams'].add_key('n_out', dtype=int, required=True)
+        options['hparams'].add_key('hidden_layer', dtype=list, required=True)
+        options['hparams'].add_key('output_activation', dtype=str, attr_of=torch.nn)
+        options['hparams'].add_key('activation', dtype=str, attr_of=torch.nn)
+        options['hparams'].add_key('loss', dtype=str, attr_of=[torch.nn, _losses])
+        options['hparams'].add_key('optimizer', dtype=dict)
+        options['hparams'].add_key('scheduler', dtype=dict)
+        options['hparams'].add_key('num_workers', dtype=int)
+        options['hparams'].add_key('batch', dtype=int)
+        options['hparams'].add_key('lparams', dtype=Namespace)
+        options['hparams'].add_key('lr', dtype=float)
+
+        options['optimizer'] = OptionClass(template=LightningFlexMLP.yaml_template(['Model', 'params', 'optimizer']))
+        options['optimizer'].add_key('type', dtype=str, attr_of=torch.optim)
+        options['optimizer'].add_key('params', dtype=dict, param_dict=True)
+
+        options['scheduler'] = OptionClass(template=LightningFlexMLP.yaml_template(['Model', 'params', 'scheduler']))
+        options['scheduler'].add_key('execute', dtype=bool)
+        options['scheduler'].add_key('type', dtype=str, attr_of=torch.optim.lr_scheduler)
+        options['scheduler'].add_key('params', dtype=dict, param_dict=True)
+
+        return options
+
+    @staticmethod
     def yaml_template(key_list):
+        """
+        Yaml template for LightningFlexMLP
+        """
         template = {'Model': {'type': 'LightningFlexMLP',
-                              'source': 'load/ create',
                               'load_model': {'path': 'name.ckpt'},
                               'create_model': {'n_inp': 'int',  'n_out': 'int', 'hidden_layer': '[int, int, int]',
-                                               'output_relu': 'bool (default: False)', 'activation':
-                                                   'str (default: relu)'},
-                              'params': {'loss': 'str (default:mse_loss)', 'optimizer': {'type': 'str (default: Adam)',
+                                               'output_activation': 'str (default: None)', 'activation':
+                                                   'str (default: ReLU)'},
+                              'params': {'loss': 'str (default:MSELoss)', 'optimizer': {'type': 'str (default: Adam)',
                                                                                          'params': {'lr': 'float (default: 1.e-3'}},
                                          'scheduler': {'execute': ' bool (default: False)', 'type': 'name',
                                                        'params': {'cooldown': 'int', 'patience': 'int', 'min_lr': 'float'}},

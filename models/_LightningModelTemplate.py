@@ -10,7 +10,7 @@ from argparse import Namespace
 
 
 # flexible MLP class
-class LightningTemplateModel(pl.LightningModule):
+class LightningModelTemplate(pl.LightningModule):
     """
     Create Model as PyTorch LightningModule
     """
@@ -24,6 +24,7 @@ class LightningTemplateModel(pl.LightningModule):
 
         self.hparams = hparams
         self.check_hparams()
+        self.get_defaults()
         self.min_val_loss = None
 
         # code to construct the model
@@ -35,57 +36,11 @@ class LightningTemplateModel(pl.LightningModule):
         # some tests, which are usually performed, are included
 
         # check functions
-        if hasattr(self.hparams, 'activation'):
-            assert isinstance(self.hparams.activation, str), 'Activation function type has to be of type str'
-            assert hasattr(torch.nn.functional, self.hparams.activation), ('Activation function {} not implemented in '
-                                                                           'torch'.format(self.hparams.activation))
-        else:
-            self.hparams.activation = 'relu'
+        pass
 
-        if hasattr(self.hparams, 'loss'):
-            assert isinstance(self.hparams.loss, str), 'Loss function type has to be of type str'
-            assert hasattr(torch.nn.functional, self.hparams.loss), 'Loss function {} not implemented in ' \
-                                                                    'torch'.format(self.hparams.loss)
-        else:
-            self.hparams.loss = 'mse_loss'
-
-        if hasattr(self.hparams, 'optimizer'):
-            assert self.hparams.optimizer, 'Optimizer params are missing. Attach dict with structure: \n{}'. \
-                format(self.yaml_template(['Model', 'params', 'optimizer']))
-            assert isinstance(self.hparams.optimizer['type'], str), 'Optimizer function type has to be of type str'
-            assert hasattr(torch.optim, self.hparams.optimizer['type']), 'Optimizer function {} not implemented in ' \
-                                                                         'torch'.format(self.hparams.optimizer['type'])
-        else:
-            self.hparams.optimizer = {'type': 'Adam', 'params': {'lr': 1e-3}}
-
-        if hasattr(self.hparams, 'scheduler'):
-            assert self.hparams.scheduler, 'Scheduler params are missing. Attach dict with structure: \n{}'. \
-                format(self.yaml_template(['Model', 'params', 'scheduler']))
-            if self.hparams.scheduler['execute']:
-                assert isinstance(self.hparams.scheduler['type'], str), 'Scheduler function type has to be of type str'
-                assert hasattr(torch.optim.lr_scheduler, self.hparams.scheduler['type']), \
-                    'Scheduler function {} not implemented in torch'.format(self.hparams.scheduler['type'])
-        else:
-            self.hparams.scheduler = {'execute': False}
-
-        # introduce default values
-        if not hasattr(self.hparams, 'num_workers'):
-            self.hparams.num_workers = 10
-        else:
-            assert isinstance(self.hparams.num_workers, int), 'Num_workers has to be of type int, not {}!'. \
-                format(type(self.hparams.num_workers))
-
-        if not hasattr(self.hparams, 'batch'):
-            self.hparams.batch = 64
-        else:
-            assert isinstance(self.hparams.batch, int), 'Batch size has to be of type int, not {}!'. \
-                format(type(self.hparams.batch))
-
-        if not hasattr(self.hparams, 'output_relu'):
-            self.hparams.output_relu = False
-        else:
-            assert isinstance(self.hparams.output_relu, bool), 'Output_relu has to be of type bool, not {}!'. \
-                format(type(self.hparams.output_relu))
+    def get_defaults(self) -> None:
+        # defined default values for hparams
+        pass
 
     def loss_fn(self, y, y_hat):
         """
@@ -213,13 +168,13 @@ class LightningTemplateModel(pl.LightningModule):
     @staticmethod
     def yaml_template(key_list):
         template = {'Model': {'type': 'LightningModelTemplate',
-                              'source': 'load/ create',
-                              'load_model': {'path': 'name.ckpt'},
-                              'create_model': {'some_construction_parameters': 'corresponding datatypes',
+                              'load_model': {"INFO": 'Mutually exclusive with create_model', 'path': 'name.ckpt'},
+                              'create_model': {"INFO": 'Mutually exclusive with load_model',
+                                               'some_construction_parameters': 'corresponding datatypes',
                                                'output_relu': 'bool (default: False)', 'activation': 'relu'},
                               'params': {'loss': 'mse_loss', 'optimizer': {'type': 'Adam', 'params': {'lr': 1.e-3}},
                                          'scheduler': {'execute': ' bool (default: False)', 'type': 'name',
-                                                       'params': {'cooldown': 'int', 'patience': 'int', 'min_lr': 'float'}},
+                                                       'params': {'param_1': 'int', 'param_2': 'int'}},
                                          'num_workers': 'int', 'batch': 'int'}}}
 
         for i, key in enumerate(key_list):

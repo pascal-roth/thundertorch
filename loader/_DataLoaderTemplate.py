@@ -8,22 +8,22 @@ import torch
 import pickle
 import logging
 import yaml
-from sklearn import preprocessing
 from argparse import Namespace
 
-from stfs_pytoolbox.ML_Utils.models.LightningFlexMLP import LightningFlexMLP
+from stfs_pytoolbox.ML_Utils import models
 from stfs_pytoolbox.ML_Utils.loader import _utils
+from stfs_pytoolbox.ML_Utils.utils.utils_option_class import OptionClass
 
 
 class DataLoaderTemplate:
     """
     Template class to create DataLoaders which get a certain input data, do preprocessing and can finally create PyTorch
-    DataLoader that are used as input of the Lightning Trainer
+    DataLoader that are used as input of the Lightning Trainer class
     """
 
     def __init__(self, param_1, param_2, **kwargs) -> None:
         """
-        Create class
+        Create object
 
         Parameters
         ----------
@@ -167,25 +167,16 @@ class DataLoaderTemplate:
 
     @classmethod
     def read_from_yaml(cls, argsLoader, **kwargs) -> object:
-        """
-        Function to take yaml arguments and reconstruct DataLoader
-        """
-        assert hasattr(argsLoader, 'source'), 'Define source of DataLoader! Can be either set to "load" or "create".'
-        assert argsLoader.source in ['load', 'create'], 'Decide if source is "load" or "create"! "{}" not a valid ' \
-                                                        'source'.format(argsLoader.source)
+        options = DataLoaderTemplate.get_OptionClass()
+        OptionClass.checker(input_dict=argsLoader, option_classes=options)
 
-        if argsLoader.source == 'load':
-            assert hasattr(argsLoader, 'load_DataLoader'), '"Load" source flag requires dict "load_DataLoader" with ' \
-                                                           'following structure: \n{}'.format(
-                DataLoaderTemplate.yaml_template(['DataLoader', 'load_DataLoader']))
-            assert 'path' in argsLoader.load_DataLoader, 'Path in dict "load_DataLoader" is missing! DataLoader cannot be restored!'
-
-            _, file_extention = os.path.splitext(argsLoader.load_DataLoader['path'])
+        if 'load_DataLoader' in argsLoader:
+            _, file_extention = os.path.splitext(argsLoader['load_DataLoader']['path'])
             if file_extention == '.pkl':
-                Loader = DataLoaderTemplate.load(argsLoader.load_DataLoader['path'])
-                Loader.lparams.data_path = argsLoader.load_DataLoader['path']
+                Loader = DataLoaderTemplate.load(argsLoader['load_DataLoader']['path'])
+                Loader.lparams.data_path = argsLoader['load_DataLoader']['path']
             elif file_extention == '.ckpt':
-                Loader = DataLoaderTemplate.read_from_checkpoint(argsLoader.load_DataLoader['path'])
+                Loader = DataLoaderTemplate.read_from_checkpoint(argsLoader['load_DataLoader']['path'])
             else:
                 raise TypeError('Not supported file type to load DataLoader! Only supported are ".pkl" and ".ckpt"')
 
@@ -196,51 +187,36 @@ class DataLoaderTemplate:
                 Loader.lparams.num_workers = kwargs.pop('num_workers')
                 logging.info('Num_workers stored in file in overwritten by kwargs argument')
 
-        elif argsLoader.source == 'create':
-            assert hasattr(argsLoader, 'create_DataLoader'), '"Create" source flag requires dict "create_DataLoader" ' \
-                                                             'with following structure: \n{}'.format(
-                DataLoaderTemplate.yaml_template(['DataLoader', 'create_DataLoader']))
-            argsLoader = Namespace(**argsLoader.create_DataLoader)
+        elif 'create_DataLoader' in argsLoader:
+            argsCreate = argsLoader['create_DataLoader']
 
             # create Loader
-            assert hasattr(argsLoader, 'raw_data_path'), 'Argument "raw_data_path" missing! Define location of data to ' \
-                                                         'construct DataLoader!'
-            Loader = DataLoaderTemplate.read_from_file(argsLoader.raw_data_path, features=argsLoader.features,
-                                                  labels=argsLoader.labels, **kwargs)
+            Loader = DataLoaderTemplate.read_from_file(argsCreate.pop('raw_data_path'),
+                                                       features=argsCreate.pop('features'),
+                                                       labels=argsCreate.pop('labels'), **kwargs)
 
             # validation data
-            assert hasattr(argsLoader, 'validation_data'), 'Definition of validation data missing! Insert dict ' \
-                                                           '"validation_data" with following structure \n{}'. \
-                format(DataLoaderTemplate.yaml_template(['DataLoader', 'create_DataLoader', 'validation_data']))
-            assert 'source' in argsLoader.validation_data, 'Define source of Validation data! Can be either set to ' \
-                                                           '"load" or "split".'
-            if argsLoader.validation_data['source'] == 'load':
-                assert 'load_data' in argsLoader.validation_data, 'Parameters to perform data load are missing!'
-                Loader.add_val_data(**argsLoader.validation_data['load_data'])
-            elif argsLoader.validation_data['source'] == 'split':
-                assert 'split_data' in argsLoader.validation_data, 'Parameters to perform data split are missing!'
-                Loader.val_split(**argsLoader.validation_data['split_data'])
+            if 'load_data' in argsCreate['validation_data']:
+                Loader.add_val_data(**argsCreate['validation_data']['load_data'])
+            elif 'split_data' in argsCreate['validation_data']:
+                Loader.val_split(**argsCreate['validation_data']['split_data'])
             else:
-                raise TypeError('No validation data selected! Either set source flag to "load" or "split"')
+                raise KeyError('No validation data selected! Either include dict "load_data" or "split_data".')
 
             # test data
-            assert hasattr(argsLoader, 'test_data'), 'Definition of test data missing! Insert dict "test_data" with ' \
-                                                     'following structure \n{}'.\
-                format(DataLoaderTemplate.yaml_template(['DataLoader', 'create_DataLoader', 'test_data']))
-            assert 'source' in argsLoader.test_data, 'Define source of test data! Can be set to "load" or "split"'
-            if argsLoader.test_data['source'] == 'load':
-                assert 'load_data' in argsLoader.test_data, 'Parameters to perform data load are missing!'
-                Loader.add_test_data(**argsLoader.test_data['load_data'])
-            elif argsLoader.test_data['source'] == 'split':
-                assert 'split_data' in argsLoader.test_data, 'Parameters to perform data split are missing!'
-                Loader.test_split(**argsLoader.test_data['split_data'])
+            if 'load_data' in argsCreate['test_data']:
+                Loader.add_test_data(**argsCreate['test_data']['load_data'])
+            elif 'split_data' in argsCreate['test_data']:
+                Loader.test_split(**argsCreate['test_data']['split_data'])
             else:
-                raise TypeError('No test data selected! Either set source flag to "load" or "split"')
+                raise KeyError('No test data selected! Either include dict "load_data" or "split_data".')
 
             # save loader
-            if hasattr(argsLoader, 'save_Loader'):
-                if argsLoader.save_Loader['execute']:
-                    Loader.save(argsLoader.save_Loader['path'])
+            if 'save_Loader' in argsCreate:
+                Loader.save(argsCreate['save_Loader']['path'])
+
+        else:
+            raise KeyError('No DataLoader generated! Either include dict "load_DataLoader" or "create_DataLoader"!')
 
         return Loader
 
@@ -249,7 +225,7 @@ class DataLoaderTemplate:
         """
         Construct DataLoader with information saved in Model Checkpointing
         """
-        model = LightningFlexMLP.load_from_checkpoint(ckpt_file)
+        model = models.LightningFlexMLP.load_from_checkpoint(ckpt_file)
 
         assert hasattr(model.hparams, 'data_path'), 'Data cannot be reloaded because the pass is missing'
         _, file_extention = os.path.splitext(model.hparams.data_path)
@@ -284,21 +260,24 @@ class DataLoaderTemplate:
         key_list
         """
         template = {'DataLoader': {'type': 'DataLoaderTemplate',
-                                   'source': 'load/ create',
+                                   '###INFO###': 'load_DataLoader and create_DataLoader mutually exclusive',
                                    'load_DataLoader': {'path': 'name.pkl or modelXXX.ckpt'},
-                                   'create_DataLoader': {'raw_data_path': 'samples_name.csv, .txt, .h5, .flut', # TODO: change extension of flut datatype
+                                   'create_DataLoader': {'raw_data_path': 'samples_name.csv, .txt, .h5, .flut',
+                                                         # TODO: change extension of flut datatype
                                                          'further_param_1': 'some information',
                                                          'further_param_2': 'some_information',
-                                                         'validation_data': {'source': 'load/ split',
-                                                                             'load_data': {'path': 'samples_name.csv, .txt, .h5'},
-                                                                             'split_data': {'method': 'method name (pre implemented '
-                                                                                                      'are random/percentage/explicit)',
-                                                                                            'val_params': 'split_params'}},
-                                                         'test_data': {'source': 'load/ split',
-                                                                       'load_data': {'path': 'samples_name.csv, .txt, .h5, .flut'},
-                                                                       'split_data': {'method': 'method name (pre implemented '
-                                                                                                'are random/percentage/explicit)',
-                                                                                      'test_params': 'split_params'}},
+                                                         'validation_data':
+                                                             {'###INFO###': 'load_data and split_data mutually exclusive',
+                                                              'load_data': {'path': 'samples_name.csv, .txt, .h5'},
+                                                              'split_data': {'method': 'method name (pre implemented '
+                                                                                       'are random/percentage/explicit)',
+                                                                             'val_params': 'split_params'}},
+                                                         'test_data':
+                                                             {'###INFO###': 'load_data and split_data mutually exclusive',
+                                                              'load_data': {'path': 'samples_name.csv, .txt, .h5'},
+                                                              'split_data': {'method': 'method name (pre implemented '
+                                                                                       'are random/percentage/explicit)',
+                                                                             'val_params': 'split_params'}},
                                                          'save_Loader': {'execute': 'bool', 'path': 'name.pkl'}}}}
 
         for i, key in enumerate(key_list):

@@ -98,6 +98,8 @@ class Checkpointing(Callback):
         """
         if self.filename is None:
             filename = f'ckpt_epoch_{epoch}'
+        elif self.save_top_k != 1:
+            filename = f'{self.filename}_epoch_{epoch}'
         else:
             filename = self.filename
 

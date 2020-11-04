@@ -1,7 +1,10 @@
 from .LightningFlexMLP import LightningFlexMLP
 from .LightningFlexCNN import LightningFlexCNN
-from ._LightningModelTemplate import LightningTemplateModel
+from .LightningFlexNN import LightningFlexNN
+from ._LightningModelTemplate import LightningModelTemplate
+from .AssemblyModel import AssemblyModel
+from .ModelBase import LightningModelBase
 from .models_old import *
 
-__all__ = ['LightningFlexCNN', 'LightningFlexMLP', 'LightningTemplateModel',
+__all__ = ['LightningFlexNN', 'LightningFlexMLP', 'LightningModelTemplate', 'AssemblyModel', 'LightningModelBase',
            'FlexMLP', 'createFlexMLPCheckpoint', 'loadFlexMLPCheckpoint']
