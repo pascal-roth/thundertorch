@@ -16,7 +16,7 @@ Subpackages
    stfs_pytoolbox.math
    stfs_pytoolbox.plotting
 
-pyFLUT modules overview
+ML_utils module overview
 =======================
 
 .. toctree::
