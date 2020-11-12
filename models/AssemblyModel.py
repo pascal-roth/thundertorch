@@ -56,6 +56,36 @@ class AssemblyModel(torch.nn.Module):
             outputs.append(out)
         return torch.cat(outputs, 1)
 
+    @torch.jit.export
+    def forward_parallel(self, Xorg: torch.tensor):
+        """
+        Forward pass of model
+            runs forward pass through all submodels in parallel using torch::jit::fork and scales all in- and outputs
+            for details see: https://pytorch.org/tutorials/advanced/torch-script-parallelism.html
+        Parameters
+        ----------
+        Xorg: torch.tensor  model input
+
+        Returns
+        -------
+        Y: torch.tensor model output
+
+        """
+        X = Xorg.clone()
+        X.requires_grad_(False)
+        X = (X - self.X_min) / (self.X_max - self.X_min)
+        # If input are out of range of trained scales, set value to border
+        if self.limit_scale:
+            X[X > 1] = 1
+            X[X < 0] = 0
+
+        # jit.fork spawns an asynchronous task that are run in parallel until jit.wait
+        # in pt 1.2 fork and wait are called with leading underscore
+        futures = [torch.jit._fork(model, X) for model in self.models]
+        outputs = [torch.jit._wait(fut) for fut in futures]
+        return torch.cat(outputs, 1)
+
+
     def toTorchScript(self, path: str) -> None:
         """
         saves assembly model as torch-script for application in C++ Code
@@ -68,7 +98,8 @@ class AssemblyModel(torch.nn.Module):
         sample_input = torch.ones([8, n_inp], dtype=torch.float64)
         b = self.forward(sample_input)
         with torch.no_grad():
-            torch_script = torch.jit.trace(self, sample_input)
+            # we have to use the trace_module function here to trace multiple functions besides forward
+            torch_script = torch.jit.trace_module(self, {"forward" :sample_input, "forward_parallel": sample_input})
 
         # Saving the model
         if os.path.exists(path):

@@ -1,5 +1,4 @@
 from .LightningFlexMLP import LightningFlexMLP
-from .LightningFlexCNN import LightningFlexCNN
 from .LightningFlexNN import LightningFlexNN
 from ._LightningModelTemplate import LightningModelTemplate
 from .AssemblyModel import AssemblyModel
