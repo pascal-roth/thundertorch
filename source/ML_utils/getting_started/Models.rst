@@ -12,9 +12,10 @@ However, for more detailed information please have a look at the
 documentation of the single models and the `PyTorch Lightning
 Docu <https://pytorch-lightning.readthedocs.io/en/0.7.6/lightning-module.html>`__.
 The toolbox has pre-implemented a FlexMLP and a more general FlexNN that
-can be used for CNNs, RNNs and MLPs. Especially for the FelxNN the usage
-of the yaml interface is recommanded in order to have maximal structure.
-Own models can be defined using the LightningModelTemplate.py file.
+can be used for CNNs, RNNs, and MLPs. Especially for the FelxNN, the
+usage of the yaml interface is recommended in order to have maximal
+possible structure. Own models can be defined using the
+LightningModelTemplate.py file.
 
 It has to be mentioned that the default dtype of pytorch is changed to
 double. This change is necessary in order to export models to C++. As a
@@ -27,9 +28,9 @@ A Model can be initialized by a direct code implementation or by using
 the yaml structure. Thereby, each implemented Model has a yaml template
 saved as a staticmethod. In order to employ the yaml file, the utils
 functions can be used. The check_argsModel(args_yaml) function is not
-mandatory, however the usage is recommanded in order to detect possible
+mandatory, however, the usage is recommended in order to detect possible
 errors and secure that the intended output is provided. In the following
-the yaml approache is demonstrated using the LightingFlexMLP:
+the yaml approach is demonstrated using the LightingFlexMLP:
 
 .. code:: python
 
@@ -45,7 +46,7 @@ the yaml approache is demonstrated using the LightingFlexMLP:
 If a Model is initialized by a direct code implementation, it requires a
 Namespace object as input. This object contains all required
 hyperparameter used to construct the network, as well as set activation,
-loss and optimization function. Three different ways can be identified
+loss, and optimization function. Three different ways can be identified
 in order to create Namespace objects:
 
 1. Create empty Namespace object and add arguments
@@ -93,7 +94,7 @@ hyperparameters. The model hyperparameters are used in the model
 construction task and thus are not inferred while fitting the network.
 However, these parameters influence the learning capability and have to
 be adjusted in case the model complexity is chosen differently compared
-to the complexity of the addressed problem. In the toolbox theses model
+to the complexity of the addressed problem. In the toolbox, theses model
 hyperparameters are unique for each model and do not have default
 values. As an example the model hyperparameters of the LightningFlexMLP
 are:
@@ -113,7 +114,7 @@ Algorithm hyperparameters, in theory, do not influence the model
 performance, instead, they impact the speed and quality of the learning
 process. In practice, however, algorithm hyperparameters do influence
 the capability and they have to be optimized. Algorithm hyperparameters
-are similiar in each model and normally have default values. The toolbox
+are similar in each model and normally have default values. The toolbox
 algorithm hyperparameters are:
 
 +-------------+-------+------------------------------------------------+
@@ -164,11 +165,11 @@ example shown that employs the LightningFlexMLP:
 Evaluation metrics
 ------------------
 
-It is possible to use different metrices to evaluate the training of the
-network. However, the metrices implemented in pytorch lightning are not
+It is possible to use different metrics to evaluate the training of the
+network. However, the metrics implemented in pytorch lightning are not
 available with version 0.7.6 so that the source code has to be copied
-into the metrics directory of the ML_Utils toolbox. As an example this
+into the metrics directory of the ML_Utils toolbox. As an example, this
 has been made with the “Explained Variance” metric which is included in
 the LightningFlexMLP network. As a consequence of using this metric the
-training, validation and test setps/ epoch_end functions have to be
+training, validation, and test steps/ epoch_end functions have to be
 adjusted.

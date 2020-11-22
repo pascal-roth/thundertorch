@@ -1,14 +1,14 @@
 DataLoader
 ==========
 
-DataLoader are a central element when working with NN. They provide an
+DataLoaders are a central element when working with NN. They provide an
 iterable over the given dataset. This toolbox has pre-implemented
-DataLoader for different kind of datasets. However, own DataLoaders can
-be created by following the basic structure of the
-DataLoaderTemplate.py. Since the DataLoader are passed directly to the
+DataLoaders for different kinds of datasets. However, own DataLoaders
+can be created by following the basic structure of the
+DataLoaderTemplate.py. Since the DataLoader is passed directly to the
 Lightning Trainer class when the model is trained/ tested, the necessary
 preprocessing steps have to be included in the DataLoader. Furthermore,
-the DataLoader has to consist of data for training, validation and
+the DataLoader has to consist of data for training, validation, and
 testing. If those three datasets are not defined prior to the training,
 a default split is performed.
 
@@ -19,9 +19,10 @@ A DataLoader can be initialized by a direct code implementation or by
 using the yaml structure. Thereby, each DataLoader has a yaml template
 saved as a staticmethod. In order to employ the yaml file, the utils
 functions can be used. The check_argsLoader(args_yaml) function is not
-mandatory, however the usage is recommanded in order to detect possible
-errors and secure that the intended output is provided. In the following
-the different approaches are demonstrated using the TabularLoader
+mandatory, however, the usage is recommended in order to detect possible
+errors and secure that the intended output is provided. In the
+following, the different approaches are demonstrated using the
+TabularLoader
 
 .. code:: python
 
@@ -55,7 +56,7 @@ DataLoader Classmethods
 
 Next to the direct initialization as seen above, DataLoader can be
 created directly from different files or by using the information saved
-in a model checkpoint. For both cases certain constrains have to be
+in a model checkpoint. For both cases certain constraints have to be
 known:
 
 -  Read from a file
@@ -99,8 +100,8 @@ In the following the two approaches are shown using the TabularLoader:
 Save and Load DataLoader
 ------------------------
 
-In addition it is possible to save and load DataLoader. Therefore, the
-pickle dataformat is chosen. The corresponding functions are called
+Besides, it is possible to save and load DataLoader. Therefore, the
+pickle data format is chosen. The corresponding functions are called
 “save” and “load” with the file_path.pkl as only input:
 
 .. code:: python
@@ -114,12 +115,12 @@ pickle dataformat is chosen. The corresponding functions are called
 Validation and Test Dataset
 ---------------------------
 
-Prior to the use of the DataLoader as input of the pl.Trainer class, the
-DataLoader has to include training, validation and test data set. These
+Prior to the use of the DataLoader an input of the pl.Trainer class, the
+DataLoader has to include training, validation, and test data set. These
 datasets can be obtained in two different ways. One way is to load
 individual datasets for validation and/ or testing. Thereby, the loading
-can be performed when the Loader is initialized or afterwards by calling
-the funktions “add_val_data” / “add_test_data”. The same datatypes as
+can be performed when the Loader is initialized or afterward by calling
+the functions “add_val_data” / “add_test_data”. The same datatypes as
 for the training data are supported (.csv, .txt, .h5). An example using
 the TabularLoader is as follows:
 
@@ -142,7 +143,7 @@ different approaches to fulfill the separation. These are:
 
 -  a random approach (‘method’: ‘random’, ‘params’: float):
 
-   -  a certain percentage of samples is taken randomely
+   -  a certain percentage of samples is taken randomly
 
 -  a percentage approach (‘method’: ‘percentage’, ‘params’:
    {‘’feature_1’: float, ‘feature_2’: float, …}):
@@ -163,8 +164,8 @@ different approaches to fulfill the separation. These are:
       It is possible to define an arbitrary number of values for the
       different features.
 
-Splitting the training data can be performed either by initialzing the
-DataLoader object or by calling the funktions “val_split”/ “test_split”.
+Splitting the training data can be performed either by initializing the
+DataLoader object or by calling the functions “val_split”/ “test_split”.
 In the following an example including all functions using the
 TabularLoader is shown:
 

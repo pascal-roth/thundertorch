@@ -1,10 +1,10 @@
-Working Example : Yaml Interface
-================================
+Working Example: Yaml Interface
+===============================
 
 When using the yaml interface the first step is to create the template
 yaml file. This can be done by calling the yaml_template function of the
-intended model, dataloader and the trainer or by using initializer.py.
-This function automically asks which DataLoader and which model should
+intended model, DataLoader, and the Trainer or by using initializer.py.
+This function automatically asks which DataLoader and which model should
 be used and copies the yaml template as well as the python script to run
 the yaml file in the current working directory. In this example the
 LightningFlexMLP and the TabularLoader are chosen so that the following

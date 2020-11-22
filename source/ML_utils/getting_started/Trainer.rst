@@ -2,8 +2,8 @@ Trainer
 =======
 
 After having organized the model as LightningModule, the Trainer
-automates everything else. It govers training and testing, can decide
-whether and when a model is saved, if the losses are loggen, how many
+automates everything else. It governs training and testing, can decide
+whether and when a model is saved, if the losses are logged, how many
 epochs to train and so on … In case only default values are used, the
 trainer is reduced to the following code:
 
@@ -21,7 +21,7 @@ Parameters
 All parameters of the trainer class are defined in the `PyTorch
 Lightning
 Docs <https://pytorch-lightning.readthedocs.io/en/0.7.6/trainer.html#trainer-flags>`__.
-Here the most commenly used are presented:
+Here the most commonly used are presented:
 
 -  max_epochs: Stop training once this number of epochs is reached
 -  gpus: Number of GPUs to train on or which GPUs to train on
@@ -29,7 +29,7 @@ Here the most commenly used are presented:
    identifying bottlenecks
 -  resume_from_checkpoint: resume training from a specific checkpoint
    pass in the path here
--  fast_dev_run: Runs 1 batch of train, test and val to find any bugs
+-  fast_dev_run: Runs 1 batch of train, test, and val to find any bugs
 
 Callbacks
 ---------
@@ -39,12 +39,12 @@ Callbacks should capture NON-ESSENTIAL logic that is NOT required for
 your LightningModule to run. A detailed overview of all Callbacks can be
 found in the `PyTorch Lightning
 Docs <https://pytorch-lightning.readthedocs.io/en/0.7.6/callbacks.html>`__.
-The most import callbacks are:
+The most important callbacks are:
 
 -  EarlyStopping:
 
    -  Stop training when a monitored quantity has stopped improving.
-   -  has an own keyword in trainer class
+   -  has its own keyword in trainer class
 
 -  LearningRateLogger
 

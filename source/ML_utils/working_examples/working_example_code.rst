@@ -1,8 +1,8 @@
 Working Example: Code implementation
 ====================================
 
-The general usage of the ML Toolbox should be demonstarted here with.
-Therefore, following elements are included in this Example:
+The general usage of the ML Toolbox should be demonstrated here.
+Therefore, the following elements are included in this Example:
 
 -  Creation of a DataLoader
 -  Creation of a LightningModel
@@ -15,10 +15,10 @@ DataLoader
 ----------
 
 In the first step, a random dataframe is created and used as an input.
-The data is splitted into training, validation and test data set. In
-case of the validation split, the “random” method is used and 20% of the
-dataset is seperated. The test data is separated using the “percentage”
-method that is, due to the randomely created input, equal to the random
+The data is split into training, validation, and test datasets. In case
+of the validation split, the “random” method is used and 20% of the
+dataset is separated. The test data is separated using the “percentage”
+method that is, due to the randomly created input, equal to the random
 method.
 
 .. code:: python
@@ -39,8 +39,8 @@ method.
 LightningModule
 ---------------
 
-Secondely, the NN is created. The possible hyperparameters for the
-differents model are included in their discription. In case of the
+Secondly, the NN is created. The possible hyperparameters for the
+differents model are included in their description. In the case of the
 FlexMLP those parameters are:
 
 +--------------+------+------------------------------------------------+
@@ -81,7 +81,7 @@ FlexMLP those parameters are:
 The required hyperparameters are the input and output dimension, as well
 as the number of hidden layers with the corresponding number of hidden
 units for each layer. Furthermore, some other hyperparameters are
-changed in this example. In particular the loss and optimizer function
+changed in this example. In particular, the loss and optimizer function
 are adjusted. As discussed in the Models Tutorial, different ways exist
 to create the Namespace object used as input for the network.
 
@@ -103,12 +103,12 @@ to create the Namespace object used as input for the network.
 In order to allow us to recreate the DataLoader, the necessary
 information have to be included in the Model checkpoint. Since the
 DataLoader, in its initialization process, aims to load the used data
-file, the randomely created DataFrame is saved here as .csv file and the
-location is passed in the dataLoader params Namespace “lparams” as
+file, the randomly created DataFrame is saved here as .csv file and the
+location is passed in the DataLoader params Namespace “lparams” as
 “data_path”. In case the DataLoader has been generated directly from a
-file, the data_path is save automacially. To include the lparams
+file, the data_path is saved automatically. To include the lparams
 Namespace object, the hparams_update function is used. However, the
-lparams Namespace has to be included in an own dict. This is necessary
+lparams Namespace has to be included in its own dict. This is necessary
 since the hparams object has a key controller that does not include each
 loader key but instead just the lparams key.
 
@@ -124,11 +124,11 @@ loader key but instead just the lparams key.
 Training and Testing
 --------------------
 
-Training and testing is performed using the pl.Trainer. In case of this
-example, we just want to control whether our network is fully functional
-and that our network training can be continued by saving the model
-checkpoint. Therefore the checkpointing callback is active and
-max_epochs equals 1. The callback has an own flag and has been modified
+Training and testing are performed using the pl.Trainer. In the case of
+this example, we just want to control whether our network is fully
+functional and that our network training can be continued by saving the
+model checkpoint. Therefore the checkpointing callback is active and
+max_epochs equals 1. The callback has its own flag and has been modified
 so that the epoch is only added to the path if multiple models should be
 saved.
 
@@ -147,12 +147,12 @@ saved.
 Model Loading and Training Continuation
 ---------------------------------------
 
-Lets say that a two stage training is intended wheras in the first stage
-the “RelativeMSELoss” and in the second stage the normal “mse_loss” is
-used. In this case the model has to be loaded and the dataLoader has to
-be regenerated (if not started in the same script). Thereby, model and
-dataLoader types have to be known. To further train the pretrained
-weights, it is crucial that also the trainer flag
+Let’s say that a two-stage training is intended whereas in the first
+stage the “RelativeMSELoss” and in the second stage, the normal
+“mse_loss” is used. In this case, the model has to be loaded and the
+dataLoader has to be regenerated (if not started in the same script).
+Thereby, model and dataLoader types have to be known. To further train
+the pre-trained weights, it is crucial that also the trainer flag
 “resume_from_checkpoint” is set. Here the procedure will be demonstrated
 shortly.
 

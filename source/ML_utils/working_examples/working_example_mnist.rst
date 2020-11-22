@@ -1,13 +1,15 @@
 Working Example: Mnist
 ======================
 
-In order to demonstarte how the Toolbox can be employed for
+In order to demonstrate how the Toolbox can be employed for
 Two-Dimensional (e.g. Images) input data in a classification task, this
-example uses the Mnist Dataset. The set includes 60000 training and
-10000 test images with a size of 28x28 pixels. In total 10 different
-clases can be identified. As mentioned, there are different ways to
-implement the model. Here both strategies (yaml and code interface) are
-demonstrated.
+example uses the Mnist Dataset. An introduction to the Dataset itself
+and its origin can be found
+`here <http://yann.lecun.com/exdb/mnist/>`__. The set includes 60000
+training and 10000 test images with a size of 28x28 pixels. In total 10
+different classes can be identified. As mentioned, there are different
+ways to implement the model. Here both strategies (yaml and code
+interface) are demonstrated.
 
 The example is structured as follows: 1. Load the Mnist dataset 2.
 Generate Model with yaml file 3. Generate Model by code implementation
@@ -18,11 +20,11 @@ Load Mnist Dataset
 
 The Mnist Data set is included in the torchvision datasets. In general,
 it is possible to load the set and pass it nearly into the
-torch.utils.data.DataLoader method. However, with the toolbox this is a
-little bit tricky since the models dtype is set to double. This default
+torch.utils.data.DataLoader method. However, with the toolbox, this is a
+little bit tricky since the model’s dtype is set to double. This default
 change is necessary in order to export the model to C++. As a
-consequence the model expects a double input so that the dataset tensor
-has to be changed manually to double and then the channels have to be
+consequence, the model expects a double input so that the dataset tensor
+has to be changed manually to double, and then the channels have to be
 added by reshaping the images.
 
 .. code:: python
@@ -46,11 +48,11 @@ added by reshaping the images.
     val = torch.utils.data.TensorDataset(x_val, y_val)
     val_loader = torch.utils.data.DataLoader(val, batch_size=64, shuffle=False, num_workers=10)
 
-Create model with yaml interface
---------------------------------
+Create a model with yaml interface
+----------------------------------
 
 Using the yaml interface is considered to be more structured and less
-likely to fail. In case of this example, only the model is creating
+likely to fail. In the case of this example, only the model is creating
 using a yaml file, the trainer as well as the data are directly
 implemented. In order to construct the yaml, you don’t have to start
 from scratch since each model has a pre-implemented yaml template. To
@@ -151,17 +153,18 @@ the yaml file.
     check_argsModel(argsYaml['Model'])
     model = get_model(argsYaml['Model'])
 
-Create Model by direct implementation
--------------------------------------
+Create a Model by direct implementation
+---------------------------------------
 
 Different ways to construct the Namespace object needed to construct a
-model are given in `Model Documentation <../getting_started/Models.html>`__. Here the Namespace is
+model are given in `Model
+Documentation <../getting_started/Models.html>`__. Here the Namespace is
 converted out of a dict. In order to quickly generated the dict, it can
 be copied out of the yml template function of the used model and then
 adjusted. It is possible to pass the dict again to the get_model
-function. Here, however, you can see the steps that are basically
-performed. Thereby, the model is firstly created and the updated by the
-hyperparameters defined in “params”.
+function. Here, however, you can see the steps that are performed.
+Thereby, the model is first created and updated by the hyperparameters
+defined in “params”.
 
 .. code:: python
 
