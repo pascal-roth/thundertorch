@@ -21,7 +21,16 @@ ML_utils module overview
     :maxdepth: 1
 
     ML_utils/Toolbox_concept
-    
+
+Mollier_hX Diagram Generator
+============================
+
+.. toctree::
+    :glob:
+    :maxdepth: 1
+
+    mollier/mollier_hx_start
+        
 Indices and tables
 ==================
 
