@@ -12,7 +12,7 @@ from argparse import Namespace
 
 from stfs_pytoolbox.ML_Utils import models
 from stfs_pytoolbox.ML_Utils.loader import _utils
-from stfs_pytoolbox.ML_Utils.utils.utils_option_class import OptionClass
+from stfs_pytoolbox.ML_Utils.utils.option_class import OptionClass
 
 
 class DataLoaderTemplate:

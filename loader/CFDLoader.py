@@ -13,7 +13,7 @@ from sklearn import preprocessing
 from argparse import Namespace
 
 from stfs_pytoolbox.ML_Utils.loader import _utils
-from stfs_pytoolbox.ML_Utils.utils.utils_option_class import OptionClass
+from stfs_pytoolbox.ML_Utils.utils.option_class import OptionClass
 
 
 class CFDLoader:
@@ -242,7 +242,7 @@ class CFDLoader:
         -------
         object          - TabularLoader object
         """
-        options = TabularLoader.get_OptionClass()
+        options = TabularLoader.__get_OptionClass()
         OptionClass.checker(input_dict=argsLoader, option_classes=options)
 
         if 'load_DataLoader' in argsLoader:

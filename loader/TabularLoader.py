@@ -13,7 +13,7 @@ from sklearn import preprocessing
 from argparse import Namespace
 
 from stfs_pytoolbox.ML_Utils.loader import _utils
-from stfs_pytoolbox.ML_Utils.utils.utils_option_class import OptionClass
+from stfs_pytoolbox.ML_Utils.utils.option_class import OptionClass
 
 
 class TabularLoader:
@@ -63,7 +63,7 @@ class TabularLoader:
         self.lparams.batch = kwargs.pop('batch', 64)
         self.lparams.num_workers = kwargs.pop('num_workers', 10)
         self.lparams.data_path = kwargs.pop('data_path', None)
-        self.check_lparams()
+        self.__check_lparams()
 
         # self.samples = df_samples
         # self.x_train = self.samples[features]
@@ -91,7 +91,7 @@ class TabularLoader:
         if len(kwargs) != 0:
             logging.warning('Additional/ unexpected kwargs are given!')
 
-    def check_lparams(self) -> None:
+    def __check_lparams(self) -> None:
         assert all(isinstance(elem, str) for elem in self.lparams.features), "Given features is not a list of strings!"
         assert all(isinstance(elem, str) for elem in self.lparams.labels), "Given labels is not a list of strings!"
         assert all(elem not in self.lparams.labels for elem in self.lparams.features), "Feature is included in labels"
@@ -271,7 +271,7 @@ class TabularLoader:
         -------
         object          - TabularLoader object
         """
-        options = TabularLoader.get_OptionClass()
+        options = TabularLoader.__get_OptionClass()
         OptionClass.checker(input_dict=argsLoader, option_classes=options)
 
         if 'load_DataLoader' in argsLoader:
@@ -372,7 +372,7 @@ class TabularLoader:
         return Loader
 
     @staticmethod
-    def get_OptionClass() -> dict:
+    def __get_OptionClass() -> dict:
         options = {'DataLoader': OptionClass(template=TabularLoader.yaml_template(['DataLoader']))}
         options['DataLoader'].add_key('type', dtype=str, required=True)
         options['DataLoader'].add_key('load_DataLoader', dtype=dict, mutually_exclusive=['create_DataLoader'])

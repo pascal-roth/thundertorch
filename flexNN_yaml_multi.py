@@ -14,24 +14,7 @@ import torch.multiprocessing as mp
 from stfs_pytoolbox.ML_Utils.utils import *
 
 
-def execute_model(model_dict, lock):
-    check_yaml_version(model_dict)
-    check_yaml_structure(model_dict)
-
-    argsLoader = model_dict['DataLoader']
-    argsModel = model_dict['Model']
-    argsTrainer = model_dict['Trainer']
-
-    check_args(argsModel, argsLoader, argsTrainer)
-
-    model = get_model(argsModel)
-
-    with lock:
-        logging.debug('Lock DataLoader active')
-        dataLoader = get_dataLoader(argsLoader, model)
-
-    logging.debug('Lock DataLoader deactivated')
-
+def execute_model(model, argsTrainer, dataLoader):
     train_model(model, dataLoader, argsTrainer)
 
 
@@ -57,30 +40,43 @@ def get_num_processes(argsMulti, argsModels):
     # get nbr of parallel processes for multiprocessing
     nbr_cpu = os.cpu_count()  # nbr of available CPUs
     nbr_gpu = torch.cuda.device_count()  # nbr of available GPUs
-    if 'Nbr_processes' in argsMulti:
-        nbr_process = argsMulti.pop('Nbr_processes')
-        assert nbr_process != 0, 'Number of processes must be > 0'
+    gpu_per_process = 0
 
-        if nbr_gpu != 0:
-            assert nbr_process <= nbr_gpu, 'The number of intended processes exceeds the number of available GPUs!'
-        else:
-            logging.info('No GPU available!')
-            assert nbr_process <= nbr_cpu, 'The number of intended processes exceeds the number of available CPUs!'
+    if 'GPU_per_model' in argsMulti:
+        assert nbr_gpu != 0, 'GPU per process defined. but NO GPU available!'
+        gpu_per_process = argsMulti.pop('GPU_per_model')
+
+        nbr_process = int((nbr_gpu - (nbr_gpu % gpu_per_process)) / gpu_per_process)
+        assert nbr_process != 0, f'Not enough GPUs! Model should be trained with {gpu_per_process} GPU(s), but' \
+                                 f'available are only {nbr_gpu} GPU(s)'
+
+        logging.info(f'{nbr_process} processes will be executed with {gpu_per_process} GPU(s) per process')
+
+    elif 'CPU_per_model' in argsMulti:
+        cpu_per_process = argsMulti.pop('CPU_per_model')
+
+        nbr_process = int((nbr_cpu - (nbr_cpu % cpu_per_process)) / cpu_per_process)
+        assert nbr_process != 0, f'Not enough CPUs! Model should be trained with {cpu_per_process} CPU(s), but' \
+                                 f'available are only {nbr_cpu} CPU(s)'
+
+        logging.info(f'{nbr_process} processes will be executed with {cpu_per_process} CPU(s) per process')
 
     else:
+        logging.info('Neither "GPU_per_model" nor "CPU_per_model" defined, default setting is selected')
         if nbr_gpu != 0:
+            gpu_per_process = 1
             nbr_process = nbr_gpu
+            logging.info(f'{nbr_process} processes will be executed with {gpu_per_process} GPU(s) per process')
         else:
+            cpu_per_process = 1
             nbr_process = nbr_cpu
+            logging.info(f'{nbr_process} processes will be executed with {cpu_per_process} CPU(s) per process')
 
-    gpu_per_process = argsMulti.pop('GPU_per_model', 1)
-    nbr_process = min(nbr_process, len(list(argsModels)))
+    nbr_process = min(len(argsModels), nbr_process)
 
     if gpu_per_process != 0 and nbr_gpu != 0:
         list_gpu = []
         gpu_available = list(range(0, nbr_gpu))
-        assert gpu_per_process * nbr_process <= nbr_gpu, 'The number of GPUs per process exceeds the number of ' \
-                                                         'available GPUs'
         for i in range(nbr_process):
             list_gpu.append(gpu_available[0:gpu_per_process])
             del gpu_available[0:gpu_per_process]
@@ -110,34 +106,42 @@ def main(argsMulti):
     model_dicts = get_argsDict(argsModels)
 
     mp_fn = mp.get_context('spawn')
-    lock = mp.Manager().Lock()
+    # lock = mp.Manager().Lock()
     tic1 = time.time()
     processes = []
     ii = 0
 
     while ii < len(model_dicts):
+        models = []
+        argsTrainer = []
+        dataLoader = []
+
         for i in range(nbr_process):
             logging.debug('Process started')
             model_dicts[ii]['Trainer']['params']['gpus'] = list_gpu[i]
             model_dicts[ii]['Trainer']['params']['process_position'] = i
-            p = mp_fn.Process(target=execute_model, args=(model_dicts[ii], lock))
+
+            check_yaml_version(model_dicts[ii])
+            check_yaml_structure(model_dicts[ii])
+
+            argsLoader = model_dicts[ii]['DataLoader']
+            argsModel = model_dicts[ii]['Model']
+            argsTrainer.append(model_dicts[ii]['Trainer'])
+
+            check_args(argsModel, argsLoader, argsTrainer[i])
+
+            models.append(get_model(argsModel))
+            dataLoader.append(get_dataLoader(argsLoader, models[i]))
+
+            ii += 1
+
+        for i in range(nbr_process):
+            p = mp_fn.Process(target=execute_model, args=(models[i], argsTrainer[i], dataLoader[i]))
             processes.append(p)
             p.start()
-            ii += 1
+
         for p in processes:
             p.join()
-
-        # wait for all processes to finish --------------------------------
-        while processes:
-            for i, process_data in enumerate(processes):
-                if not process_data.is_alive():
-                    logging.debug(f'process finished')
-                    # remove from processes
-                    p = processes.pop(i)
-                    del p
-                    # start new search
-                    break
-        logging.debug('Round of processes finished')
 
     logging.debug('All models trained')
 
@@ -147,5 +151,7 @@ def main(argsMulti):
 
 
 if __name__ == '__main__':
-    argsMulti = parse_yaml()
-    main(argsMulti)
+    args = parse_arguments()
+    logger = create_logger(args)
+    args_yaml = parse_yaml(args.yaml_path)
+    main(args_yaml)

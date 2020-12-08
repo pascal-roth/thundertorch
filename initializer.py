@@ -25,7 +25,7 @@ def initializer():
     # construct yaml
     loader_dict = getattr(loader, name_loader).yaml_template([])
     model_dict = getattr(models, name_model).yaml_template([])
-    trainer_dict = utils.utils_yaml.trainer_yml_template([])
+    trainer_dict = utils.yaml.trainer_yml_template([])
 
     with open(f'{os.getcwd()}/input_{name_loader}_{name_model}.yaml', 'w') as file:
         file.write(f'{loader_dict}\n{model_dict}\n{trainer_dict}')

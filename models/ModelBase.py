@@ -9,7 +9,7 @@ import pytorch_lightning as pl
 from argparse import Namespace
 
 from stfs_pytoolbox.ML_Utils.models import _losses
-from stfs_pytoolbox.ML_Utils.utils.utils_option_class import OptionClass
+from stfs_pytoolbox.ML_Utils.utils.option_class import OptionClass
 from stfs_pytoolbox.ML_Utils import metrics
 
 

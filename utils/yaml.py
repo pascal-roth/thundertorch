@@ -18,22 +18,14 @@ from stfs_pytoolbox.ML_Utils import models  # Models that are defined in __all__
 from stfs_pytoolbox.ML_Utils import loader  # Loader that are defined in __all__ in the __init__ file
 from stfs_pytoolbox.ML_Utils import logger  # Logger that are defined in __all__ in the __init__ file
 from stfs_pytoolbox.ML_Utils import callbacks  # Callbacks that are defined in __all__ in the __init__ file
-from stfs_pytoolbox.ML_Utils.utils.utils_option_class import OptionClass
+from stfs_pytoolbox.ML_Utils.utils.option_class import OptionClass
 
 
-def parse_yaml() -> dict:
+def parse_yaml(yaml_path) -> dict:
     """
-    Parse yaml file and change logging default
+    Parse yaml file
     """
-    parser = argparse.ArgumentParser()
-    parser.add_argument('-n', '--name_yaml', type=str, default='input_LightningFlexMLP_single.yaml',
-                        help='Name of yaml file to construct Neural Network')
-    parser.add_argument('-l', '--logging', type=str, default='WARNING')
-    args = parser.parse_args()
-
-    logging.basicConfig(level=getattr(logging, args.logging))
-
-    flexMLP_yaml = open(args.name_yaml)
+    flexMLP_yaml = open(yaml_path)
     return yaml.load(flexMLP_yaml, Loader=yaml.FullLoader)
 
 
@@ -188,6 +180,19 @@ def replace_keys(dictMultiModel: dict, dictSingleModel: dict) -> dict:
     dictRunModel        - adjusted model dict
     """
 
+    # get, set and del keys in nested dict structure
+    def get_by_path(root, items):
+        """Access a nested object in root by item sequence."""
+        return reduce(operator.getitem, items, root)
+
+    def set_by_path(root, items, value):
+        """Set a value in a nested object in root by item sequence."""
+        get_by_path(root, items[:-1])[items[-1]] = value
+
+    def del_by_path(root, items):
+        """Delete a key-value in a nested object in root by item sequence."""
+        del get_by_path(root, items[:-1])[items[-1]]
+
     def recursion_search(document: dict, key_list: list, dictModel: dict):
         """
         Recursive function to add/ replace key in a nested dict
@@ -228,20 +233,3 @@ def replace_keys(dictMultiModel: dict, dictSingleModel: dict) -> dict:
     dictRunModel, _ = recursion_search(document=dictMultiModel, key_list=list([]), dictModel=dictSingleModel)
 
     return dictRunModel
-
-
-# get, set and del keys in nested dict structure
-def get_by_path(root, items):
-    """Access a nested object in root by item sequence."""
-    return reduce(operator.getitem, items, root)
-
-
-def set_by_path(root, items, value):
-    """Set a value in a nested object in root by item sequence."""
-    get_by_path(root, items[:-1])[items[-1]] = value
-
-
-def del_by_path(root, items):
-    """Delete a key-value in a nested object in root by item sequence."""
-    del get_by_path(root, items[:-1])[items[-1]]
-

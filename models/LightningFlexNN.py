@@ -9,7 +9,7 @@ from argparse import Namespace
 
 from stfs_pytoolbox.ML_Utils.models.ModelBase import LightningModelBase
 from stfs_pytoolbox.ML_Utils.models import _losses
-from stfs_pytoolbox.ML_Utils.utils.utils_option_class import OptionClass
+from stfs_pytoolbox.ML_Utils.utils.option_class import OptionClass
 
 
 # flexible MLP class
@@ -31,14 +31,16 @@ class LightningFlexNN(LightningModelBase):
     Normalization Layer Parameters:
         - normalized_shape (int or list or torch.Size) – input shape from an expected input of size
         - eps – a value added to the denominator for numerical stability. Default: 1e-5
-        - elementwise_affine – a boolean value that when set to True, this module has learnable per-element affine parameters initialized to ones (for weights) and zeros (for biases). Default: True.
+        - elementwise_affine – a boolean value that when set to True, this module has learnable per-element affine
+        parameters initialized to ones (for weights) and zeros (for biases). Default: True.
 
     MaxPool Layer Parameters:
         - kernel_size – the size of the window to take a max over
         - stride – the stride of the window. Default value is kernel_size
         - padding – implicit zero padding to be added on both sides
         - dilation – a parameter that controls the stride of elements in the window
-        - return_indices – if True, will return the max indices along with the outputs. Useful for torch.nn.MaxUnpool2d later
+        - return_indices – if True, will return the max indices along with the outputs. Useful for
+        torch.nn.MaxUnpool2d later
         - ceil_mode – when True, will use ceil instead of floor to compute the output shape
     """
 

@@ -5,6 +5,7 @@
 # import packages
 import argparse
 import logging
+import importlib
 import pytorch_lightning as pl
 
 from stfs_pytoolbox.ML_Utils import models     # Models that are defined in __all__ in the __init__ file
@@ -34,6 +35,8 @@ def get_model(argsModel) -> pl.LightningModule:
     elif hasattr(argsModel, 'create_model'):
         model = getattr(models, argsModel.type)(argparse.Namespace(**argsModel.create_model))
         logging.debug('Model has been created')
+    elif hasattr(argsModel, 'import_model'):
+        model = importlib.import_module(argsModel.type)
     else:
         raise KeyError('Model not generated! Either include load_model or create_model dict!')
 
@@ -90,16 +93,19 @@ def train_model(model: pl.LightningModule, dataLoader, argsTrainer) -> None:
 
         for i in range(len(argsTrainer.callbacks)):
 
-            if argsTrainer.callbacks[i]['type'] != 'Checkpointing':  # TODO: Early Stopping Callback also has extra keyword
+            if argsTrainer.callbacks[i]['type'] == 'EarlyStopping':
+                earlyStopping = pl.callbacks.EarlyStopping(**argsTrainer.callbacks[i]['params'])
+                argsTrainer.params['early_stop_callback'] = earlyStopping
+            elif argsTrainer.callbacks[i]['type'] == 'Checkpointing':
+                checkpoint = callbacks.Checkpointing(**argsTrainer.callbacks[i]['params'])
+                argsTrainer.params['checkpoint_callback'] = checkpoint
+            else:
                 if 'params' in argsTrainer.callbacks[i]:
                     callback = getattr(pl.callbacks, argsTrainer.callbacks[i]['type'])(
                         **argsTrainer.callbacks[i]['params'])
                 else:
                     callback = getattr(pl.callbacks, argsTrainer.callbacks[i]['type'])()
                 callback_list.append(callback)
-            else:
-                checkpoint = callbacks.Checkpointing(**argsTrainer.callbacks[i]['params'])
-                argsTrainer.params['checkpoint_callback'] = checkpoint
 
         if callback_list != []:
             argsTrainer.params['callbacks'] = callback_list
