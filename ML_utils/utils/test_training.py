@@ -11,7 +11,7 @@ import pytest
 import torch
 import pytorch_lightning as pl
 
-from stfs_pytoolbox.ML_Utils.utils.utils_execute import *
+from stfs_pytoolbox.ML_Utils.utils.training import *
 from stfs_pytoolbox.ML_Utils.loader import TabularLoader
 
 

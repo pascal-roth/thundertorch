@@ -8,7 +8,7 @@ import argparse
 from pathlib import Path
 import pytest
 
-from stfs_pytoolbox.ML_Utils.utils.utils_yaml import *
+from stfs_pytoolbox.ML_Utils.utils.yaml import *
 from stfs_pytoolbox.ML_Utils.models import LightningModelTemplate
 from stfs_pytoolbox.ML_Utils.loader import DataLoaderTemplate
 

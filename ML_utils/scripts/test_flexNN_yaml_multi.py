@@ -21,10 +21,6 @@ def test_main(path):
         yaml_file = yaml.load(open(path / 'MultiModelInputEval.yaml'), Loader=yaml.FullLoader)
         yaml_file['Model_run'] = ['Model001', 'Model01']
         main(yaml_file)
-    with pytest.raises(AssertionError):
-        yaml_file = yaml.load(open(path / 'MultiModelInputEval.yaml'), Loader=yaml.FullLoader)
-        yaml_file['Nbr_processes'] = 0
-        main(yaml_file)
 
 
 @pytest.mark.dependency(depends=['test_main'])

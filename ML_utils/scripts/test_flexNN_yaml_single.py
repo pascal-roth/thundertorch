@@ -17,7 +17,7 @@ def path():
     return path.parents[0]
 
 
-# @pytest.mark.dependency(depends=[path() / '.test_utils_execute.py'], scope='session')
+# @pytest.mark.dependency(depends=[path() / '.test_training.py'], scope='session')
 def test_complete_script(path, create_random_df, tmp_path):
     yaml_file = yaml.load(open(path / 'SingleModelInputEval.yaml'), Loader=yaml.FullLoader)
     create_random_df.to_csv(tmp_path / 'example_samples.csv')

@@ -2,8 +2,6 @@
 # Define multiple networks and train them parallel/ in sequence
 ####################################################################################################
 
-Nbr_processes: 4
-GPU_per_model: 0
 Model_run:
   - Model001
   - Model002

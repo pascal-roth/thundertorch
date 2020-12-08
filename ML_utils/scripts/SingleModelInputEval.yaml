@@ -47,7 +47,6 @@ Model:
 # training parameters of flexMLP
 Trainer:
   params:
-    gpus: 0
     profiler: True
     fast_dev_run: True
     checkpoint_callback: False
