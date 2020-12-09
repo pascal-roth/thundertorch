@@ -157,11 +157,10 @@ def read_df_from_file(file_path) -> pd.DataFrame:
     _, file_extention = os.path.splitext(file_path)
     if file_extention == '.h5':
         assert os.path.isfile(file_path), "Given h5-file '{}' doesn't exist.".format(file_path)
-        store = pd.HDFStore(file_path)
-        keys = store.keys()
-        assert len(keys) == 1, "There must be only one key stored in pandas.HDFStore in '{}'!".format(file_path)
-        df_samples = store.get(keys[0])
-        store.close()
+        with pd.HDFStore(file_path, 'r') as store:
+            keys = store.keys()
+            assert len(keys) == 1, "There must be only one key stored in pandas.HDFStore in '{}'!".format(file_path)
+            df_samples = store.get(keys[0])
     elif file_extention == '.flut':
         # import pyflut  # TODO: nur laden when package available --> import ... wenn nicht geladen, fehler!
         raise NotImplementedError('not implemented yet -> flut datatype unknown')  # TODO: implement pyflut datatype
