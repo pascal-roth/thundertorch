@@ -105,8 +105,8 @@ def main(argsMulti):
     nbr_process, list_gpu = get_num_processes(argsMulti, argsModels)
     model_dicts = get_argsDict(argsModels)
 
-    mp_fn = mp.get_context('spawn')
-    #mp_fn = mp.get_context('forkserver')
+    #mp_fn = mp.get_context('spawn')
+    mp_fn = mp.get_context('forkserver')
     # lock = mp.Manager().Lock()
     tic1 = time.time()
     processes = []
