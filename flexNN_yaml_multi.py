@@ -106,6 +106,7 @@ def main(argsMulti):
     model_dicts = get_argsDict(argsModels)
 
     mp_fn = mp.get_context('spawn')
+    #mp_fn = mp.get_context('forkserver')
     # lock = mp.Manager().Lock()
     tic1 = time.time()
     processes = []
