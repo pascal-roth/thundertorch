@@ -134,7 +134,10 @@ def main(argsMulti):
             models.append(get_model(argsModel))
             dataLoader.append(get_dataLoader(argsLoader, models[i]))
 
+            # Increase outer loop counter, need to check if while loop condition is still valid, if not exit inner loop
             ii += 1
+            if(ii >= len(model_dicts)):
+                break
 
         for i in range(nbr_process):
             p = mp_fn.Process(target=execute_model, args=(models[i], argsTrainer[i], dataLoader[i]))
