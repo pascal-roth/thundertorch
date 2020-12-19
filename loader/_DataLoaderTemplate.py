@@ -262,19 +262,20 @@ class DataLoaderTemplate:
         template = {'DataLoader': {'type': 'DataLoaderTemplate',
                                    '###INFO###': 'load_DataLoader and create_DataLoader mutually exclusive',
                                    'load_DataLoader': {'path': 'name.pkl or modelXXX.ckpt'},
-                                   'create_DataLoader': {'raw_data_path': 'samples_name.csv, .txt, .h5, .flut',
-                                                         # TODO: change extension of flut datatype
+                                   'create_DataLoader': {'raw_data_path': 'samples_name.csv, .txt, .h5, .ulf',
                                                          'further_param_1': 'some information',
                                                          'further_param_2': 'some_information',
                                                          'validation_data':
                                                              {'###INFO###': 'load_data and split_data mutually exclusive',
-                                                              'load_data': {'path': 'samples_name.csv, .txt, .h5'},
+                                                              'load_data': {'path': 'samples_name.csv, .txt, .h5',
+                                                                            'sep': 'separator (default: ","'},
                                                               'split_data': {'method': 'method name (pre implemented '
                                                                                        'are random/percentage/explicit)',
                                                                              'val_params': 'split_params'}},
                                                          'test_data':
                                                              {'###INFO###': 'load_data and split_data mutually exclusive',
-                                                              'load_data': {'path': 'samples_name.csv, .txt, .h5'},
+                                                              'load_data': {'path': 'samples_name.csv, .txt, .h5',
+                                                                            'sep': 'separator (default: ","'},
                                                               'split_data': {'method': 'method name (pre implemented '
                                                                                        'are random/percentage/explicit)',
                                                                              'val_params': 'split_params'}},

@@ -65,9 +65,6 @@ class TabularLoader:
         self.lparams.data_path = kwargs.pop('data_path', None)
         self.__check_lparams()
 
-        # self.samples = df_samples
-        # self.x_train = self.samples[features]
-        # self.y_train = self.samples[labels]
         self.x_train = df_samples[features]
         self.y_train = df_samples[labels]
 
@@ -97,36 +94,39 @@ class TabularLoader:
         assert all(elem not in self.lparams.labels for elem in self.lparams.features), "Feature is included in labels"
 
     # training_data ###################################################################################################
-    def add_train_data(self, path) -> None:
+    def add_train_data(self, path: str, sep: str = ',') -> None:
         """
         Load training samples and separate them into input and target samples
 
         Parameters
         ----------
         test_samples     - file path
+        sep              - separator
         """
         self.lparams.data_path = path
-        samples_train = _utils.read_df_from_file(path)
+        self.lparams.sep = sep
+        samples_train = _utils.read_df_from_file(path, sep)
         if self.x_train is not None: _logger.warning('Train data overwritten')
         self.x_train = samples_train[self.lparams.features]
         self.y_train = samples_train[self.lparams.labels]
-        _logger.debug(f'Train samples added from file {path}!')
+        _logger.debug(f'Train samples added from file {path} with sep {sep}!')
 
     # validation_data #################################################################################################
-    def add_val_data(self, path) -> None:
+    def add_val_data(self, path: str, sep: str = ',') -> None:
         """
         Load validation samples and separate them into input and target samples
 
         Parameters
         ----------
         val_samples     - file path
+        sep             - separator
         """
-        self.lparams.val = {'path': path}
-        samples_val = _utils.read_df_from_file(path)
+        self.lparams.val = {'path': path, 'sep': sep}
+        samples_val = _utils.read_df_from_file(path, sep)
         if self.x_val is not None: _logger.warning('Validation data overwritten')
         self.x_val = samples_val[self.lparams.features]
         self.y_val = samples_val[self.lparams.labels]
-        _logger.debug(f'Validation samples added from file {path}!')
+        _logger.debug(f'Validation samples added from file {path} with sep {sep}!')
 
     def val_split(self, **kwargs) -> None:
         """
@@ -148,20 +148,21 @@ class TabularLoader:
             _logger.warning('Additional, unexpected kwargs are given! Only expected args are: "method", "params"')
 
     # test_data #######################################################################################################
-    def add_test_data(self, path) -> None:
+    def add_test_data(self, path: str, sep: str = ',') -> None:
         """
         Load test samples and separate them into input and target samples
 
         Parameters
         ----------
         test_samples     - file path
+        sep              - separator
         """
-        self.lparams.test = {'path': path}
-        samples_test = _utils.read_df_from_file(path)
+        self.lparams.test = {'path': path, 'sep': sep}
+        samples_test = _utils.read_df_from_file(path, sep)
         if self.x_test is not None: _logger.warning('Test data overwritten')
         self.x_test = samples_test[self.lparams.features]
         self.y_test = samples_test[self.lparams.labels]
-        _logger.debug(f'Test samples added from file {path}!')
+        _logger.debug(f'Test samples added from file {path} with sep {sep}!')
 
     def test_split(self, **kwargs) -> None:
         """
@@ -247,13 +248,15 @@ class TabularLoader:
         file            - file path
         features        - list of features
         labels          - list of labels
-        kwargs          - see kwargs __init__
+        kwargs          - see kwargs __init__ and additional:
+            sep         - separator in the used datafile (for ulf always None, otherwise default ','
 
         Returns
         -------
         object          - TabularLoader object
         """
-        df_samples = _utils.read_df_from_file(file)
+        sep = kwargs.pop('sep', ',')
+        df_samples = _utils.read_df_from_file(file, sep)
         return cls(df_samples, features, labels, data_path=file,
                    **kwargs)
 
@@ -356,18 +359,18 @@ class TabularLoader:
                                                   x_scaler=lparams.x_scaler, y_scaler=lparams.y_scaler)
 
         if 'path' in lparams.val:
-            Loader.add_val_data(lparams.val.path)
+            Loader.add_val_data(lparams.val.path, lparams.val.sep)
         elif all(elem in lparams.val for elem in ['method', 'params']):
             Loader.val_split(method=lparams.val['method'], params=lparams.val['params'])
         else:
             raise KeyError('Keys to assign validation data are missing/ not complete')
 
         if 'path' in lparams.test:
-            Loader.add_val_data(lparams.test.path)
+            Loader.add_test_data(lparams.test.path, lparams.test.sep)
         elif all(elem in lparams.test for elem in ['method', 'params']):
-            Loader.val_split(method=lparams.test['method'], params=lparams.test['params'])
+            Loader.test_split(method=lparams.test['method'], params=lparams.test['params'])
         else:
-            raise KeyError('Keys to assign validation data are missing/ not complete')
+            raise KeyError('Keys to assign test data are missing/ not complete')
 
         return Loader
 
@@ -399,6 +402,7 @@ class TabularLoader:
         options['load_data'] = OptionClass(template=TabularLoader.yaml_template(['DataLoader', 'create_DataLoader',
                                                                                  'validation_data', 'load_data']))
         options['load_data'].add_key('path', dtype=str, required=True)
+        options['load_data'].add_key('sep', dtype=str)
 
         options['split_data'] = OptionClass(template=TabularLoader.yaml_template(['DataLoader', 'create_DataLoader',
                                                                                   'validation_data', 'split_data']))
@@ -419,18 +423,21 @@ class TabularLoader:
         template = {'DataLoader': {'type': 'TabularLoader',
                                    '###INFO###': 'load_DataLoader and create_DataLoader mutually exclusive',
                                    'load_DataLoader': {'path': 'name.pkl or modelXXX.ckpt'},
-                                   'create_DataLoader': {'raw_data_path': 'samples_name.csv, .txt, .h5, .flut',
-                                                         # TODO: change extension of flut datatype
+                                   'create_DataLoader': {'raw_data_path': 'samples_name.csv, .txt, .h5, .ulf',
                                                          'features': ['feature_1', 'feature_2', '...'],
                                                          'labels': ['label_1', 'label_2', '...'],
                                                          'validation_data':
                                                              {'###INFO###': 'load_data and split_data mutually exclusive',
-                                                              'load_data': {'path': 'samples_name.csv, .txt, .h5, .flut'},
-                                                              'split_data': {'method': 'random/ percentage/ explicit', 'params': 'split_params'}},
+                                                              'load_data': {'path': 'samples_name.csv, .txt, .h5, .ulf',
+                                                                            'sep': 'separator (default: ","'},
+                                                              'split_data': {'method': 'random/ percentage/ explicit',
+                                                                             'params': 'split_params'}},
                                                          'test_data':
                                                              {'###INFO###': 'load_data and split_data mutually exclusive',
-                                                              'load_data': {'path': 'samples_name.csv, .txt, .h5, .flut'},
-                                                              'split_data': {'method': 'random/ percentage/ explicit', 'params': 'split_params'}},
+                                                              'load_data': {'path': 'samples_name.csv, .txt, .h5, .ulf',
+                                                                            'sep': 'separator (default: ","'},
+                                                              'split_data': {'method': 'random/ percentage/ explicit',
+                                                                             'params': 'split_params'}},
                                                          'save_Loader': {'path': 'name.pkl'}}}}
 
         for i, key in enumerate(key_list):

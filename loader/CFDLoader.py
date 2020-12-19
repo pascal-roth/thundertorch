@@ -393,26 +393,21 @@ class CFDLoader:
         template = {'DataLoader': {'type': 'TabularLoader',
                                    '###INFO###': 'load_DataLoader and create_DataLoader mutually exclusive',
                                    'load_DataLoader': {'path': 'name.pkl or modelXXX.ckpt'},
-                                   'create_DataLoader': {'raw_data_path': 'samples_name.csv, .txt, .h5, .flut',
-                                                         # TODO: change extension of flut datatype
+                                   'create_DataLoader': {'raw_data_path': 'samples_name.csv, .txt, .h5, .ulf',
                                                          'features': ['feature_1', 'feature_2', '...'],
                                                          'labels': ['label_1', 'label_2', '...'],
                                                          'validation_data':
-                                                             {
-                                                                 '###INFO###': 'load_data and split_data mutually exclusive',
-                                                                 'load_data': {
-                                                                     'path': 'samples_name.csv, .txt, .h5, .flut'},
-                                                                 'split_data': {
-                                                                     'method': 'random/ percentage/ explicit',
-                                                                     'params': 'split_params'}},
+                                                             {'###INFO###': 'load_data and split_data mutually exclusive',
+                                                              'load_data': {'path': 'samples_name.csv, .txt, .h5, .ulf',
+                                                                            'sep': 'separator (default: ","'},
+                                                              'split_data': {'method': 'random/ percentage/ explicit',
+                                                                             'params': 'split_params'}},
                                                          'test_data':
-                                                             {
-                                                                 '###INFO###': 'load_data and split_data mutually exclusive',
-                                                                 'load_data': {
-                                                                     'path': 'samples_name.csv, .txt, .h5, .flut'},
-                                                                 'split_data': {
-                                                                     'method': 'random/ percentage/ explicit',
-                                                                     'params': 'split_params'}},
+                                                             {'###INFO###': 'load_data and split_data mutually exclusive',
+                                                              'load_data': {'path': 'samples_name.csv, .txt, .h5, .ulf',
+                                                                            'sep': 'separator (default: ","'},
+                                                              'split_data': {'method': 'random/ percentage/ explicit',
+                                                                             'params': 'split_params'}},
                                                          'save_Loader': {'path': 'name.pkl'}}}}
 
         for i, key in enumerate(key_list):
