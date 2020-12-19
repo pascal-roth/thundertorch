@@ -6,12 +6,12 @@
 import os
 import torch
 import pickle
-import logging
 import yaml
 import pandas as pd
 from sklearn import preprocessing
 from argparse import Namespace
 
+from stfs_pytoolbox.ML_Utils import _logger
 from stfs_pytoolbox.ML_Utils.loader import _utils
 from stfs_pytoolbox.ML_Utils.utils.option_class import OptionClass
 
@@ -89,7 +89,7 @@ class TabularLoader:
             self.lparams.y_scaler = y_min_max_scaler.fit(self.y_train)
 
         if len(kwargs) != 0:
-            logging.warning('Additional/ unexpected kwargs are given!')
+            _logger.warning('Additional/ unexpected kwargs are given!')
 
     def __check_lparams(self) -> None:
         assert all(isinstance(elem, str) for elem in self.lparams.features), "Given features is not a list of strings!"
@@ -107,10 +107,10 @@ class TabularLoader:
         """
         self.lparams.data_path = path
         samples_train = _utils.read_df_from_file(path)
-        if self.x_train is not None: logging.warning('Train data overwritten')
+        if self.x_train is not None: _logger.warning('Train data overwritten')
         self.x_train = samples_train[self.lparams.features]
         self.y_train = samples_train[self.lparams.labels]
-        logging.debug(f'Train samples added from file {path}!')
+        _logger.debug(f'Train samples added from file {path}!')
 
     # validation_data #################################################################################################
     def add_val_data(self, path) -> None:
@@ -123,10 +123,10 @@ class TabularLoader:
         """
         self.lparams.val = {'path': path}
         samples_val = _utils.read_df_from_file(path)
-        if self.x_val is not None: logging.warning('Validation data overwritten')
+        if self.x_val is not None: _logger.warning('Validation data overwritten')
         self.x_val = samples_val[self.lparams.features]
         self.y_val = samples_val[self.lparams.labels]
-        logging.debug(f'Validation samples added from file {path}!')
+        _logger.debug(f'Validation samples added from file {path}!')
 
     def val_split(self, **kwargs) -> None:
         """
@@ -142,10 +142,10 @@ class TabularLoader:
 
         self.x_train, self.x_val, self.y_train, self.y_val = getattr(_utils, 'data_split_' + self.lparams.val['method']) \
             (self.x_train, self.y_train, self.lparams.val['params'])
-        logging.debug('Validation set split performed!')
+        _logger.debug('Validation set split performed!')
 
         if len(kwargs) != 0:
-            logging.warning('Additional, unexpected kwargs are given! Only expected args are: "method", "params"')
+            _logger.warning('Additional, unexpected kwargs are given! Only expected args are: "method", "params"')
 
     # test_data #######################################################################################################
     def add_test_data(self, path) -> None:
@@ -158,10 +158,10 @@ class TabularLoader:
         """
         self.lparams.test = {'path': path}
         samples_test = _utils.read_df_from_file(path)
-        if self.x_test is not None: logging.warning('Test data overwritten')
+        if self.x_test is not None: _logger.warning('Test data overwritten')
         self.x_test = samples_test[self.lparams.features]
         self.y_test = samples_test[self.lparams.labels]
-        logging.debug(f'Test samples added from file {path}!')
+        _logger.debug(f'Test samples added from file {path}!')
 
     def test_split(self, **kwargs) -> None:
         """
@@ -177,10 +177,10 @@ class TabularLoader:
 
         self.x_train, self.x_test, self.y_train, self.y_test = getattr(_utils, 'data_split_' + self.lparams.test['method']) \
             (self.x_train, self.y_train, self.lparams.test['params'])
-        logging.debug('Test set split performed!')
+        _logger.debug('Test set split performed!')
 
         if len(kwargs) != 0:
-            logging.warning('Additional, unexpected kwargs are given! Only expected args are: "method", "params"')
+            _logger.warning('Additional, unexpected kwargs are given! Only expected args are: "method", "params"')
 
     # create pytorch dataloaders ######################################################################################
     def train_dataloader(self, **kwargs) -> torch.utils.data.DataLoader:
@@ -229,7 +229,7 @@ class TabularLoader:
         with open(filename, 'wb') as output:  # Overwrites any existing file.
             pickle.dump(self, output, pickle.HIGHEST_PROTOCOL)
         self.lparams.filename = filename
-        logging.info('TabularLoader object saved')
+        _logger.info('TabularLoader object saved')
 
     @classmethod
     def load(cls, filename: str) -> object:
@@ -286,10 +286,10 @@ class TabularLoader:
 
             if kwargs.get('batch'):
                 Loader.lparams.batch = kwargs.pop('batch')
-                logging.info('Batch size stored in file in overwritten by kwargs argument')
+                _logger.info('Batch size stored in file in overwritten by kwargs argument')
             if kwargs.get('num_workers'):
                 Loader.lparams.num_workers = kwargs.pop('num_workers')
-                logging.info('Num_workers stored in file in overwritten by kwargs argument')
+                _logger.info('Num_workers stored in file in overwritten by kwargs argument')
 
         elif 'create_DataLoader' in argsLoader:
             argsCreate = argsLoader['create_DataLoader']

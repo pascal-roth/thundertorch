@@ -4,10 +4,10 @@
 
 # import packages
 import argparse
-import logging
 import importlib
 import pytorch_lightning as pl
 
+from stfs_pytoolbox.ML_Utils import _logger
 from stfs_pytoolbox.ML_Utils import models     # Models that are defined in __all__ in the __init__ file
 from stfs_pytoolbox.ML_Utils import loader     # Loader that are defined in __all__ in the __init__ file
 from stfs_pytoolbox.ML_Utils import logger     # Logger that are defined in __all__ in the __init__ file
@@ -31,10 +31,10 @@ def get_model(argsModel) -> pl.LightningModule:
 
     if hasattr(argsModel, 'load_model'):
         model = getattr(models, argsModel.type).load_from_checkpoint(argsModel.load_model['path'])
-        logging.debug('Model has been loaded')
+        _logger.debug('Model has been loaded')
     elif hasattr(argsModel, 'create_model'):
         model = getattr(models, argsModel.type)(argparse.Namespace(**argsModel.create_model))
-        logging.debug('Model has been created')
+        _logger.debug('Model has been created')
     elif hasattr(argsModel, 'import_model'):
         model = importlib.import_module(argsModel.type)
     else:
@@ -42,7 +42,7 @@ def get_model(argsModel) -> pl.LightningModule:
 
     if hasattr(argsModel, 'params'):
         model.hparams_update(update_dict=argsModel.params)
-        logging.debug('model default hparams updated by argsModel.params')
+        _logger.debug('model default hparams updated by argsModel.params')
     return model.double()
 
 
@@ -64,11 +64,11 @@ def get_dataLoader(argsLoader: dict, model: pl.LightningModule = None):
         dataLoader = getattr(loader, argsLoader['type']).read_from_yaml(argsLoader, batch=model.hparams.batch,
                                                                         num_workers=model.hparams.num_workers)
         model.hparams_update(update_dict={'lparams': dataLoader.lparams})
-        logging.info('DataLoader generated using batch_size and num_workers from model. Loader params are included '
+        _logger.info('DataLoader generated using batch_size and num_workers from model. Loader params are included '
                      'in model.hparams')
     else:
         dataLoader = getattr(loader, argsLoader['type']).read_from_yaml(argsLoader)
-        logging.info('DataLoader generated without model information and Loader params not included in model')
+        _logger.info('DataLoader generated without model information and Loader params not included in model')
 
     return dataLoader
 
@@ -111,7 +111,7 @@ def train_model(model: pl.LightningModule, dataLoader, argsTrainer) -> None:
             argsTrainer.params['callbacks'] = callback_list
 
     else:
-        logging.info('No callbacks implemented')
+        _logger.info('No callbacks implemented')
 
     # create logger_fn objects
     if hasattr(argsTrainer, 'logger'):
@@ -134,7 +134,7 @@ def train_model(model: pl.LightningModule, dataLoader, argsTrainer) -> None:
 
     else:
         argsTrainer.params['logger'] = False
-        logging.info('No logger selected')
+        _logger.info('No logger selected')
 
     # define trainer and start training
     trainer = pl.Trainer.from_argparse_args(argparse.Namespace(**argsTrainer.params))

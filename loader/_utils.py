@@ -7,8 +7,9 @@ import pandas as pd
 import random
 import numpy as np
 import os
-import logging
 from sklearn.model_selection import train_test_split
+
+from stfs_pytoolbox.ML_Utils import _logger
 
 
 # data split ##########################################################################################################
@@ -32,7 +33,7 @@ def data_split_random(x_samples: pd.DataFrame, y_samples: pd.DataFrame, split_pa
     assert isinstance(split_params, float), 'Val_size must be float in range 0 to 1!'
     assert split_params < 1, 'Percentage exceeds 100%!'
     x_samples, x_split, y_samples, y_split = train_test_split(x_samples, y_samples, test_size=split_params)
-    logging.info(f'Random split with percentage {split_params} has been performed!')
+    _logger.info(f'Random split with percentage {split_params} has been performed!')
 
     return x_samples, x_split, y_samples, y_split
 
@@ -82,7 +83,7 @@ def data_split_percentage(x_samples: pd.DataFrame, y_samples: pd.DataFrame, spli
     y_split = y_samples[y_samples.index.isin(x_split.index)]
     y_samples = y_samples[y_samples.index.isin(x_samples.index)]
 
-    logging.info(f'Percentage split with params {split_params} has been performed! A percentage of '
+    _logger.info(f'Percentage split with params {split_params} has been performed! A percentage of '
                  f'{len(x_split)/(len(x_split) + len(x_samples))} samples has been separated.')
 
     return x_samples, x_split, y_samples, y_split
@@ -135,7 +136,7 @@ def data_split_explicit(x_samples: pd.DataFrame, y_samples: pd.DataFrame, split_
     y_split = y_samples[y_samples.index.isin(x_split.index)]
     y_samples = y_samples[y_samples.index.isin(x_samples.index)]
 
-    logging.info(f'Explicit split with params {split_params} has been performed! A percentage of '
+    _logger.info(f'Explicit split with params {split_params} has been performed! A percentage of '
                  f'{len(x_split)/(len(x_split) + len(x_samples))} samples has been separated.')
 
     return x_samples, x_split, y_samples, y_split
@@ -171,6 +172,6 @@ def read_df_from_file(file_path) -> pd.DataFrame:
     else:
         raise TypeError('File of type: {} not supported!'.format(file_extention))
 
-    logging.debug('Samples loaded successfully!')
+    _logger.debug('Samples loaded successfully!')
 
     return df_samples

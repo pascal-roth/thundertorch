@@ -4,8 +4,6 @@
 
 # import packages
 import yaml
-import argparse
-import logging
 import glob
 import inspect
 import os
@@ -13,7 +11,7 @@ import pytorch_lightning as pl
 from functools import reduce
 import operator
 
-import stfs_pytoolbox
+from stfs_pytoolbox.ML_Utils import _logger
 from stfs_pytoolbox.ML_Utils import models  # Models that are defined in __all__ in the __init__ file
 from stfs_pytoolbox.ML_Utils import loader  # Loader that are defined in __all__ in the __init__ file
 from stfs_pytoolbox.ML_Utils import logger  # Logger that are defined in __all__ in the __init__ file
@@ -63,7 +61,7 @@ def check_argsModel(argsModel: dict) -> None:
 
     # warn if no model params defined
     if 'params' not in argsModel:
-        logging.warning('Parameter dict not defined! Default values will be taken. Structure of the params dict is as '
+        _logger.warning('Parameter dict not defined! Default values will be taken. Structure of the params dict is as '
                         'follows: \n{}'.format(getattr(models, argsModel.type).yaml_template(['Model', 'params'])))
 
     # check model source

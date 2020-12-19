@@ -5,7 +5,6 @@
 # import packages
 import yaml
 import logging
-# logging.basicConfig(level=logging.DEBUG)
 import os
 import time
 import torch
@@ -105,9 +104,7 @@ def main(argsMulti):
     nbr_process, list_gpu = get_num_processes(argsMulti, argsModels)
     model_dicts = get_argsDict(argsModels)
 
-    #mp_fn = mp.get_context('spawn')
     mp_fn = mp.get_context('forkserver')
-    # lock = mp.Manager().Lock()
     tic1 = time.time()
     processes = []
     ii = 0
@@ -156,6 +153,6 @@ def main(argsMulti):
 
 if __name__ == '__main__':
     args = parse_arguments()
-    logger = create_logger(args)
+    logger = logger_level(args)
     args_yaml = parse_yaml(args.yaml_path)
     main(args_yaml)

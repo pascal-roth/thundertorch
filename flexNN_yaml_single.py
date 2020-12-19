@@ -28,6 +28,6 @@ def main(args_yaml):
 
 if __name__ == '__main__':
     args = parse_arguments()
-    logger = create_logger(args)
+    logger_level(args)
     args_yaml = parse_yaml(args.yaml_path)
     main(args_yaml)

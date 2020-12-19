@@ -6,10 +6,10 @@
 import os
 import torch
 import pickle
-import logging
 import yaml
 from argparse import Namespace
 
+from stfs_pytoolbox.ML_Utils import _logger
 from stfs_pytoolbox.ML_Utils import models
 from stfs_pytoolbox.ML_Utils.loader import _utils
 from stfs_pytoolbox.ML_Utils.utils.option_class import OptionClass
@@ -69,7 +69,7 @@ class DataLoaderTemplate:
         test_samples     - file path
         """
         self.lparams.data_path = path
-        if self.x_train is not None: logging.warning('Train data overwritten')
+        if self.x_train is not None: _logger.warning('Train data overwritten')
         self.x_train = self.y_train = None
 
     # validation_data #################################################################################################
@@ -82,7 +82,7 @@ class DataLoaderTemplate:
         val_samples     - file path
         """
         self.lparams.val_path = path
-        if self.x_val is not None: logging.warning('Validation data overwritten')
+        if self.x_val is not None: _logger.warning('Validation data overwritten')
         self.x_val = self.y_val = None
 
     def val_split(self, **kwargs) -> None:
@@ -106,7 +106,7 @@ class DataLoaderTemplate:
         test_samples     - file path
         """
         self.lparams.test_path = path
-        if self.x_test is not None: logging.warning('Test data overwritten')
+        if self.x_test is not None: _logger.warning('Test data overwritten')
         self.x_test = None
         self.y_test = None
 
@@ -182,10 +182,10 @@ class DataLoaderTemplate:
 
             if kwargs['batch'] is not None:
                 Loader.lparams.batch = kwargs.pop('batch')
-                logging.info('Batch size stored in file in overwritten by kwargs argument')
+                _logger.info('Batch size stored in file in overwritten by kwargs argument')
             if kwargs['num_workers'] is not None:
                 Loader.lparams.num_workers = kwargs.pop('num_workers')
-                logging.info('Num_workers stored in file in overwritten by kwargs argument')
+                _logger.info('Num_workers stored in file in overwritten by kwargs argument')
 
         elif 'create_DataLoader' in argsLoader:
             argsCreate = argsLoader['create_DataLoader']
