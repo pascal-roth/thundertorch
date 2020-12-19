@@ -3,7 +3,7 @@ from .LightningFlexNN import LightningFlexNN
 from ._LightningModelTemplate import LightningModelTemplate
 from .AssemblyModel import AssemblyModel
 from .ModelBase import LightningModelBase
-from .models_old import *
+from ._losses import RelativeMSELoss
 
 __all__ = ['LightningFlexNN', 'LightningFlexMLP', 'LightningModelTemplate', 'AssemblyModel', 'LightningModelBase',
-           'FlexMLP', 'createFlexMLPCheckpoint', 'loadFlexMLPCheckpoint']
+           'RelativeMSELoss']

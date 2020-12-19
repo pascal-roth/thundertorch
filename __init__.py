@@ -17,7 +17,16 @@ console_handler = python_logging.StreamHandler(sys.stdout)
 console_handler.setFormatter(python_logging.Formatter("%(module)s: %(message)s"))
 _logger.addHandler(console_handler)
 
+# Module lists
+_modules_activation = ['torch.nn']
+_modules_loss = ['torch.nn', 'stfs_pytoolbox.ML_Utils.models']
+_modules_optim = ['torch.optim']
+_modules_lr_scheduler = ['torch.optim.lr_scheduler']
+_modules_models = ['stfs_pytoolbox.ML_Utils.models']
+_modules_loader = ['stfs_pytoolbox.ML_Utils.loader']
+_modules_callbacks = ['pytorch_lightning.callbacks', 'stfs_pytoolbox.ML_Utils.callbacks']
 
+# Check imports
 try:
     import torch
     import torch.nn as nn

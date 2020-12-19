@@ -1,4 +1,5 @@
 from stfs_pytoolbox.ML_Utils import _logger
+import importlib
 
 
 class OptionClass:
@@ -119,7 +120,7 @@ class OptionClass:
         if not isinstance(self.keylist[key].get('attr_of'), list):
             self.keylist[key]['attr_of'] = [self.keylist[key].get('attr_of')]
 
-        assert any(hasattr(fct, item) for fct in self.keylist[key]['attr_of']), \
+        assert any(hasattr(importlib.import_module(fct), item) for fct in self.keylist[key]['attr_of']), \
             'Function "{}" not implemented in "{}"!'.format(item, self.keylist[key].get('attr_of'))
 
     @staticmethod

@@ -12,13 +12,13 @@ DataLoader:
     raw_data_path: example_samples.csv                            # .h5, .csv, .txt
     features: [T_0, PV]
     labels: [T, wH2O, yCO2]
-#    validation_data:
-##      load_data:
-##        path: None                                  # add_file_path_path
-#      split_data:
-#        method: explicit                            # options=[random, explicit, percentage]
-#        params:
-#          T_0: [940]                                        # adjust feature name
+    validation_data:
+#      load_data:
+#        path: None                                  # add_file_path_path
+      split_data:
+        method: explicit                            # options=[random, explicit, percentage]
+        params:
+          T_0: [940]                                        # adjust feature name
     test_data:
 #      load_data:
 #        path: None
