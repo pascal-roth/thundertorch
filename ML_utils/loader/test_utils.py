@@ -27,9 +27,20 @@ def test_read_df_from_file(create_random_df, tmp_path):
     df_samples = read_df_from_file(tmp_path / 'example.txt')
     assert isinstance(df_samples, pd.DataFrame)
 
-    # test format .flut
-    #  TODO: implement method if flut datatype is know
+    # test format .ulf
+    #  TODO: implement method if ulf datatype is know
 
+    # test format .csv with different separator
+    create_random_df.to_csv(tmp_path / 'example.csv', sep=':')
+    df_samples = read_df_from_file(tmp_path / 'example.csv', sep=':')
+    assert isinstance(df_samples, pd.DataFrame)
+
+    # Error if delimiter is wrong
+    with pytest.raises(AssertionError):
+        create_random_df.to_csv(tmp_path / 'example.csv', sep=':')
+        read_df_from_file(tmp_path / 'example.csv')
+
+    # Error for other file type
     with pytest.raises(TypeError):
         read_df_from_file('some_file.other_type')
 
