@@ -138,5 +138,16 @@ def train_model(model: pl.LightningModule, dataLoader, argsTrainer) -> None:
 
     # define trainer and start training
     trainer = pl.Trainer.from_argparse_args(argparse.Namespace(**argsTrainer.params))
-    trainer.fit(model, train_dataloader=dataLoader.train_dataloader(), val_dataloaders=dataLoader.val_dataloader())
-    trainer.test(model, test_dataloaders=dataLoader.test_dataloader())
+
+    if all(getattr(dataLoader, item) is not None for item in ['x_val', 'y_val']):
+        _logger.debug('Training and validation data included in DataLoader -> Model validation is performed!')
+        trainer.fit(model, train_dataloader=dataLoader.train_dataloader(), val_dataloaders=dataLoader.val_dataloader())
+    else:
+        _logger.debug('NO validation data included in DataLoader -> Model validation is NOT performed!')
+        trainer.fit(model, train_dataloader=dataLoader.train_dataloader())
+
+    if all(getattr(dataLoader, item) is not None for item in ['x_test', 'y_test']):
+        _logger.debug('Test data included in DataLoader -> Model testing performed!')
+        trainer.test(model, test_dataloaders=dataLoader.test_dataloader())
+    else:
+        _logger.debug('NO test data included in DataLoader -> Model testing is NOT performed!')

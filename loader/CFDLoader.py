@@ -158,9 +158,6 @@ class CFDLoader:
         """
         Generate PyTorch DataLoader for the training data (all kwargs of the PyTorch DataLoader can be used)
         """
-        if self.x_val is None: self.val_split()  # TODO: maybe find a better solution to add an default
-        if self.x_test is None: self.test_split()
-
         self.x_train = self.lparams.x_scaler.transform(self.x_train)
         self.y_train = self.lparams.y_scaler.transform(self.y_train)
         tensor = torch.utils.data.TensorDataset(torch.tensor(self.x_train), torch.tensor(self.y_train))
@@ -181,7 +178,6 @@ class CFDLoader:
         """
         Generate PyTorch DataLoader for the test data (all kwargs of the PyTorch DataLoader can be used)
         """
-        assert self.x_test is not None, 'Test data has to be assigned before test_dataloader is created'  # TODO: schauen ob dann default genommen werden kann, wenn man alle samples als Eintrag hat
         self.x_test = self.lparams.x_scaler.transform(self.x_test)
         self.y_test = self.lparams.y_scaler.transform(self.y_test)
         tensor = torch.utils.data.TensorDataset(torch.tensor(self.x_test), torch.tensor(self.y_test))
@@ -358,8 +354,8 @@ class CFDLoader:
         options['create_DataLoader'].add_key('raw_data_path', dtype=str, required=True)
         options['create_DataLoader'].add_key('features', dtype=list, required=True)
         options['create_DataLoader'].add_key('labels', dtype=list, required=True)
-        options['create_DataLoader'].add_key('validation_data', dtype=dict, required=True)
-        options['create_DataLoader'].add_key('test_data', dtype=dict, required=True)
+        options['create_DataLoader'].add_key('validation_data', dtype=dict)
+        options['create_DataLoader'].add_key('test_data', dtype=dict)
         options['create_DataLoader'].add_key('save_Loader', dtype=dict)
 
         options['validation_data'] = OptionClass(

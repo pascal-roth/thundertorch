@@ -12,6 +12,7 @@ from sklearn import preprocessing
 from argparse import Namespace
 
 from stfs_pytoolbox.ML_Utils import _logger
+from stfs_pytoolbox.ML_Utils import models
 from stfs_pytoolbox.ML_Utils.loader import _utils
 from stfs_pytoolbox.ML_Utils.utils.option_class import OptionClass
 
@@ -188,9 +189,6 @@ class TabularLoader:
         """
         Generate PyTorch DataLoader for the training data (all kwargs of the PyTorch DataLoader can be used)
         """
-        if self.x_val is None: self.val_split()  # TODO: maybe find a better solution to add an default
-        if self.x_test is None: self.test_split()
-
         self.x_train = self.lparams.x_scaler.transform(self.x_train)
         self.y_train = self.lparams.y_scaler.transform(self.y_train)
         tensor = torch.utils.data.TensorDataset(torch.tensor(self.x_train), torch.tensor(self.y_train))
@@ -211,7 +209,6 @@ class TabularLoader:
         """
         Generate PyTorch DataLoader for the test data (all kwargs of the PyTorch DataLoader can be used)
         """
-        assert self.x_test is not None, 'Test data has to be assigned before test_dataloader is created'  # TODO: schauen ob dann default genommen werden kann, wenn man alle samples als Eintrag hat
         self.x_test = self.lparams.x_scaler.transform(self.x_test)
         self.y_test = self.lparams.y_scaler.transform(self.y_test)
         tensor = torch.utils.data.TensorDataset(torch.tensor(self.x_test), torch.tensor(self.y_test))
@@ -302,20 +299,22 @@ class TabularLoader:
                                                   labels=argsCreate.pop('labels'), **kwargs)
 
             # validation data
-            if 'load_data' in argsCreate['validation_data']:
-                Loader.add_val_data(**argsCreate['validation_data']['load_data'])
-            elif 'split_data' in argsCreate['validation_data']:
-                Loader.val_split(**argsCreate['validation_data']['split_data'])
-            else:
-                raise KeyError('No validation data selected! Either include dict "load_data" or "split_data".')
+            if 'validation_data' in argsCreate:
+                if 'load_data' in argsCreate['validation_data']:
+                    Loader.add_val_data(**argsCreate['validation_data']['load_data'])
+                elif 'split_data' in argsCreate['validation_data']:
+                    Loader.val_split(**argsCreate['validation_data']['split_data'])
+                else:
+                    raise KeyError('No validation data selected! Either include dict "load_data" or "split_data".')
 
             # test data
-            if 'load_data' in argsCreate['test_data']:
-                Loader.add_test_data(**argsCreate['test_data']['load_data'])
-            elif 'split_data' in argsCreate['test_data']:
-                Loader.test_split(**argsCreate['test_data']['split_data'])
-            else:
-                raise KeyError('No test data selected! Either include dict "load_data" or "split_data".')
+            if 'test_data' in argsCreate:
+                if 'load_data' in argsCreate['test_data']:
+                    Loader.add_test_data(**argsCreate['test_data']['load_data'])
+                elif 'split_data' in argsCreate['test_data']:
+                    Loader.test_split(**argsCreate['test_data']['split_data'])
+                else:
+                    raise KeyError('No test data selected! Either include dict "load_data" or "split_data".')
 
             # save loader
             if 'save_Loader' in argsCreate:
@@ -327,7 +326,7 @@ class TabularLoader:
         return Loader
 
     @classmethod
-    def read_from_checkpoint(cls, ckpt_file) -> object:
+    def read_from_checkpoint(cls, ckpt_file: str, model: str = 'LightningFlexMLP') -> object:
         """
         Create cls TabluarLoader from pytorch lightning checkpoint
         !! Hparams of the checkpoint had to be updated with lparams of the Loader in order to reconstruct the Loader!!
@@ -340,10 +339,9 @@ class TabularLoader:
         -------
         object          - TabularLoader object
         """
-        from stfs_pytoolbox.ML_Utils import models
 
-        model = models.LightningFlexMLP.load_from_checkpoint(ckpt_file)  # TODO: implement for all model types
-        lparams = model.hparams.lparams
+        pl_model = getattr(models, model).load_from_checkpoint(ckpt_file)
+        lparams = pl_model.hparams.lparams
 
         assert hasattr(lparams, 'data_path'), 'Data cannot be reloaded because the pass is missing'
         _, file_extention = os.path.splitext(lparams.data_path)
@@ -363,14 +361,14 @@ class TabularLoader:
         elif all(elem in lparams.val for elem in ['method', 'params']):
             Loader.val_split(method=lparams.val['method'], params=lparams.val['params'])
         else:
-            raise KeyError('Keys to assign validation data are missing/ not complete')
+            _logger.debug('NO validation data included!')
 
         if 'path' in lparams.test:
             Loader.add_test_data(lparams.test.path, lparams.test.sep)
         elif all(elem in lparams.test for elem in ['method', 'params']):
             Loader.test_split(method=lparams.test['method'], params=lparams.test['params'])
         else:
-            raise KeyError('Keys to assign test data are missing/ not complete')
+            _logger.debug('NO test data included!')
 
         return Loader
 
@@ -388,8 +386,8 @@ class TabularLoader:
         options['create_DataLoader'].add_key('raw_data_path', dtype=str, required=True)
         options['create_DataLoader'].add_key('features', dtype=list, required=True)
         options['create_DataLoader'].add_key('labels', dtype=list, required=True)
-        options['create_DataLoader'].add_key('validation_data', dtype=dict, required=True)
-        options['create_DataLoader'].add_key('test_data', dtype=dict, required=True)
+        options['create_DataLoader'].add_key('validation_data', dtype=dict)
+        options['create_DataLoader'].add_key('test_data', dtype=dict)
         options['create_DataLoader'].add_key('save_Loader', dtype=dict)
 
         options['validation_data'] = OptionClass(template=TabularLoader.yaml_template(['DataLoader', 'create_DataLoader',
