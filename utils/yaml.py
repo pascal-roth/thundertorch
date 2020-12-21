@@ -4,8 +4,6 @@
 
 # import packages
 import yaml
-import argparse
-import logging
 import glob
 import inspect
 import os
@@ -13,12 +11,11 @@ import pytorch_lightning as pl
 from functools import reduce
 import operator
 
-import stfs_pytoolbox
+from stfs_pytoolbox.ML_Utils import _logger
 from stfs_pytoolbox.ML_Utils import models  # Models that are defined in __all__ in the __init__ file
 from stfs_pytoolbox.ML_Utils import loader  # Loader that are defined in __all__ in the __init__ file
-from stfs_pytoolbox.ML_Utils import logger  # Logger that are defined in __all__ in the __init__ file
-from stfs_pytoolbox.ML_Utils import callbacks  # Callbacks that are defined in __all__ in the __init__ file
 from stfs_pytoolbox.ML_Utils.utils.option_class import OptionClass
+from stfs_pytoolbox.ML_Utils import _modules_models, _modules_callbacks, _modules_loader
 
 
 def parse_yaml(yaml_path) -> dict:
@@ -51,7 +48,7 @@ def check_argsModel(argsModel: dict) -> None:
     argsModel       - Dict including the model arguments of a yaml file
     """
     options = {'Model': OptionClass(template=models.LightningModelTemplate.yaml_template(['Model']))}
-    options['Model'].add_key('type', dtype=str, required=True, attr_of=models)
+    options['Model'].add_key('type', dtype=str, required=True, attr_of=_modules_models)
     options['Model'].add_key('load_model', dtype=dict, mutually_exclusive=['create_model'])
     options['Model'].add_key('create_model', dtype=dict, mutually_exclusive=['load_model'], param_dict=True)
     options['Model'].add_key('params', dtype=dict, param_dict=True)
@@ -63,7 +60,7 @@ def check_argsModel(argsModel: dict) -> None:
 
     # warn if no model params defined
     if 'params' not in argsModel:
-        logging.warning('Parameter dict not defined! Default values will be taken. Structure of the params dict is as '
+        _logger.warning('Parameter dict not defined! Default values will be taken. Structure of the params dict is as '
                         'follows: \n{}'.format(getattr(models, argsModel.type).yaml_template(['Model', 'params'])))
 
     # check model source
@@ -81,7 +78,7 @@ def check_argsLoader(argsLoader: dict) -> None:
     argsLoader      - Dict including the DataLoader arguments of a yaml file
     """
     options = {'DataLoader': OptionClass(template=loader.DataLoaderTemplate.yaml_template(['DataLoader']))}
-    options['DataLoader'].add_key('type', dtype=str, required=True, attr_of=loader)
+    options['DataLoader'].add_key('type', dtype=str, required=True, attr_of=_modules_loader)
     options['DataLoader'].add_key('load_DataLoader', dtype=dict, mutually_exclusive=['create_DataLoader'], param_dict=True)
     options['DataLoader'].add_key('create_DataLoader', dtype=dict, mutually_exclusive=['load_DataLoader'], param_dict=True)
 
@@ -103,7 +100,7 @@ def check_argsTrainer(argsTrainer: dict) -> None:
     options['Trainer'].add_key('logger', dtype=[dict, list])
 
     options['callbacks'] = OptionClass(template=trainer_yml_template(['Trainer', 'callbacks']))
-    options['callbacks'].add_key('type', dtype=str, required=True, attr_of=[pl.callbacks, callbacks])
+    options['callbacks'].add_key('type', dtype=str, required=True, attr_of=_modules_callbacks)
     options['callbacks'].add_key('params', dtype=dict, param_dict=True)
 
     options['logger'] = OptionClass(template=trainer_yml_template(['Trainer', 'logger']))

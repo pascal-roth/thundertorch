@@ -1,22 +1,21 @@
 # import packages
 import argparse
+from stfs_pytoolbox.ML_Utils import _logger
 import logging
-import sys
 
 
-def parse_arguments():
+def parse_arguments() -> argparse.Namespace:
     parser = argparse.ArgumentParser()
-    parser.add_argument('-yaml_path', type=str, default='input_MultiModelTraining.yaml',  # TODO: geaendert für debug
+    parser.add_argument('-yaml_path', type=str, default='input_LightningFlexMLP_single.yaml',
                         help='Name of yaml file to construct Neural Network')
     parser.add_argument('-d', '--debug', action='store_true', default=False,
                         help="Change logging level")
     return parser.parse_args()
 
 
-def create_logger(argument):
+def logger_level(argument: argparse.Namespace) -> None:
     """
-    Function to create the basic logger for the trainFlexNN scripts. Sets the logger level to the desired value (default
-    is INFO, when run with -d it is DEBUG)
+    Function to change "ml_utils" logger level to debug
 
     Parameters
     ----------
@@ -27,11 +26,5 @@ def create_logger(argument):
     logger: logger handle pointing to sys.stdout on defined logger level
 
     """
-    logger = logging.getLogger('trainFlexNN')
     if argument.debug:
-        logger.setLevel(logging.DEBUG)
-        logging.basicConfig(format="%(module)s: %(message)s")
-    else:
-        logger.setLevel(logging.INFO)
-        logger.addHandler(logging.StreamHandler(sys.stdout))
-    return logger
+        _logger.setLevel(logging.DEBUG)

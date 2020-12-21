@@ -7,8 +7,9 @@ import pandas as pd
 import random
 import numpy as np
 import os
-import logging
 from sklearn.model_selection import train_test_split
+
+from stfs_pytoolbox.ML_Utils import _logger
 
 
 # data split ##########################################################################################################
@@ -32,7 +33,7 @@ def data_split_random(x_samples: pd.DataFrame, y_samples: pd.DataFrame, split_pa
     assert isinstance(split_params, float), 'Val_size must be float in range 0 to 1!'
     assert split_params < 1, 'Percentage exceeds 100%!'
     x_samples, x_split, y_samples, y_split = train_test_split(x_samples, y_samples, test_size=split_params)
-    logging.info(f'Random split with percentage {split_params} has been performed!')
+    _logger.info(f'Random split with percentage {split_params} has been performed!')
 
     return x_samples, x_split, y_samples, y_split
 
@@ -82,7 +83,7 @@ def data_split_percentage(x_samples: pd.DataFrame, y_samples: pd.DataFrame, spli
     y_split = y_samples[y_samples.index.isin(x_split.index)]
     y_samples = y_samples[y_samples.index.isin(x_samples.index)]
 
-    logging.info(f'Percentage split with params {split_params} has been performed! A percentage of '
+    _logger.info(f'Percentage split with params {split_params} has been performed! A percentage of '
                  f'{len(x_split)/(len(x_split) + len(x_samples))} samples has been separated.')
 
     return x_samples, x_split, y_samples, y_split
@@ -135,42 +136,57 @@ def data_split_explicit(x_samples: pd.DataFrame, y_samples: pd.DataFrame, split_
     y_split = y_samples[y_samples.index.isin(x_split.index)]
     y_samples = y_samples[y_samples.index.isin(x_samples.index)]
 
-    logging.info(f'Explicit split with params {split_params} has been performed! A percentage of '
+    _logger.info(f'Explicit split with params {split_params} has been performed! A percentage of '
                  f'{len(x_split)/(len(x_split) + len(x_samples))} samples has been separated.')
 
     return x_samples, x_split, y_samples, y_split
 
 
 # data loading ########################################################################################################
-def read_df_from_file(file_path) -> pd.DataFrame:
+def read_df_from_file(file_path: str, sep: str = ',') -> pd.DataFrame:
     """
-    Load samples of different data tpyes
+    Load samples of different data types
 
     Parameters
     ----------
     file_path           - sample path
+    sep                 - seperator of the dataset
 
     Returns
     -------
     df_samples          - pd.DataFrame including samples
     """
     _, file_extention = os.path.splitext(file_path)
+
     if file_extention == '.h5':
+        _logger.debug('"h5" datatype recognized')
         assert os.path.isfile(file_path), "Given h5-file '{}' doesn't exist.".format(file_path)
         with pd.HDFStore(file_path, 'r') as store:
             keys = store.keys()
             assert len(keys) == 1, "There must be only one key stored in pandas.HDFStore in '{}'!".format(file_path)
             df_samples = store.get(keys[0])
-    elif file_extention == '.flut':
-        # import pyflut  # TODO: nur laden when package available --> import ... wenn nicht geladen, fehler!
-        raise NotImplementedError('not implemented yet -> flut datatype unknown')  # TODO: implement pyflut datatype
+
+    elif file_extention == '.ulf':
+        _logger.debug('"ulf" datatype recognized')
+        sep = None
+        with open(file_path, 'r') as f:
+            output_dict = next(f).split(sep)
+            data = np.vstack([np.array(line.split(sep), dtype=np.float64) for line in f])
+        data = pd.DataFrame(data)
+        data.columns = output_dict
+
     elif file_extention == '.csv' or file_extention == '.txt':
-        df_samples = pd.read_csv(file_path)
+        _logger.debug('"csv"/ "txt" datatype recognized')
+        df_samples = pd.read_csv(file_path, sep=sep)
+
     elif isinstance(file_path, pd.DataFrame):
+        _logger.debug('"DataFrame" datatype recognized')
         df_samples = file_path
+
     else:
         raise TypeError('File of type: {} not supported!'.format(file_extention))
 
-    logging.debug('Samples loaded successfully!')
+    assert df_samples.shape[1] != 1, 'Wrong separator chosen! All features loaded as one!'
+    _logger.debug('Samples loaded successfully!')
 
     return df_samples

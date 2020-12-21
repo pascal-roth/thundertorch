@@ -8,8 +8,8 @@ import yaml
 from argparse import Namespace
 
 from stfs_pytoolbox.ML_Utils.models.ModelBase import LightningModelBase
-from stfs_pytoolbox.ML_Utils.models import _losses
 from stfs_pytoolbox.ML_Utils.utils.option_class import OptionClass
+from stfs_pytoolbox.ML_Utils import _modules_activation, _modules_loss, _modules_lr_scheduler, _modules_optim
 
 
 # flexible MLP class
@@ -88,13 +88,6 @@ class LightningFlexNN(LightningModelBase):
                 in_channels = out_channels
         self.final_channel = in_channels
 
-    # def add_model_specific_args(parent_parser):
-    #     parser = argparse.ArgumentParser(parents=[parent_parser])
-    #     parser.add_argument('--features', type=list, default=['pode', 'Z', 'H', 'PV'])
-    #     parser.add_argument('--labels', type=list, default=['T'])
-    #     parser.add_argument('--n_hidden_neurons', nargs='+', type=int, default=[64, 64, 64])
-    #     return parser
-
     @staticmethod
     def get_OptionClass():
         options = {'hparams': OptionClass(template=LightningFlexNN.yaml_template(['Model', 'params']))}
@@ -103,9 +96,9 @@ class LightningFlexNN(LightningModelBase):
         options['hparams'].add_key('height', dtype=int, required=True)
         options['hparams'].add_key('layers', dtype=list, required=True)
         options['hparams'].add_key('MLP_layer', dtype=dict, required=True)
-        options['hparams'].add_key('output_activation', dtype=str, attr_of=torch.nn)
-        options['hparams'].add_key('activation', dtype=str, attr_of=torch.nn)
-        options['hparams'].add_key('loss', dtype=str, attr_of=[torch.nn, _losses])
+        options['hparams'].add_key('output_activation', dtype=str, attr_of=_modules_activation)
+        options['hparams'].add_key('activation', dtype=str, attr_of=_modules_activation)
+        options['hparams'].add_key('loss', dtype=str, attr_of=_modules_loss)
         options['hparams'].add_key('optimizer', dtype=dict)
         options['hparams'].add_key('scheduler', dtype=dict)
         options['hparams'].add_key('num_workers', dtype=int)
@@ -113,7 +106,7 @@ class LightningFlexNN(LightningModelBase):
         options['hparams'].add_key('lparams', dtype=Namespace)
 
         options['layers'] = OptionClass(template=LightningFlexNN.yaml_template(['Model', 'create_model', 'layers']))
-        options['layers'].add_key('type', dtype=str, required=True, attr_of=torch.nn)
+        options['layers'].add_key('type', dtype=str, required=True, attr_of='torch.nn')
         options['layers'].add_key('params', dtype=dict, param_dict=True)
 
         options['MLP_layer'] = OptionClass(template=LightningFlexNN.yaml_template(['Model', 'create_model', 'MLP_layer']))
@@ -121,12 +114,12 @@ class LightningFlexNN(LightningModelBase):
         options['MLP_layer'].add_key('hidden_layer', dtype=list, required=True)
 
         options['optimizer'] = OptionClass(template=LightningFlexNN.yaml_template(['Model', 'params', 'optimizer']))
-        options['optimizer'].add_key('type', dtype=str, attr_of=torch.optim)
+        options['optimizer'].add_key('type', dtype=str, attr_of=_modules_optim)
         options['optimizer'].add_key('params', dtype=dict, param_dict=True)
 
         options['scheduler'] = OptionClass(template=LightningFlexNN.yaml_template(['Model', 'params', 'scheduler']))
         options['scheduler'].add_key('execute', dtype=bool)
-        options['scheduler'].add_key('type', dtype=str, attr_of=torch.optim.lr_scheduler)
+        options['scheduler'].add_key('type', dtype=str, attr_of=_modules_lr_scheduler)
         options['scheduler'].add_key('params', dtype=dict, param_dict=True)
 
         return options

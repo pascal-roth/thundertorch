@@ -4,14 +4,13 @@
 
 # import packages
 import argparse
-import logging
 import importlib
 import pytorch_lightning as pl
 
-from stfs_pytoolbox.ML_Utils import models     # Models that are defined in __all__ in the __init__ file
-from stfs_pytoolbox.ML_Utils import loader     # Loader that are defined in __all__ in the __init__ file
+from stfs_pytoolbox.ML_Utils import _logger
 from stfs_pytoolbox.ML_Utils import logger     # Logger that are defined in __all__ in the __init__ file
 from stfs_pytoolbox.ML_Utils import callbacks  # Callbacks that are defined in __all__ in the __init__ file
+from stfs_pytoolbox.ML_Utils import _modules_models, _modules_loader, _modules_callbacks
 
 
 def get_model(argsModel) -> pl.LightningModule:
@@ -29,20 +28,26 @@ def get_model(argsModel) -> pl.LightningModule:
     if isinstance(argsModel, dict):
         argsModel = argparse.Namespace(**argsModel)
 
+    for m in _modules_models:
+        try:
+            model_cls = getattr(importlib.import_module(m), argsModel.type)
+            _logger.debug(f'Model Class of type {argsModel.type} has been loaded from {m}')
+            break
+        except AttributeError or ModuleNotFoundError:
+            _logger.debug(f'Model Class of type {argsModel.type} has NOT been loaded from {m}')
+
     if hasattr(argsModel, 'load_model'):
-        model = getattr(models, argsModel.type).load_from_checkpoint(argsModel.load_model['path'])
-        logging.debug('Model has been loaded')
+        model = model_cls.load_from_checkpoint(argsModel.load_model['path'])
+        _logger.debug(f'Model successfully loaded')
     elif hasattr(argsModel, 'create_model'):
-        model = getattr(models, argsModel.type)(argparse.Namespace(**argsModel.create_model))
-        logging.debug('Model has been created')
-    elif hasattr(argsModel, 'import_model'):
-        model = importlib.import_module(argsModel.type)
+        model = model_cls(argparse.Namespace(**argsModel.create_model))
+        _logger.debug(f'Model successfully created')
     else:
         raise KeyError('Model not generated! Either include load_model or create_model dict!')
 
     if hasattr(argsModel, 'params'):
         model.hparams_update(update_dict=argsModel.params)
-        logging.debug('model default hparams updated by argsModel.params')
+        _logger.debug('model default hparams updated by argsModel.params')
     return model.double()
 
 
@@ -60,15 +65,23 @@ def get_dataLoader(argsLoader: dict, model: pl.LightningModule = None):
     -------
     dataLoader
     """
+    for m in _modules_loader:
+        try:
+            loader_cls = getattr(importlib.import_module(m), argsLoader['type'])
+            _logger.debug('Model Class of type {} has been loaded from {}'.format(argsLoader['type'], m))
+            break
+        except AttributeError or ModuleNotFoundError:
+            _logger.debug('Model Class of type {} has NOT been loaded from {}'.format(argsLoader['type'], m))
+
     if model:
-        dataLoader = getattr(loader, argsLoader['type']).read_from_yaml(argsLoader, batch=model.hparams.batch,
-                                                                        num_workers=model.hparams.num_workers)
+        dataLoader = loader_cls.read_from_yaml(argsLoader, batch=model.hparams.batch,
+                                               num_workers=model.hparams.num_workers)
         model.hparams_update(update_dict={'lparams': dataLoader.lparams})
-        logging.info('DataLoader generated using batch_size and num_workers from model. Loader params are included '
+        _logger.info('DataLoader generated using batch_size and num_workers from model. Loader params are included '
                      'in model.hparams')
     else:
-        dataLoader = getattr(loader, argsLoader['type']).read_from_yaml(argsLoader)
-        logging.info('DataLoader generated without model information and Loader params not included in model')
+        dataLoader = loader_cls.read_from_yaml(argsLoader)
+        _logger.info('DataLoader generated without model information and Loader params not included in model')
 
     return dataLoader
 
@@ -100,18 +113,24 @@ def train_model(model: pl.LightningModule, dataLoader, argsTrainer) -> None:
                 checkpoint = callbacks.Checkpointing(**argsTrainer.callbacks[i]['params'])
                 argsTrainer.params['checkpoint_callback'] = checkpoint
             else:
+                # Check from which destination the callback class is loaded
+                for m in _modules_callbacks:
+                    try:
+                        callback_cls = getattr(importlib.import_module(m), argsTrainer.callbacks[i]['type'])
+                    except ModuleNotFoundError or AttributeError:
+                        _logger.debug('Callback of type {} NOT found in {}'.format(argsTrainer.callbacks[i]['type'], m))
+
                 if 'params' in argsTrainer.callbacks[i]:
-                    callback = getattr(pl.callbacks, argsTrainer.callbacks[i]['type'])(
-                        **argsTrainer.callbacks[i]['params'])
+                    callback = callback_cls(**argsTrainer.callbacks[i]['params'])
                 else:
-                    callback = getattr(pl.callbacks, argsTrainer.callbacks[i]['type'])()
+                    callback = callback_cls()
                 callback_list.append(callback)
 
         if callback_list != []:
             argsTrainer.params['callbacks'] = callback_list
 
     else:
-        logging.info('No callbacks implemented')
+        _logger.info('No callbacks implemented')
 
     # create logger_fn objects
     if hasattr(argsTrainer, 'logger'):
@@ -134,9 +153,20 @@ def train_model(model: pl.LightningModule, dataLoader, argsTrainer) -> None:
 
     else:
         argsTrainer.params['logger'] = False
-        logging.info('No logger selected')
+        _logger.info('No logger selected')
 
     # define trainer and start training
     trainer = pl.Trainer.from_argparse_args(argparse.Namespace(**argsTrainer.params))
-    trainer.fit(model, train_dataloader=dataLoader.train_dataloader(), val_dataloaders=dataLoader.val_dataloader())
-    trainer.test(model, test_dataloaders=dataLoader.test_dataloader())
+
+    if all(getattr(dataLoader, item) is not None for item in ['x_val', 'y_val']):
+        _logger.debug('Training and validation data included in DataLoader -> Model validation is performed!')
+        trainer.fit(model, train_dataloader=dataLoader.train_dataloader(), val_dataloaders=dataLoader.val_dataloader())
+    else:
+        _logger.debug('NO validation data included in DataLoader -> Model validation is NOT performed!')
+        trainer.fit(model, train_dataloader=dataLoader.train_dataloader())
+
+    if all(getattr(dataLoader, item) is not None for item in ['x_test', 'y_test']):
+        _logger.debug('Test data included in DataLoader -> Model testing performed!')
+        trainer.test(model, test_dataloaders=dataLoader.test_dataloader())
+    else:
+        _logger.debug('NO test data included in DataLoader -> Model testing is NOT performed!')

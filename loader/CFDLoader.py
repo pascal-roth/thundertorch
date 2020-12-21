@@ -6,12 +6,12 @@
 import os
 import torch
 import pickle
-import logging
 import yaml
 import pandas as pd
 from sklearn import preprocessing
 from argparse import Namespace
 
+from stfs_pytoolbox.ML_Utils import _logger
 from stfs_pytoolbox.ML_Utils.loader import _utils
 from stfs_pytoolbox.ML_Utils.utils.option_class import OptionClass
 
@@ -59,7 +59,7 @@ class CFDLoader:
             self.lparams.y_scaler = y_min_max_scaler.fit(self.y_train)
 
         if len(kwargs) != 0:
-            logging.warning('Additional/ unexpected kwargs are given!')
+            _logger.warning('Additional/ unexpected kwargs are given!')
 
     def check_lparams(self) -> None:
         assert all(isinstance(elem, str) for elem in self.lparams.features), "Given features is not a list of strings!"
@@ -77,10 +77,10 @@ class CFDLoader:
         """
         self.lparams.data_path = path
         samples_train = _utils.read_df_from_file(path)
-        if self.x_train is not None: logging.warning('Train data overwritten')
+        if self.x_train is not None: _logger.warning('Train data overwritten')
         self.x_train = samples_train[self.lparams.features]
         self.y_train = samples_train[self.lparams.labels]
-        logging.debug(f'Train samples added from file {path}!')
+        _logger.debug(f'Train samples added from file {path}!')
 
     # validation_data #################################################################################################
     def add_val_data(self, path) -> None:
@@ -93,10 +93,10 @@ class CFDLoader:
         """
         self.lparams.val = {'path': path}
         samples_val = _utils.read_df_from_file(path)
-        if self.x_val is not None: logging.warning('Validation data overwritten')
+        if self.x_val is not None: _logger.warning('Validation data overwritten')
         self.x_val = samples_val[self.lparams.features]
         self.y_val = samples_val[self.lparams.labels]
-        logging.debug(f'Validation samples added from file {path}!')
+        _logger.debug(f'Validation samples added from file {path}!')
 
     def val_split(self, **kwargs) -> None:
         """
@@ -112,10 +112,10 @@ class CFDLoader:
 
         self.x_train, self.x_val, self.y_train, self.y_val = getattr(_utils, 'data_split_' + self.lparams.val['method']) \
             (self.x_train, self.y_train, self.lparams.val['params'])
-        logging.debug('Validation set split performed!')
+        _logger.debug('Validation set split performed!')
 
         if len(kwargs) != 0:
-            logging.warning('Additional, unexpected kwargs are given! Only expected args are: "method", "params"')
+            _logger.warning('Additional, unexpected kwargs are given! Only expected args are: "method", "params"')
 
     # test_data #######################################################################################################
     def add_test_data(self, path) -> None:
@@ -128,10 +128,10 @@ class CFDLoader:
         """
         self.lparams.test = {'path': path}
         samples_test = _utils.read_df_from_file(path)
-        if self.x_test is not None: logging.warning('Test data overwritten')
+        if self.x_test is not None: _logger.warning('Test data overwritten')
         self.x_test = samples_test[self.lparams.features]
         self.y_test = samples_test[self.lparams.labels]
-        logging.debug(f'Test samples added from file {path}!')
+        _logger.debug(f'Test samples added from file {path}!')
 
     def test_split(self, **kwargs) -> None:
         """
@@ -148,19 +148,16 @@ class CFDLoader:
         self.x_train, self.x_test, self.y_train, self.y_test = getattr(_utils,
                                                                        'data_split_' + self.lparams.test['method']) \
             (self.x_train, self.y_train, self.lparams.test['params'])
-        logging.debug('Test set split performed!')
+        _logger.debug('Test set split performed!')
 
         if len(kwargs) != 0:
-            logging.warning('Additional, unexpected kwargs are given! Only expected args are: "method", "params"')
+            _logger.warning('Additional, unexpected kwargs are given! Only expected args are: "method", "params"')
 
     # create pytorch dataloaders ######################################################################################
     def train_dataloader(self, **kwargs) -> torch.utils.data.DataLoader:
         """
         Generate PyTorch DataLoader for the training data (all kwargs of the PyTorch DataLoader can be used)
         """
-        if self.x_val is None: self.val_split()  # TODO: maybe find a better solution to add an default
-        if self.x_test is None: self.test_split()
-
         self.x_train = self.lparams.x_scaler.transform(self.x_train)
         self.y_train = self.lparams.y_scaler.transform(self.y_train)
         tensor = torch.utils.data.TensorDataset(torch.tensor(self.x_train), torch.tensor(self.y_train))
@@ -181,7 +178,6 @@ class CFDLoader:
         """
         Generate PyTorch DataLoader for the test data (all kwargs of the PyTorch DataLoader can be used)
         """
-        assert self.x_test is not None, 'Test data has to be assigned before test_dataloader is created'  # TODO: schauen ob dann default genommen werden kann, wenn man alle samples als Eintrag hat
         self.x_test = self.lparams.x_scaler.transform(self.x_test)
         self.y_test = self.lparams.y_scaler.transform(self.y_test)
         tensor = torch.utils.data.TensorDataset(torch.tensor(self.x_test), torch.tensor(self.y_test))
@@ -200,7 +196,7 @@ class CFDLoader:
         with open(filename, 'wb') as output:  # Overwrites any existing file.
             pickle.dump(self, output, pickle.HIGHEST_PROTOCOL)
         self.lparams.filename = filename
-        logging.info('TabularLoader object saved')
+        _logger.info('TabularLoader object saved')
 
     @classmethod
     def load(cls, filename: str) -> object:
@@ -257,10 +253,10 @@ class CFDLoader:
 
             if kwargs.get('batch'):
                 Loader.lparams.batch = kwargs.pop('batch')
-                logging.info('Batch size stored in file in overwritten by kwargs argument')
+                _logger.info('Batch size stored in file in overwritten by kwargs argument')
             if kwargs.get('num_workers'):
                 Loader.lparams.num_workers = kwargs.pop('num_workers')
-                logging.info('Num_workers stored in file in overwritten by kwargs argument')
+                _logger.info('Num_workers stored in file in overwritten by kwargs argument')
 
         elif 'create_DataLoader' in argsLoader:
             argsCreate = argsLoader['create_DataLoader']
@@ -358,8 +354,8 @@ class CFDLoader:
         options['create_DataLoader'].add_key('raw_data_path', dtype=str, required=True)
         options['create_DataLoader'].add_key('features', dtype=list, required=True)
         options['create_DataLoader'].add_key('labels', dtype=list, required=True)
-        options['create_DataLoader'].add_key('validation_data', dtype=dict, required=True)
-        options['create_DataLoader'].add_key('test_data', dtype=dict, required=True)
+        options['create_DataLoader'].add_key('validation_data', dtype=dict)
+        options['create_DataLoader'].add_key('test_data', dtype=dict)
         options['create_DataLoader'].add_key('save_Loader', dtype=dict)
 
         options['validation_data'] = OptionClass(
@@ -393,26 +389,21 @@ class CFDLoader:
         template = {'DataLoader': {'type': 'TabularLoader',
                                    '###INFO###': 'load_DataLoader and create_DataLoader mutually exclusive',
                                    'load_DataLoader': {'path': 'name.pkl or modelXXX.ckpt'},
-                                   'create_DataLoader': {'raw_data_path': 'samples_name.csv, .txt, .h5, .flut',
-                                                         # TODO: change extension of flut datatype
+                                   'create_DataLoader': {'raw_data_path': 'samples_name.csv, .txt, .h5, .ulf',
                                                          'features': ['feature_1', 'feature_2', '...'],
                                                          'labels': ['label_1', 'label_2', '...'],
                                                          'validation_data':
-                                                             {
-                                                                 '###INFO###': 'load_data and split_data mutually exclusive',
-                                                                 'load_data': {
-                                                                     'path': 'samples_name.csv, .txt, .h5, .flut'},
-                                                                 'split_data': {
-                                                                     'method': 'random/ percentage/ explicit',
-                                                                     'params': 'split_params'}},
+                                                             {'###INFO###': 'load_data and split_data mutually exclusive',
+                                                              'load_data': {'path': 'samples_name.csv, .txt, .h5, .ulf',
+                                                                            'sep': 'separator (default: ","'},
+                                                              'split_data': {'method': 'random/ percentage/ explicit',
+                                                                             'params': 'split_params'}},
                                                          'test_data':
-                                                             {
-                                                                 '###INFO###': 'load_data and split_data mutually exclusive',
-                                                                 'load_data': {
-                                                                     'path': 'samples_name.csv, .txt, .h5, .flut'},
-                                                                 'split_data': {
-                                                                     'method': 'random/ percentage/ explicit',
-                                                                     'params': 'split_params'}},
+                                                             {'###INFO###': 'load_data and split_data mutually exclusive',
+                                                              'load_data': {'path': 'samples_name.csv, .txt, .h5, .ulf',
+                                                                            'sep': 'separator (default: ","'},
+                                                              'split_data': {'method': 'random/ percentage/ explicit',
+                                                                             'params': 'split_params'}},
                                                          'save_Loader': {'path': 'name.pkl'}}}}
 
         for i, key in enumerate(key_list):

@@ -13,10 +13,8 @@ import yaml
 from argparse import Namespace
 
 from stfs_pytoolbox.ML_Utils.models.ModelBase import LightningModelBase
-from stfs_pytoolbox.ML_Utils.models import _losses
 from stfs_pytoolbox.ML_Utils.utils.option_class import OptionClass
-from stfs_pytoolbox.ML_Utils import metrics
-
+from stfs_pytoolbox.ML_Utils import _modules_activation, _modules_loss, _modules_lr_scheduler, _modules_optim
 
 # flexible MLP class
 class LightningFlexMLP(LightningModelBase):
@@ -118,9 +116,9 @@ class LightningFlexMLP(LightningModelBase):
         options['hparams'].add_key('n_inp', dtype=int, required=True)
         options['hparams'].add_key('n_out', dtype=int, required=True)
         options['hparams'].add_key('hidden_layer', dtype=list, required=True)
-        options['hparams'].add_key('output_activation', dtype=str, attr_of=torch.nn)
-        options['hparams'].add_key('activation', dtype=str, attr_of=torch.nn)
-        options['hparams'].add_key('loss', dtype=str, attr_of=[torch.nn, _losses])
+        options['hparams'].add_key('output_activation', dtype=str, attr_of=_modules_activation)
+        options['hparams'].add_key('activation', dtype=str, attr_of=_modules_activation)
+        options['hparams'].add_key('loss', dtype=str, attr_of=_modules_loss)
         options['hparams'].add_key('optimizer', dtype=dict)
         options['hparams'].add_key('scheduler', dtype=dict)
         options['hparams'].add_key('num_workers', dtype=int)
@@ -129,12 +127,12 @@ class LightningFlexMLP(LightningModelBase):
         options['hparams'].add_key('lr', dtype=float)
 
         options['optimizer'] = OptionClass(template=LightningFlexMLP.yaml_template(['Model', 'params', 'optimizer']))
-        options['optimizer'].add_key('type', dtype=str, attr_of=torch.optim)
+        options['optimizer'].add_key('type', dtype=str, attr_of=_modules_optim)
         options['optimizer'].add_key('params', dtype=dict, param_dict=True)
 
         options['scheduler'] = OptionClass(template=LightningFlexMLP.yaml_template(['Model', 'params', 'scheduler']))
         options['scheduler'].add_key('execute', dtype=bool)
-        options['scheduler'].add_key('type', dtype=str, attr_of=torch.optim.lr_scheduler)
+        options['scheduler'].add_key('type', dtype=str, attr_of=_modules_lr_scheduler)
         options['scheduler'].add_key('params', dtype=dict, param_dict=True)
 
         return options

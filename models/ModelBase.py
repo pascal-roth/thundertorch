@@ -4,12 +4,13 @@
 
 # import packages
 import torch
-import yaml
+import importlib
 import pytorch_lightning as pl
 from argparse import Namespace
 
-from stfs_pytoolbox.ML_Utils.models import _losses
+from stfs_pytoolbox.ML_Utils import _logger
 from stfs_pytoolbox.ML_Utils.utils.option_class import OptionClass
+from stfs_pytoolbox.ML_Utils import _modules_activation, _modules_loss, _modules_optim, _modules_lr_scheduler
 from stfs_pytoolbox.ML_Utils import metrics
 
 
@@ -99,12 +100,23 @@ class LightningModelBase(pl.LightningModule):
             self.hparams.batch = 64
 
     def get_functions(self) -> None:
-        self.activation_fn = getattr(torch.nn, self.hparams.activation)()
+        for m in _modules_activation:
+            try:
+                self.activation_fn = getattr(importlib.import_module(m), self.hparams.activation)()
+                _logger.debug(f'{self.hparams.activation} fct found in {m}')
+                break
+            except AttributeError or ModuleNotFoundError:
+                _logger.debug(f'{self.hparams.activation} fct not found in {m}')
+        assert self.activation_fn is not None, f'{self.hparams.activation} could not be found in {_modules_activation}'
 
-        if hasattr(torch.nn, self.hparams.loss):
-            self.loss_fn = getattr(torch.nn, self.hparams.loss)()
-        else:
-            self.loss_fn = getattr(_losses, self.hparams.loss)()
+        for m in _modules_loss:
+            try:
+                self.loss_fn = getattr(importlib.import_module(m), self.hparams.loss)()
+                _logger.debug(f'{self.hparams.activation} fct found in {m}')
+                break
+            except AttributeError or ModuleNotFoundError:
+                _logger.debug(f'{self.hparams.activation} fct not found in {m}')
+        assert self.loss_fn is not None, f'{self.hparams.loss} could not be found in {_modules_loss}'
 
     def forward(self, x):
         """
@@ -131,15 +143,26 @@ class LightningModelBase(pl.LightningModule):
         optimizer       - PyTorch Optimizer function
         scheduler       - PyTorch Scheduler function
         """
+        for m in _modules_optim:
+            try:
+                optimizer_cls = getattr(importlib.import_module(m), self.hparams.optimizer['type'])
+                break
+            except AttributeError or ModuleNotFoundError:
+                _logger.debug('Optimizer of type {} NOT found in {}'.format(self.hparams.optimizer['type'], m))
+
         if 'params' in self.hparams.optimizer:
-            optimizer = getattr(torch.optim, self.hparams.optimizer['type'])(self.layers.parameters(),
-                                                                             **self.hparams.optimizer['params'])
+            optimizer = optimizer_cls(self.layers.parameters(), **self.hparams.optimizer['params'])
         else:
-            optimizer = getattr(torch.optim, self.hparams.optimizer['type'])(self.layers.parameters())
+            optimizer = optimizer_cls(self.layers.parameters())
 
         if self.hparams.scheduler['execute']:
-            scheduler = getattr(torch.optim.lr_scheduler, self.hparams.scheduler['type'], 'ReduceLROnPlateau') \
-                (optimizer, **self.hparams.scheduler['params'])
+            for m in _modules_lr_scheduler:
+                try:
+                    scheduler = getattr(importlib.import_module(m), self.hparams.scheduler['type'])\
+                        (optimizer, **self.hparams.scheduler['params'])
+                    break
+                except AttributeError or ModuleNotFoundError:
+                    _logger.debug('LR Scheduler of type {} not found in {}'.format(self.hparams.scheduler['type'], m))
             return [optimizer], [scheduler]
         else:
             return optimizer
