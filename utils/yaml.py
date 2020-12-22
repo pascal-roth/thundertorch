@@ -7,7 +7,6 @@ import yaml
 import glob
 import inspect
 import os
-import pytorch_lightning as pl
 from functools import reduce
 import operator
 
@@ -230,3 +229,33 @@ def replace_keys(dictMultiModel: dict, dictSingleModel: dict) -> dict:
     dictRunModel, _ = recursion_search(document=dictMultiModel, key_list=list([]), dictModel=dictSingleModel)
 
     return dictRunModel
+
+
+def multimodel_training_yml_template(key_list: list) -> dict:
+    """
+    Template for Multi-Model Training
+    """
+
+    template = {'config': {'###INFO###': '"CPU_per_model" and "GPU_per_model" mutually exclusive',
+                           'CPU_per_model': 'int', 'GPU_per_model': 'int',
+                           'nbr_processes': 'int', 'model_run': ['Model001', 'Model002', 'model_name_3', '...']},
+                'Model001': {'Template': 'path.yaml (required!)',
+                             '###INFO###': 'After template defintion, keys of the template can be changed or new '
+                                           'keys added. The key structure has to be the same. Here an example is given',
+                             'DataLoader': {'create_DataLoader': {'raw_data_path': 'different_path.csv',
+                                                                  'features': ['feature_1', 'feature_2'],
+                                                                  'labels': ['label_1', 'label_2']}},
+                             'Model': {'create_model': {'n_inp': 2, 'n_out': 2, 'hidden_layer': [64, 64, 64]}},
+                             'Trainer': {'params': {'max_epochs': 3},
+                                         'callbacks': [{'type': 'Checkpointing', 'params': {'filepath': 'checkpoints/try'}}]}},
+                'Model002': {'Template': 'input_LightningFlexMLP_single.yaml',
+                             'DataLoader': {'create_DataLoader': {'raw_data_path': 'example_samples.csv',
+                                                                  'features': ['T_0', 'PV'], 'labels': ['T', 'yCO2']}},
+                             'Model': {'create_model': {'n_inp': 2, 'n_out': 2, 'hidden_layer': [64, 64]},
+                                       'params': {'optimizer': {'type': 'SGD', 'params': {'lr': 0.001}}}},
+                             'Trainer': {'params': {'max_epochs': 3}}}}
+
+    for i, key in enumerate(key_list):
+        template = template.get(key)
+
+    return yaml.dump(template, sort_keys=False)

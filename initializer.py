@@ -31,7 +31,7 @@ def initializer():
         file.write(f'{loader_dict}\n{model_dict}\n{trainer_dict}')
 
     # copy necessary python script
-    shutil.copy(flexNN_yaml_single.__file__, os.getcwd())
+    # shutil.copy(flexNN_yaml_single.__file__, os.getcwd())
 
 
 if __name__ == '__main__':

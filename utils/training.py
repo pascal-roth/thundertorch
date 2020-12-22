@@ -117,7 +117,8 @@ def train_model(model: pl.LightningModule, dataLoader, argsTrainer) -> None:
                 for m in _modules_callbacks:
                     try:
                         callback_cls = getattr(importlib.import_module(m), argsTrainer.callbacks[i]['type'])
-                    except ModuleNotFoundError or AttributeError:
+                        break
+                    except AttributeError:
                         _logger.debug('Callback of type {} NOT found in {}'.format(argsTrainer.callbacks[i]['type'], m))
 
                 if 'params' in argsTrainer.callbacks[i]:
@@ -170,3 +171,5 @@ def train_model(model: pl.LightningModule, dataLoader, argsTrainer) -> None:
         trainer.test(model, test_dataloaders=dataLoader.test_dataloader())
     else:
         _logger.debug('NO test data included in DataLoader -> Model testing is NOT performed!')
+
+    _logger.debug('MODEL TRAINING DONE')

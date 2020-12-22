@@ -56,7 +56,6 @@ class LightningFlexMLP(LightningModelBase):
         self.get_functions()
         self.min_val_loss = None
 
-
         # Construct MLP with a variable number of hidden layers
         self.layers = []
         self.construct_mlp(self.hparams.n_inp, self.hparams.hidden_layer, self.hparams.n_out)
@@ -66,49 +65,48 @@ class LightningFlexMLP(LightningModelBase):
 
         self.layers = torch.nn.Sequential(*self.layers)
 
-    def training_step(self, batch, batch_idx) -> dict:
-        x, y = batch
-        y_hat = self(x)
-        loss = self.loss_fn(y_hat, y)
-        log = {'train_loss': loss}
-        results = {'loss': loss, 'log': log}
-        return results
+    # def training_step(self, batch, batch_idx) -> dict:
+    #     x, y = batch
+    #     y_hat = self(x)
+    #     loss = self.loss_fn(y_hat, y)
+    #     log = {'train_loss': loss}
+    #     results = {'loss': loss, 'log': log}
+    #     return results
+    #
+    # def validation_step(self, batch, batch_idx) -> dict:
+    #     x, y = batch
+    #     y_hat = self(x)
+    #     val_loss = self.loss_fn(y_hat, y)
+    #     return {'val_loss': val_loss}
+    #
+    # def validation_epoch_end(self, outputs) -> dict:
+    #     val_loss = torch.stack([x['val_loss'] for x in outputs]).mean()
+    #     if self.current_epoch == 0: self.min_val_loss = val_loss
+    #     if val_loss < self.min_val_loss:
+    #         self.min_val_loss = val_loss
+    #     log = {'avg_val_loss': val_loss}
+    #     pbar = {'val_loss': val_loss, 'min_val_loss': self.min_val_loss}
+    #     results = {'log': log, 'val_loss': val_loss, 'progress_bar': pbar}
+    #     return results
+    #
+    # def test_step(self, batch, batch_idx) -> dict:
+    #     x, y = batch
+    #     y_hat = self(x)
+    #     loss = self.loss_fn(y_hat, y)
+    #     return {'test_loss': loss}
+    #
+    # def test_epoch_end(self, outputs) -> dict:
+    #     test_loss = torch.stack([x['test_loss'] for x in outputs]).mean()
+    #     log = {'avg_test_loss': test_loss}
+    #     results = {'log': log, 'test_loss': test_loss}
+    #     return results
 
-
-    def validation_step(self, batch, batch_idx) -> dict:
-        x, y = batch
-        y_hat = self(x)
-        val_loss = self.loss_fn(y_hat, y)
-        return {'val_loss': val_loss}
-
-    def validation_epoch_end(self, outputs) -> dict:
-        val_loss = torch.stack([x['val_loss'] for x in outputs]).mean()
-        if self.current_epoch == 0: self.min_val_loss = val_loss
-        if val_loss < self.min_val_loss:
-            self.min_val_loss = val_loss
-        log = {'avg_val_loss': val_loss}
-        pbar = {'val_loss': val_loss, 'min_val_loss': self.min_val_loss}
-        results = {'log': log, 'val_loss': val_loss, 'progress_bar': pbar}
-        return results
-
-    def test_step(self, batch, batch_idx) -> dict:
-        x, y = batch
-        y_hat = self(x)
-        loss = self.loss_fn(y_hat, y)
-        return {'test_loss': loss}
-
-    def test_epoch_end(self, outputs) -> dict:
-        test_loss = torch.stack([x['test_loss'] for x in outputs]).mean()
-        log = {'avg_test_loss': test_loss}
-        results = {'log': log, 'test_loss': test_loss}
-        return results
-
-    # def add_model_specific_args(parent_parser):
-    #     parser = argparse.ArgumentParser(parents=[parent_parser])
-    #     parser.add_argument('--features', type=list, default=['pode', 'Z', 'H', 'PV'])
-    #     parser.add_argument('--labels', type=list, default=['T'])
-    #     parser.add_argument('--n_hidden_neurons', nargs='+', type=int, default=[64, 64, 64])
-    #     return parser
+    # # def add_model_specific_args(parent_parser):
+    # #     parser = argparse.ArgumentParser(parents=[parent_parser])
+    # #     parser.add_argument('--features', type=list, default=['pode', 'Z', 'H', 'PV'])
+    # #     parser.add_argument('--labels', type=list, default=['T'])
+    # #     parser.add_argument('--n_hidden_neurons', nargs='+', type=int, default=[64, 64, 64])
+    # #     return parser
 
     @staticmethod
     def get_OptionClass():
