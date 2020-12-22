@@ -20,9 +20,9 @@ def execute_model(model, argsTrainer, dataLoader):
 
 def config(argsMulti):
     argsModels, argsConfig = get_argsModel(argsMulti)
-    nbr_process, list_gpu = get_num_processes(argsConfig, argsModels)
+    nbr_processes, list_gpu = get_num_processes(argsConfig, argsModels)
     model_dicts = get_argsDict(argsModels)
-    return nbr_process, list_gpu, model_dicts
+    return nbr_processes, list_gpu, model_dicts
 
 
 def get_argsModel(argsMulti):
@@ -50,7 +50,7 @@ def get_argsModel(argsMulti):
 
 def check_config(argsConfig: dict) -> None:
     options = {'config': OptionClass(template=multimodel_training_yml_template(['config']))}
-    options['config'].add_key('nbr_process', dtype=int)
+    options['config'].add_key('nbr_processes', dtype=int)
     options['config'].add_key('GPU_per_model', dtype=int, mutually_exclusive=['CPU_per_model'])
     options['config'].add_key('CPU_per_model', dtype=int, mutually_exclusive=['GPU_per_model'])
     options['config'].add_key('model_run', dtype=list)
@@ -86,53 +86,53 @@ def get_num_processes(argsConfig, argsModels):
         assert nbr_gpu != 0, 'GPU per process defined. but NO GPU available!'
         gpu_per_process = argsConfig.pop('GPU_per_model')
 
-        nbr_process = int((nbr_gpu - (nbr_gpu % gpu_per_process)) / gpu_per_process)
-        assert nbr_process != 0, f'Not enough GPUs! Model should be trained with {gpu_per_process} GPU(s), but' \
+        nbr_processes = int((nbr_gpu - (nbr_gpu % gpu_per_process)) / gpu_per_process)
+        assert nbr_processes != 0, f'Not enough GPUs! Model should be trained with {gpu_per_process} GPU(s), but' \
                                  f'available are only {nbr_gpu} GPU(s)'
 
-        _logger.debug(f'{nbr_process} processes can be executed with {gpu_per_process} GPU(s) per process')
+        _logger.debug(f'{nbr_processes} processes can be executed with {gpu_per_process} GPU(s) per process')
 
     elif 'CPU_per_model' in argsConfig:
         cpu_per_process = argsConfig.pop('CPU_per_model')
 
-        nbr_process = int((nbr_cpu - (nbr_cpu % cpu_per_process)) / cpu_per_process)
-        assert nbr_process != 0, f'Not enough CPUs! Model should be trained with {cpu_per_process} CPU(s), but' \
+        nbr_processes = int((nbr_cpu - (nbr_cpu % cpu_per_process)) / cpu_per_process)
+        assert nbr_processes != 0, f'Not enough CPUs! Model should be trained with {cpu_per_process} CPU(s), but' \
                                  f'available are only {nbr_cpu} CPU(s)'
 
-        _logger.debug(f'{nbr_process} processes can be executed with {cpu_per_process} CPU(s) per process')
+        _logger.debug(f'{nbr_processes} processes can be executed with {cpu_per_process} CPU(s) per process')
 
     else:
         _logger.debug('Neither "GPU_per_model" nor "CPU_per_model" defined, default setting is selected')
         if nbr_gpu != 0:
             gpu_per_process = 1
-            nbr_process = nbr_gpu
-            _logger.debug(f'{nbr_process} processes can be executed with {gpu_per_process} GPU(s) per process')
+            nbr_processes = nbr_gpu
+            _logger.debug(f'{nbr_processes} processes can be executed with {gpu_per_process} GPU(s) per process')
         else:
             cpu_per_process = 1
-            nbr_process = nbr_cpu
-            _logger.debug(f'{nbr_process} processes can be executed with {cpu_per_process} CPU(s) per process')
+            nbr_processes = nbr_cpu
+            _logger.debug(f'{nbr_processes} processes can be executed with {cpu_per_process} CPU(s) per process')
 
-    if 'nbr_process' in argsConfig:
-        _logger.debug(f'Config nbr_process {argsConfig["nbr_process"]} is compared with maximal possible number of '
-                      f'processes {nbr_process}, minimum is selected')
-        nbr_process = min(nbr_process, argsConfig['nbr_process'])
+    if 'nbr_processes' in argsConfig:
+        _logger.debug(f'Config nbr_processes {argsConfig["nbr_processes"]} is compared with maximal possible number of '
+                      f'processes {nbr_processes}, minimum is selected')
+        nbr_processes = min(nbr_processes, argsConfig['nbr_processes'])
 
-    nbr_process = min(len(argsModels), nbr_process)
+    nbr_processes = min(len(argsModels), nbr_processes)
 
     if gpu_per_process != 0 and nbr_gpu != 0:
         list_gpu = []
         gpu_available = list(range(0, nbr_gpu))
-        for i in range(nbr_process):
+        for i in range(nbr_processes):
             list_gpu.append(gpu_available[0:gpu_per_process])
             del gpu_available[0:gpu_per_process]
     else:
-        list_gpu = [0 for x in range(nbr_process)]
+        list_gpu = [0 for x in range(nbr_processes)]
 
-    return nbr_process, list_gpu
+    return nbr_processes, list_gpu
 
 
 def main(argsMulti):
-    nbr_process, list_gpu, model_dicts = config(argsMulti)
+    nbr_processes, list_gpu, model_dicts = config(argsMulti)
 
     mp_fn = mp.get_context('forkserver')
     tic1 = time.time()
@@ -144,7 +144,7 @@ def main(argsMulti):
         argsTrainer = []
         dataLoader = []
 
-        for i in range(nbr_process):
+        for i in range(nbr_processes):
             model_dicts[ii]['Trainer']['params']['gpus'] = list_gpu[i]
             model_dicts[ii]['Trainer']['params']['process_position'] = i
 
@@ -165,7 +165,7 @@ def main(argsMulti):
             if ii >= len(model_dicts):
                 break
 
-        for i in range(nbr_process):
+        for i in range(nbr_processes):
             p = mp_fn.Process(target=execute_model, args=(models[i], argsTrainer[i], dataLoader[i]))
             processes.append(p)
             p.start()
