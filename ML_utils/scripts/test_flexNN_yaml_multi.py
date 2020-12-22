@@ -25,10 +25,10 @@ def test_main(path):
         yaml_file = yaml.load(open(path / 'MultiModelInputEval.yaml'), Loader=yaml.FullLoader)
         yaml_file['config']['some_key'] = 'some_value'
         main(yaml_file)
-    with pytest.raises(AssertionError):  # CPU_per_process and GPU_per_process defined
+    with pytest.raises(AssertionError):  # CPU_per_model and GPU_per_model defined
         yaml_file = yaml.load(open(path / 'MultiModelInputEval.yaml'), Loader=yaml.FullLoader)
-        yaml_file['config']['CPU_per_process'] = 4
-        yaml_file['config']['GPU_per_process'] = 6
+        yaml_file['config']['CPU_per_model'] = 4
+        yaml_file['config']['GPU_per_model'] = 6
         main(yaml_file)
 
 
