@@ -6,10 +6,10 @@ import logging
 
 def parse_arguments() -> argparse.Namespace:
     parser = argparse.ArgumentParser()
-    parser.add_argument('-yaml_path', type=str, default='training_continue.yaml',
+    parser.add_argument('yaml_path', type=str, default='template.yaml',
                         help='Name of yaml file to construct Neural Network')
     parser.add_argument('-d', '--debug', action='store_true', default=False,
-                        help="Change logging level")
+                        help="Change logging level to debug")
     return parser.parse_args()
 
 
