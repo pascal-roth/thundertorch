@@ -113,6 +113,31 @@ def check_argsTrainer(argsTrainer: dict) -> None:
         raise KeyError('In multi GPU training, profiler cannot be active!')
 
 
+def check_args_config(argsConfig: dict) -> None:
+    """
+    Control Config arguments regarding included keys, dtypes of the keys, mutually_exclusive relations for the
+    single model yaml
+
+    Parameters
+    ----------
+    argsConfig    - Dict including the Config arguments of the single model yaml
+    """
+    options = {'config': OptionClass(template=trainer_yml_template(['Trainer']))}
+    options['Trainer'].add_key('params', dtype=dict, param_dict=True)
+    options['Trainer'].add_key('callbacks', dtype=[dict, list])
+    options['Trainer'].add_key('logger', dtype=[dict, list])
+
+    options['callbacks'] = OptionClass(template=trainer_yml_template(['Trainer', 'callbacks']))
+    options['callbacks'].add_key('type', dtype=str, required=True, attr_of=_modules_callbacks)
+    options['callbacks'].add_key('params', dtype=dict, param_dict=True)
+
+    options['logger'] = OptionClass(template=trainer_yml_template(['Trainer', 'logger']))
+    options['logger'].add_key('type', dtype=str, required=True)
+    options['logger'].add_key('params', dtype=dict, param_dict=True)
+
+    OptionClass.checker(input_dict={'Trainer': argsConfig}, option_classes=options)
+
+
 def check_yaml_structure(args_yaml: dict) -> None:
     """
     Control if yaml file consist out of DataLoader, Model and Trainer argument dicts
@@ -159,6 +184,13 @@ def trainer_yml_template(key_list: list) -> dict:
         template = template.get(key)
 
     return yaml.dump(template, sort_keys=False)
+
+
+def config_yml_template(key_list: list) -> dict:
+    """
+    Config template for single model yaml
+    """
+    pass
 
 
 def replace_keys(dictMultiModel: dict, dictSingleModel: dict) -> dict:

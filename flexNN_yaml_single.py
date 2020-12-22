@@ -15,6 +15,7 @@ def main(args_yaml):
     check_yaml_version(args_yaml)
     check_yaml_structure(args_yaml)
 
+
     argsLoader = args_yaml['DataLoader']
     argsModel = args_yaml['Model']
     argsTrainer = args_yaml['Trainer']
