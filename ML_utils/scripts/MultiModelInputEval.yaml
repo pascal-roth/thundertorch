@@ -2,9 +2,10 @@
 # Define multiple networks and train them parallel/ in sequence
 ####################################################################################################
 
-Model_run:
-  - Model001
-  - Model002
+config:
+  model_run:
+    - Model001
+    - Model002
 
 Model001:
   Template: SingleModelInputEval.yaml
