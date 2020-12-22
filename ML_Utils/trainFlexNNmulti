@@ -11,6 +11,7 @@ import torch.multiprocessing as mp
 
 from stfs_pytoolbox.ML_Utils import _logger
 from stfs_pytoolbox.ML_Utils.utils import *
+from stfs_pytoolbox.ML_Utils.utils.yaml import multimodel_training_yml_template
 
 
 def execute_model(model, argsTrainer, dataLoader):
@@ -28,14 +29,16 @@ def get_argsModel(argsMulti):
     # check if config dict in yaml
     if 'config' in argsMulti:
         argsConfig = argsMulti.pop('config')
-        _logger.debug('No Config file included in MultiModel Training yaml!')
+        check_config(argsConfig)
+        _logger.debug('Config file included and controlled')
     else:
-        argsConfig = None
+        _logger.debug('No Config file included in MultiModel Training yaml!')
+        argsConfig = []
 
     # filter for models defined in Model_Run list
-    if 'Model_run' in argsConfig:
-        model_run_list = argsConfig.pop('Model_run')
-        assert all(elem in argsMulti for elem in model_run_list), 'Model name included in "Model_run" not found!'
+    if 'model_run' in argsConfig:
+        model_run_list = argsConfig.pop('model_run')
+        assert all(elem in argsMulti for elem in model_run_list), 'Model name included in "model_run" not found!'
         argsModels = {model_key: argsMulti[model_key] for model_key in model_run_list}
         assert len(argsModels) != 0, 'No models defined in "input_MultiModelTraining.yaml"!'
     else:
@@ -43,6 +46,16 @@ def get_argsModel(argsMulti):
         _logger.debug('No Models excluded! All models selected for training!')
 
     return argsModels, argsConfig
+
+
+def check_config(argsConfig: dict) -> None:
+    options = {'config': OptionClass(template=multimodel_training_yml_template(['config']))}
+    options['config'].add_key('nbr_process', dtype=int)
+    options['config'].add_key('GPU_per_process', dtype=int, mutually_exclusive=['CPU_per_process'])
+    options['config'].add_key('CPU_per_process', dtype=int, mutually_exclusive=['GPU_per_process'])
+    options['config'].add_key('model_run', dtype=list)
+
+    OptionClass.checker(input_dict={'config': argsConfig}, option_classes=options)
 
 
 def get_argsDict(argsModels):
