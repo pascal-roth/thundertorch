@@ -51,8 +51,8 @@ def get_argsModel(argsMulti):
 def check_config(argsConfig: dict) -> None:
     options = {'config': OptionClass(template=multimodel_training_yml_template(['config']))}
     options['config'].add_key('nbr_process', dtype=int)
-    options['config'].add_key('GPU_per_process', dtype=int, mutually_exclusive=['CPU_per_process'])
-    options['config'].add_key('CPU_per_process', dtype=int, mutually_exclusive=['GPU_per_process'])
+    options['config'].add_key('GPU_per_model', dtype=int, mutually_exclusive=['CPU_per_model'])
+    options['config'].add_key('CPU_per_model', dtype=int, mutually_exclusive=['GPU_per_model'])
     options['config'].add_key('model_run', dtype=list)
 
     OptionClass.checker(input_dict={'config': argsConfig}, option_classes=options)
