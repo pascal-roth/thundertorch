@@ -7,7 +7,6 @@ import yaml
 import glob
 import inspect
 import os
-import pytorch_lightning as pl
 from functools import reduce
 import operator
 
@@ -114,6 +113,31 @@ def check_argsTrainer(argsTrainer: dict) -> None:
         raise KeyError('In multi GPU training, profiler cannot be active!')
 
 
+def check_args_config(argsConfig: dict) -> None:
+    """
+    Control Config arguments regarding included keys, dtypes of the keys, mutually_exclusive relations for the
+    single model yaml
+
+    Parameters
+    ----------
+    argsConfig    - Dict including the Config arguments of the single model yaml
+    """
+    options = {'config': OptionClass(template=trainer_yml_template(['Trainer']))}
+    options['Trainer'].add_key('params', dtype=dict, param_dict=True)
+    options['Trainer'].add_key('callbacks', dtype=[dict, list])
+    options['Trainer'].add_key('logger', dtype=[dict, list])
+
+    options['callbacks'] = OptionClass(template=trainer_yml_template(['Trainer', 'callbacks']))
+    options['callbacks'].add_key('type', dtype=str, required=True, attr_of=_modules_callbacks)
+    options['callbacks'].add_key('params', dtype=dict, param_dict=True)
+
+    options['logger'] = OptionClass(template=trainer_yml_template(['Trainer', 'logger']))
+    options['logger'].add_key('type', dtype=str, required=True)
+    options['logger'].add_key('params', dtype=dict, param_dict=True)
+
+    OptionClass.checker(input_dict={'Trainer': argsConfig}, option_classes=options)
+
+
 def check_yaml_structure(args_yaml: dict) -> None:
     """
     Control if yaml file consist out of DataLoader, Model and Trainer argument dicts
@@ -160,6 +184,13 @@ def trainer_yml_template(key_list: list) -> dict:
         template = template.get(key)
 
     return yaml.dump(template, sort_keys=False)
+
+
+def config_yml_template(key_list: list) -> dict:
+    """
+    Config template for single model yaml
+    """
+    pass
 
 
 def replace_keys(dictMultiModel: dict, dictSingleModel: dict) -> dict:
@@ -223,10 +254,48 @@ def replace_keys(dictMultiModel: dict, dictSingleModel: dict) -> dict:
                 key_list = key_list[:-2]
 
         else:
-            set_by_path(dictModel, key_list, document)
+            try:
+                set_by_path(dictModel, key_list, document)
+            except KeyError:
+                raise KeyError(f'The given key list {key_list[:-1]} towards the key [{key_list[-1]}] which should be '
+                               f'added or changed is incorrect. Keep attention that only the last key can be edited, '
+                               f'all keys prior have to be included in the template \n'
+                               f'e.g. for a key_list = ["DataLoader", "load_DataLoader", "path"] the template must '
+                               f'include the "load_DataLoader dict')
 
         return dictModel, key_list
 
     dictRunModel, _ = recursion_search(document=dictMultiModel, key_list=list([]), dictModel=dictSingleModel)
 
     return dictRunModel
+
+
+def multimodel_training_yml_template(key_list: list, template: str = 'path.yaml (required!)') -> dict:
+    """
+    Template for Multi-Model Training
+    """
+
+    template = {'config': {'###INFO###': '"CPU_per_model" and "GPU_per_model" mutually exclusive',
+                           'CPU_per_model': 'int', 'GPU_per_model': 'int',
+                           'nbr_processes': 'int', 'model_run': ['Model001', 'Model002', 'model_name_3', '...']},
+                'Model001': {'Template': template,
+                             '###INFO###': 'After template defintion, keys of the template can be changed or new '
+                                           'keys added. The key structure has to be the same. Here an example is given',
+                             'DataLoader': {'create_DataLoader': {'raw_data_path': 'different_path.csv',
+                                                                  'features': ['feature_1', 'feature_2'],
+                                                                  'labels': ['label_1', 'label_2']}},
+                             'Model': {'create_model': {'n_inp': 'int', 'n_out': 'int', 'hidden_layer': ['int', 'int']}},
+                             'Trainer': {'params': {'max_epochs': 'int'},
+                                         'callbacks': [{'type': 'Checkpointing', 'params': {'filepath': 'path'}}]}},
+                'Model002': {'Template': template,
+                             'DataLoader': {'create_DataLoader': {'raw_data_path': 'different_path.csv',
+                                                                  'features': ['feature_1', 'feature_2'],
+                                                                  'labels': ['label_1', 'label_2']}},
+                             'Model': {'create_model': {'n_inp': 'int', 'n_out': 'int', 'hidden_layer': ['int', 'int']},
+                                       'params': {'optimizer': {'type': 'SGD', 'params': {'lr': 0.001}}}},
+                             'Trainer': {'params': {'max_epochs': 'int'}}}}
+
+    for i, key in enumerate(key_list):
+        template = template.get(key)
+
+    return yaml.dump(template, sort_keys=False)

@@ -135,16 +135,20 @@ class OptionClass:
                               nested input_dict
         """
 
-        def recursion(input_dict: dict, param_dicts) -> None:
+        def recursion(input_dict: dict, param_dicts: dict, level: int) -> None:
             """
             Recursive function to call the corresponding OptionClass object for every dict in nested structure
             """
             for key, value in input_dict.items():
-                if isinstance(value, dict) and key not in param_dicts:
-                    param_dicts = option_classes[key].check_dict(value, input_key=key)
-                    recursion(input_dict=value, param_dicts=param_dicts)
+                if isinstance(value, dict) and key not in param_dicts[f'{level}']:
+                    level += 1
+                    param_dicts[f'{level}'] = option_classes[key].check_dict(value, input_key=key)
+                    recursion(input_dict=value, param_dicts=param_dicts, level=level)
+                    level -= 1
                 elif isinstance(value, list) and all(isinstance(elem, dict) for elem in value):
                     for list_dict in value:
-                        param_dicts = option_classes[key].check_dict(list_dict, input_key=key)
+                        level += 1
+                        param_dicts[f'{level}'] = option_classes[key].check_dict(list_dict, input_key=key)
+                        level -= 1
 
-        recursion(input_dict=input_dict, param_dicts=[])
+        recursion(input_dict=input_dict, param_dicts={'0': ''}, level=0)

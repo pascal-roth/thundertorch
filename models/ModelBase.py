@@ -170,16 +170,24 @@ class LightningModelBase(pl.LightningModule):
     def training_step(self, batch, batch_idx) -> dict:
         x, y = batch
         y_hat = self(x)
-        loss = self.loss_fn(y_hat, y.long())
+        try:
+            loss = self.loss_fn(y_hat, y)
+        except RuntimeError:
+            loss = self.loss_fn(y_hat, y.long())
         log = {'train_loss': loss}
-        results = {'loss': loss, 'log': log}
+        hiddens = {'inputs': x.detach(), 'preds': y_hat.detach(), 'targets': y.detach()}
+        results = {'loss': loss, 'log': log, 'hiddens': hiddens}
         return results
 
     def validation_step(self, batch, batch_idx) -> dict:
         x, y = batch
         y_hat = self(x)
-        val_loss = self.loss_fn(y_hat, y.long())
-        return {'val_loss': val_loss}
+        try:
+            loss = self.loss_fn(y_hat, y)
+        except RuntimeError:
+            loss = self.loss_fn(y_hat, y.long())
+        hiddens = {'inputs': x.detach(), 'preds': y_hat.detach(), 'targets': y.detach()}
+        return {'val_loss': loss, 'hiddens': hiddens}
 
     def validation_epoch_end(self, outputs) -> dict:
         val_loss = torch.stack([x['val_loss'] for x in outputs]).mean()
@@ -194,9 +202,12 @@ class LightningModelBase(pl.LightningModule):
     def test_step(self, batch, batch_idx) -> dict:
         x, y = batch
         y_hat = self(x)
-        loss = self.loss_fn(y_hat, y.long())
-        # self.explained_variance_test(y_hat, y)
-        return {'test_loss': loss}
+        try:
+            loss = self.loss_fn(y_hat, y)
+        except RuntimeError:
+            loss = self.loss_fn(y_hat, y.long())
+        hiddens = {'inputs': x.detach(), 'preds': y_hat.detach(), 'targets': y.detach()}
+        return {'test_loss': loss, 'hiddens': hiddens}
 
     def test_epoch_end(self, outputs) -> dict:
         test_loss = torch.stack([x['test_loss'] for x in outputs]).mean()

@@ -5,6 +5,7 @@
 # import packages
 import argparse
 import importlib
+import os
 import pytorch_lightning as pl
 
 from stfs_pytoolbox.ML_Utils import _logger
@@ -37,8 +38,26 @@ def get_model(argsModel) -> pl.LightningModule:
             _logger.debug(f'Model Class of type {argsModel.type} has NOT been loaded from {m}')
 
     if hasattr(argsModel, 'load_model'):
-        model = model_cls.load_from_checkpoint(argsModel.load_model['path'])
-        _logger.debug(f'Model successfully loaded')
+        if os.path.isfile(argsModel.load_model['path']):
+            model = model_cls.load_from_checkpoint(argsModel.load_model['path'])
+            _logger.debug(f'Model successfully loaded from given file')
+
+        elif os.path.isdir(argsModel.load_model['path']):
+            checkpoints = []
+
+            for file in os.listdir(argsModel.load_model['path']):
+                if file.endswith(".ckpt"):
+                    checkpoints.append(os.path.join(argsModel.load_model['path'], file))
+
+            assert len(checkpoints) == 1, f'Either no or multiple checkpoint files are included in the given ' \
+                                          f'directory: {argsModel.load_model["path"]}. Specify intended ckpt!'
+
+            model = model_cls.load_from_checkpoint(checkpoints[0])
+            _logger.debug(f'Model successfully loaded from given directory')
+            
+        else:
+            raise AttributeError(f'Entered path {argsModel.load_model["path"]} does not exists!')
+
     elif hasattr(argsModel, 'create_model'):
         model = model_cls(argparse.Namespace(**argsModel.create_model))
         _logger.debug(f'Model successfully created')
@@ -117,7 +136,8 @@ def train_model(model: pl.LightningModule, dataLoader, argsTrainer) -> None:
                 for m in _modules_callbacks:
                     try:
                         callback_cls = getattr(importlib.import_module(m), argsTrainer.callbacks[i]['type'])
-                    except ModuleNotFoundError or AttributeError:
+                        break
+                    except AttributeError:
                         _logger.debug('Callback of type {} NOT found in {}'.format(argsTrainer.callbacks[i]['type'], m))
 
                 if 'params' in argsTrainer.callbacks[i]:
@@ -170,3 +190,5 @@ def train_model(model: pl.LightningModule, dataLoader, argsTrainer) -> None:
         trainer.test(model, test_dataloaders=dataLoader.test_dataloader())
     else:
         _logger.debug('NO test data included in DataLoader -> Model testing is NOT performed!')
+
+    _logger.debug('MODEL TRAINING DONE')
