@@ -15,6 +15,10 @@ def main(args_yaml):
     check_yaml_version(args_yaml)
     check_yaml_structure(args_yaml)
 
+    if 'config' in args_yaml:
+        check_argsConfig(args_yaml['config'])
+        train_config(args_yaml['config'])
+
     argsLoader = args_yaml['DataLoader']
     argsModel = args_yaml['Model']
     argsTrainer = args_yaml['Trainer']
