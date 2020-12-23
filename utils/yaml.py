@@ -109,7 +109,7 @@ def check_argsTrainer(argsTrainer: dict) -> None:
 
     OptionClass.checker(input_dict={'Trainer': argsTrainer}, option_classes=options)
 
-    if all(elem in argsTrainer['params'] for elem in ['gpus', 'profiler']) and argsTrainer['params']['gpus'] != 0 and \
+    if all(elem in argsTrainer['params'] for elem in ['gpus', 'profiler']) and argsTrainer['params']['gpus'] > 1 and \
             argsTrainer['params']['profiler'] is True:
         raise KeyError('In multi GPU training, profiler cannot be active!')
 
