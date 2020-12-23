@@ -7,11 +7,34 @@ import argparse
 import importlib
 import os
 import pytorch_lightning as pl
+import torch
+import numpy as np
 
 from stfs_pytoolbox.ML_Utils import _logger
 from stfs_pytoolbox.ML_Utils import logger     # Logger that are defined in __all__ in the __init__ file
 from stfs_pytoolbox.ML_Utils import callbacks  # Callbacks that are defined in __all__ in the __init__ file
-from stfs_pytoolbox.ML_Utils import _modules_models, _modules_loader, _modules_callbacks
+from stfs_pytoolbox.ML_Utils import _modules_models, _modules_loader, _modules_callbacks, _modules_loss, \
+    _modules_optim, _modules_activation, _modules_lr_scheduler
+
+
+def train_config(argsConfig: dict) -> None:
+    # add source path for modules defined in __init__
+    if 'source_files' in argsConfig:
+        # source_path = os.path.join(os.getcwd(), argsConfig['source_files'] + '.py')
+        source_path = argsConfig['source_files']
+        _modules_models.append(source_path)
+        _modules_callbacks.append(source_path)
+        _modules_optim.append(source_path)
+        _modules_loss.append(source_path)
+        _modules_activation.append(source_path)
+        _modules_lr_scheduler.append(source_path)
+        _modules_loader.append(source_path)
+
+    # check for reproducibility https://pytorch.org/docs/stable/notes/randomness.html
+    if 'reproducibility' in argsConfig and argsConfig['reproducibility'] is True:
+        torch.manual_seed(0)
+        np.random.seed(0)
+        # torch.backends.cudnn.benchmark = False   # can decrease performance!!!
 
 
 def get_model(argsModel) -> pl.LightningModule:
@@ -54,7 +77,7 @@ def get_model(argsModel) -> pl.LightningModule:
 
             model = model_cls.load_from_checkpoint(checkpoints[0])
             _logger.debug(f'Model successfully loaded from given directory')
-            
+
         else:
             raise AttributeError(f'Entered path {argsModel.load_model["path"]} does not exists!')
 

@@ -9,7 +9,7 @@ import inspect
 import os
 from functools import reduce
 import operator
-
+import torch
 from stfs_pytoolbox.ML_Utils import _logger
 from stfs_pytoolbox.ML_Utils import models  # Models that are defined in __all__ in the __init__ file
 from stfs_pytoolbox.ML_Utils import loader  # Loader that are defined in __all__ in the __init__ file
@@ -30,6 +30,7 @@ def check_yaml_version(args_yaml: dict) -> None:  # TODO: assert error if yaml f
     pass
 
 
+# argument checking ###################################################################################################
 def check_args(argsModel: dict, argsLoader: dict, argsTrainer: dict) -> None:
     # transform to namespace objects
     check_argsModel(argsModel)
@@ -113,7 +114,7 @@ def check_argsTrainer(argsTrainer: dict) -> None:
         raise KeyError('In multi GPU training, profiler cannot be active!')
 
 
-def check_args_config(argsConfig: dict) -> None:
+def check_argsConfig_single(argsConfig: dict) -> None:
     """
     Control Config arguments regarding included keys, dtypes of the keys, mutually_exclusive relations for the
     single model yaml
@@ -122,22 +123,32 @@ def check_args_config(argsConfig: dict) -> None:
     ----------
     argsConfig    - Dict including the Config arguments of the single model yaml
     """
-    options = {'config': OptionClass(template=trainer_yml_template(['Trainer']))}
-    options['Trainer'].add_key('params', dtype=dict, param_dict=True)
-    options['Trainer'].add_key('callbacks', dtype=[dict, list])
-    options['Trainer'].add_key('logger', dtype=[dict, list])
+    options = {'config': OptionClass(template=config_yml_template([]))}
+    options['config'].add_key('source_files', dtype=str)
+    options['config'].add_key('reproducibility', dtype=bool)
 
-    options['callbacks'] = OptionClass(template=trainer_yml_template(['Trainer', 'callbacks']))
-    options['callbacks'].add_key('type', dtype=str, required=True, attr_of=_modules_callbacks)
-    options['callbacks'].add_key('params', dtype=dict, param_dict=True)
-
-    options['logger'] = OptionClass(template=trainer_yml_template(['Trainer', 'logger']))
-    options['logger'].add_key('type', dtype=str, required=True)
-    options['logger'].add_key('params', dtype=dict, param_dict=True)
-
-    OptionClass.checker(input_dict={'Trainer': argsConfig}, option_classes=options)
+    OptionClass.checker(input_dict={'config': argsConfig}, option_classes=options)
 
 
+def check_argsConfig_multi(argsConfig: dict) -> None:
+    """
+    Control Config arguments regarding included keys, dtypes of the keys, mutually_exclusive relations for the
+    multi model yaml
+
+    Parameters
+    ----------
+    argsConfig    - Dict including the Config arguments of the multi model yaml
+    """
+    options = {'config': OptionClass(template=multimodel_training_yml_template(['config']))}
+    options['config'].add_key('nbr_processes', dtype=int)
+    options['config'].add_key('GPU_per_model', dtype=int, mutually_exclusive=['CPU_per_model'])
+    options['config'].add_key('CPU_per_model', dtype=int, mutually_exclusive=['GPU_per_model'])
+    options['config'].add_key('model_run', dtype=list)
+
+    OptionClass.checker(input_dict={'config': argsConfig}, option_classes=options)
+
+
+# structure checking ###################################################################################################
 def check_yaml_structure(args_yaml: dict) -> None:
     """
     Control if yaml file consist out of DataLoader, Model and Trainer argument dicts
@@ -164,6 +175,7 @@ def check_yaml_structure(args_yaml: dict) -> None:
         format(trainer_yml_template([]))
 
 
+# yaml template for trainer and config arguments, as well as the MultiModel Training ##################################
 def trainer_yml_template(key_list: list) -> dict:
     """
     Trainer yaml template
@@ -190,9 +202,165 @@ def config_yml_template(key_list: list) -> dict:
     """
     Config template for single model yaml
     """
-    pass
+    template = {'config': {'source_files': 'individual module (individual function, model, loader, ... has to be '
+                                           'mentioned in __all__ in the __init__ of the module, so that it can be '
+                                           'loaded)',
+                           'reproducibility': 'True'}}
+
+    for i, key in enumerate(key_list):
+        template = template.get(key)
+
+    return yaml.dump(template, sort_keys=False)
 
 
+def multimodel_training_yml_template(key_list: list, template: str = 'path.yaml (required!)') -> dict:
+    """
+    Template for Multi-Model Training
+    """
+
+    template = {'config': {'###INFO###': '"CPU_per_model" and "GPU_per_model" mutually exclusive',
+                           'CPU_per_model': 'int', 'GPU_per_model': 'int',
+                           'nbr_processes': 'int', 'model_run': ['Model001', 'Model002', 'model_name_3', '...']},
+                'Model001': {'Template': template,
+                             '###INFO###': 'After template defintion, keys of the template can be changed or new '
+                                           'keys added. The key structure has to be the same. Here an example is given',
+                             'DataLoader': {'create_DataLoader': {'raw_data_path': 'different_path.csv',
+                                                                  'features': ['feature_1', 'feature_2'],
+                                                                  'labels': ['label_1', 'label_2']}},
+                             'Model': {'create_model': {'n_inp': 'int', 'n_out': 'int', 'hidden_layer': ['int', 'int']}},
+                             'Trainer': {'params': {'max_epochs': 'int'},
+                                         'callbacks': [{'type': 'Checkpointing', 'params': {'filepath': 'path'}}]}},
+                'Model002': {'Template': template,
+                             'DataLoader': {'create_DataLoader': {'raw_data_path': 'different_path.csv',
+                                                                  'features': ['feature_1', 'feature_2'],
+                                                                  'labels': ['label_1', 'label_2']}},
+                             'Model': {'create_model': {'n_inp': 'int', 'n_out': 'int', 'hidden_layer': ['int', 'int']},
+                                       'params': {'optimizer': {'type': 'SGD', 'params': {'lr': 0.001}}}},
+                             'Trainer': {'params': {'max_epochs': 'int'}}}}
+
+    for i, key in enumerate(key_list):
+        template = template.get(key)
+
+    return yaml.dump(template, sort_keys=False)
+
+
+# configure MultiModel Training #######################################################################################
+def config_multi(argsMulti: dict) -> tuple:
+    """
+    configure MultiModel Training
+    """
+    argsModels, argsConfig = get_argsModel(argsMulti)
+    nbr_processes, list_gpu = get_num_processes(argsConfig, argsModels)
+    model_dicts = get_argsDict(argsModels)
+    return nbr_processes, list_gpu, model_dicts
+
+
+def get_argsModel(argsMulti):
+    """
+    Select the defined models which should be trained
+    """
+    # check if config dict in yaml
+    if 'config' in argsMulti:
+        argsConfig = argsMulti.pop('config')
+        check_argsConfig_multi(argsConfig)
+        _logger.debug('Config file included and controlled')
+    else:
+        _logger.debug('No Config file included in MultiModel Training yaml!')
+        argsConfig = []
+
+    # filter for models defined in Model_Run list
+    if 'model_run' in argsConfig:
+        model_run_list = argsConfig.pop('model_run')
+        assert all(elem in argsMulti for elem in model_run_list), 'Model name included in "model_run" not found!'
+        argsModels = {model_key: argsMulti[model_key] for model_key in model_run_list}
+        assert len(argsModels) != 0, 'No models defined in "input_MultiModelTraining.yaml"!'
+    else:
+        argsModels = argsMulti
+        _logger.debug('No Models excluded! All models selected for training!')
+
+    return argsModels, argsConfig
+
+
+def get_argsDict(argsModels):
+    """
+    Get the defined keys in the MultiModel yaml and compare it to the template. Final keys are given back for training
+    """
+    model_list = list(argsModels)
+    model_dicts = []
+    for ModelName in model_list:
+        argsModel = argsModels[ModelName]
+
+        assert 'Template' in argsModel, 'Definition of a Template necessary to change model keys!'
+        yamlTemplate_location = argsModel.pop('Template')
+
+        with open(yamlTemplate_location) as yaml_file:
+            yamlTemplate = yaml.load(yaml_file, Loader=yaml.FullLoader)
+            yamlModelRun = replace_keys(argsModel, yamlTemplate)
+
+        model_dicts.append(yamlModelRun)
+
+    return model_dicts
+
+
+def get_num_processes(argsConfig: dict, argsModels: dict) -> tuple:
+    """
+    Identify available resources and determine the number of processes which are executed simultaneously
+    """
+    # get nbr of parallel processes for multiprocessing
+    nbr_cpu = os.cpu_count()  # nbr of available CPUs
+    nbr_gpu = torch.cuda.device_count()  # nbr of available GPUs
+    gpu_per_process = 0
+
+    if 'GPU_per_model' in argsConfig:
+        assert nbr_gpu != 0, 'GPU per process defined. but NO GPU available!'
+        gpu_per_process = argsConfig.pop('GPU_per_model')
+
+        nbr_processes = int((nbr_gpu - (nbr_gpu % gpu_per_process)) / gpu_per_process)
+        assert nbr_processes != 0, f'Not enough GPUs! Model should be trained with {gpu_per_process} GPU(s), but' \
+                                 f'available are only {nbr_gpu} GPU(s)'
+
+        _logger.debug(f'{nbr_processes} processes can be executed with {gpu_per_process} GPU(s) per process')
+
+    elif 'CPU_per_model' in argsConfig:
+        cpu_per_process = argsConfig.pop('CPU_per_model')
+
+        nbr_processes = int((nbr_cpu - (nbr_cpu % cpu_per_process)) / cpu_per_process)
+        assert nbr_processes != 0, f'Not enough CPUs! Model should be trained with {cpu_per_process} CPU(s), but' \
+                                 f'available are only {nbr_cpu} CPU(s)'
+
+        _logger.debug(f'{nbr_processes} processes can be executed with {cpu_per_process} CPU(s) per process')
+
+    else:
+        _logger.debug('Neither "GPU_per_model" nor "CPU_per_model" defined, default setting is selected')
+        if nbr_gpu != 0:
+            gpu_per_process = 1
+            nbr_processes = nbr_gpu
+            _logger.debug(f'{nbr_processes} processes can be executed with {gpu_per_process} GPU(s) per process')
+        else:
+            cpu_per_process = 1
+            nbr_processes = nbr_cpu
+            _logger.debug(f'{nbr_processes} processes can be executed with {cpu_per_process} CPU(s) per process')
+
+    if 'nbr_processes' in argsConfig:
+        _logger.debug(f'Config nbr_processes {argsConfig["nbr_processes"]} is compared with maximal possible number of '
+                      f'processes {nbr_processes}, minimum is selected')
+        nbr_processes = min(nbr_processes, argsConfig['nbr_processes'])
+
+    nbr_processes = min(len(argsModels), nbr_processes)
+
+    if gpu_per_process != 0 and nbr_gpu != 0:
+        list_gpu = []
+        gpu_available = list(range(0, nbr_gpu))
+        for i in range(nbr_processes):
+            list_gpu.append(gpu_available[0:gpu_per_process])
+            del gpu_available[0:gpu_per_process]
+    else:
+        list_gpu = [0 for x in range(nbr_processes)]
+
+    return nbr_processes, list_gpu
+
+
+# function used in MultiModel Training to replace keys in the template  ###############################################
 def replace_keys(dictMultiModel: dict, dictSingleModel: dict) -> dict:
     """
     Take keys given in the definition of a Model in the MultiModel file and either add them to the template SingleModel
@@ -269,33 +437,3 @@ def replace_keys(dictMultiModel: dict, dictSingleModel: dict) -> dict:
 
     return dictRunModel
 
-
-def multimodel_training_yml_template(key_list: list, template: str = 'path.yaml (required!)') -> dict:
-    """
-    Template for Multi-Model Training
-    """
-
-    template = {'config': {'###INFO###': '"CPU_per_model" and "GPU_per_model" mutually exclusive',
-                           'CPU_per_model': 'int', 'GPU_per_model': 'int',
-                           'nbr_processes': 'int', 'model_run': ['Model001', 'Model002', 'model_name_3', '...']},
-                'Model001': {'Template': template,
-                             '###INFO###': 'After template defintion, keys of the template can be changed or new '
-                                           'keys added. The key structure has to be the same. Here an example is given',
-                             'DataLoader': {'create_DataLoader': {'raw_data_path': 'different_path.csv',
-                                                                  'features': ['feature_1', 'feature_2'],
-                                                                  'labels': ['label_1', 'label_2']}},
-                             'Model': {'create_model': {'n_inp': 'int', 'n_out': 'int', 'hidden_layer': ['int', 'int']}},
-                             'Trainer': {'params': {'max_epochs': 'int'},
-                                         'callbacks': [{'type': 'Checkpointing', 'params': {'filepath': 'path'}}]}},
-                'Model002': {'Template': template,
-                             'DataLoader': {'create_DataLoader': {'raw_data_path': 'different_path.csv',
-                                                                  'features': ['feature_1', 'feature_2'],
-                                                                  'labels': ['label_1', 'label_2']}},
-                             'Model': {'create_model': {'n_inp': 'int', 'n_out': 'int', 'hidden_layer': ['int', 'int']},
-                                       'params': {'optimizer': {'type': 'SGD', 'params': {'lr': 0.001}}}},
-                             'Trainer': {'params': {'max_epochs': 'int'}}}}
-
-    for i, key in enumerate(key_list):
-        template = template.get(key)
-
-    return yaml.dump(template, sort_keys=False)
