@@ -206,12 +206,37 @@ def train_model(model: pl.LightningModule, dataLoader, argsTrainer) -> None:
         trainer.fit(model, train_dataloader=dataLoader.train_dataloader(), val_dataloaders=dataLoader.val_dataloader())
     else:
         _logger.debug('NO validation data included in DataLoader -> Model validation is NOT performed!')
-        trainer.fit(model, train_dataloader=dataLoader.train_dataloader())
+
+        x_empty_size = list(dataLoader.x_train.shape)
+        x_empty_size[0] = 1
+        y_empty_size = list(dataLoader.y_train.shape)
+        y_empty_size[0] = 1
+        val_dataloader = torch.utils.data.DataLoader(torch.utils.data.TensorDataset(torch.empty(x_empty_size), torch.empty(y_empty_size)))
+
+        # def validation_pass(self, batch, batch_idx):
+        #     pass
+        #
+        # def validation_epoch_pass(self, outputs):
+        #     pass
+        #
+        # from stfs_pytoolbox.ML_Utils.models import LightningFlexMLP
+        # model.validation_step = validation_pass.__get__(model, LightningFlexMLP)
+        # model.validation_epoch_end = validation_epoch_pass.__get__(model, LightningFlexMLP)
+
+        trainer.fit(model, train_dataloader=dataLoader.train_dataloader(), val_dataloaders=val_dataloader)
 
     if all(getattr(dataLoader, item) is not None for item in ['x_test', 'y_test']):
         _logger.debug('Test data included in DataLoader -> Model testing performed!')
         trainer.test(model, test_dataloaders=dataLoader.test_dataloader())
     else:
         _logger.debug('NO test data included in DataLoader -> Model testing is NOT performed!')
+
+        x_empty_size = list(dataLoader.x_train.shape)
+        x_empty_size[0] = 1
+        y_empty_size = list(dataLoader.y_train.shape)
+        y_empty_size[0] = 1
+        test_dataloader = torch.utils.data.DataLoader(torch.utils.data.TensorDataset(torch.empty(x_empty_size), torch.empty(y_empty_size)))
+
+        trainer.test(model, test_dataloaders=test_dataloader)
 
     _logger.debug('MODEL TRAINING DONE')
