@@ -1,0 +1,68 @@
+import pandas as pd
+import stfs_pytoolbox.ML_Utils.models
+from stfs_pytoolbox.ML_Utils.models import *
+import numpy as np
+
+import argparse
+import os
+import sys
+
+
+def parseArguments():
+    parser = argparse.ArgumentParser("This script assembles multiple model created by the stfs_pytoolbox.ML_Util "
+                                     "package into a single torch script model which can be used for inference in"
+                                     " in C++ codes")
+
+    # Add mutually_exclusive_group to either load a FlexMLP model or create on based on input
+    parser.add_argument('checkpoints', nargs='+',
+                        help='Checkpoint files (.ckpt) that will be assembled into one model')
+    parser.add_argument('--type', '-t', dest='type', required=False, default='LightningFlexMLP',
+                        help='Type of model defined in ML_Utils to be loaded, default: LightningFlexMLP')
+    parser.add_argument('--output', '-o', dest='output', required=False, default='AssemblyModel.pt',
+                        help='file to which assembled model is saved in torch script format')
+    parser.add_argument('--onnx', dest='onnx', required=False,
+                        help='Save model to onnx format. (default: AssemblyModel.onnx')
+    parser.add_argument('--scale-flag', '-s', action="store_true", default=False, dest='scale',
+                        help='enables limit_scale flag for Assembly model. It bounds model inputs to 0 and 1')
+
+    return parser.parse_args()
+
+
+def main():
+    args = parseArguments()
+
+    # get model class, default: LightningFlexMLP
+    model_class = getattr(stfs_pytoolbox.ML_Utils.models, args.type)
+
+    # create list to save scalar information
+    ymin = []
+    ymax = []
+    models = []
+
+    for file in args.checkpoints:
+
+        model = model_class.load_from_checkpoint(file)
+        ymin.append(model.hparams.lparams.y_scaler.data_min_)
+        ymax.append(model.hparams.lparams.y_scaler.data_max_)
+        models.append(model.eval())
+
+    # feature scaler is only required once and can be taken from the last loaded model
+    xmin = model.hparams.lparams.x_scaler.data_min_
+    xmax = model.hparams.lparams.x_scaler.data_max_
+
+    # Converting list into numpy ndarrays
+    ymin = np.asarray(ymin)
+    ymax = np.asarray(ymax)
+
+    if args.scale:
+        limit = False
+
+    assemblyModel = AssemblyModel(models, xmin, xmax, ymin, ymax, limit_scale=args.scale)
+    assemblyModel.toTorchScript(args.output)
+
+    if args.onnx:
+        assemblyModel.to_onnx(args.onnx)
+
+
+if __name__ == "__main__":
+    main()
