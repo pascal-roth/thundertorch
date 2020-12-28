@@ -30,15 +30,15 @@ def main(argsMulti):
         dataLoader = []
 
         for i in range(nbr_processes):
-            model_dicts[ii]['Trainer']['params']['gpus'] = list_gpu[i]
-            model_dicts[ii]['Trainer']['params']['process_position'] = i
+            model_dicts[ii]['trainer']['params']['gpus'] = list_gpu[i]
+            model_dicts[ii]['trainer']['params']['process_position'] = i
 
             check_yaml_version(model_dicts[ii])
             check_yaml_structure(model_dicts[ii])
 
-            argsLoader = model_dicts[ii]['DataLoader']
-            argsModel = model_dicts[ii]['Model']
-            argsTrainer.append(model_dicts[ii]['Trainer'])
+            argsLoader = model_dicts[ii]['dataloader']
+            argsModel = model_dicts[ii]['model']
+            argsTrainer.append(model_dicts[ii]['trainer'])
 
             if 'config' in model_dicts[ii]:
                 argsConfig.append(model_dicts[ii]['config'])
