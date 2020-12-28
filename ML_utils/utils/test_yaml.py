@@ -9,6 +9,7 @@ import pytest
 from stfs_pytoolbox.ML_Utils.utils.yaml import *
 from stfs_pytoolbox.ML_Utils.models import LightningModelTemplate
 from stfs_pytoolbox.ML_Utils.loader import DataLoaderTemplate
+from stfs_pytoolbox.ML_Utils.utils import parse_yaml
 
 @pytest.fixture(scope='module')
 def path():
@@ -18,16 +19,16 @@ def path():
 
 def test_yaml_structure():
     with pytest.raises(AssertionError):
-        general_structure = {'DataLoader': 'params', 'Model': 'params', 'Trainer': 'params'}
-        _ = general_structure.pop('DataLoader')
+        general_structure = {'dataloader': 'params', 'model': 'params', 'trainer': 'params'}
+        _ = general_structure.pop('dataloader')
         check_yaml_structure(general_structure)
     with pytest.raises(AssertionError):
-        general_structure = {'DataLoader': 'params', 'Model': 'params', 'Trainer': 'params'}
-        _ = general_structure.pop('Model')
+        general_structure = {'dataloader': 'params', 'model': 'params', 'trainer': 'params'}
+        _ = general_structure.pop('model')
         check_yaml_structure(general_structure)
     with pytest.raises(AssertionError):
-        general_structure = {'DataLoader': 'params', 'Model': 'params', 'Trainer': 'params'}
-        _ = general_structure.pop('Trainer')
+        general_structure = {'dataloader': 'params', 'model': 'params', 'trainer': 'params'}
+        _ = general_structure.pop('trainer')
         check_yaml_structure(general_structure)
 
 
@@ -58,21 +59,24 @@ def test_check_argsModel():
 def test_check_argsLoader():
     yamlTemplate = DataLoaderTemplate.yaml_template(key_list=['DataLoader'])
     argsLoader = yaml.load(yamlTemplate, Loader=yaml.FullLoader)
-    _ = argsLoader.pop('load_DataLoader')
-    _ = argsLoader.pop('###INFO###')
+    argsLoader = lower_keys(argsLoader)
+    _ = argsLoader.pop('load_dataloader')
+    _ = argsLoader.pop('###info###')
     check_argsLoader(argsLoader)
 
     with pytest.raises(AssertionError):
         argsLoader = yaml.load(yamlTemplate, Loader=yaml.FullLoader)
+        argsLoader = lower_keys(argsLoader)
         _ = argsLoader.pop('type')
-        _ = argsLoader.pop('load_DataLoader')
-        _ = argsLoader.pop('###INFO###')
+        _ = argsLoader.pop('load_dataloader')
+        _ = argsLoader.pop('###info###')
         check_argsLoader(argsLoader)
     with pytest.raises(AssertionError):
         argsLoader = yaml.load(yamlTemplate, Loader=yaml.FullLoader)
+        argsLoader = lower_keys(argsLoader)
         argsLoader['type'] = 'some other fkt'
-        _ = argsLoader.pop('load_DataLoader')
-        _ = argsLoader.pop('###INFO###')
+        _ = argsLoader.pop('load_dataloader')
+        _ = argsLoader.pop('###info###')
         check_argsLoader(argsLoader)
 
 
@@ -93,17 +97,17 @@ def test_check_argsTrainer():
 
 
 def test_replace_keys(path):
-    yaml_file = yaml.load(open(path / 'scripts/MultiModelInputEval.yaml'), Loader=yaml.FullLoader)
-    yamlTemplate = yaml.load(open(path / 'scripts/SingleModelInputEval.yaml'), Loader=yaml.FullLoader)
-    yaml_file = yaml_file.pop('Model001')
-    _ = yaml_file.pop('Template')
-    yaml_file['DataLoader']['create_DataLoader']['features'] = ['T_0', 'PV']
+    yaml_file = parse_yaml(path / 'scripts/MultiModelInputEval.yaml')
+    yamlTemplate = parse_yaml(path / 'scripts/SingleModelInputEval.yaml')
+    yaml_file = yaml_file.pop('model001')
+    _ = yaml_file.pop('template')
+    yaml_file['dataloader']['create_dataloader']['features'] = ['T_0', 'PV']
     yaml_file = replace_keys(yaml_file, yamlTemplate)
-    assert yaml_file['DataLoader']['create_DataLoader']['features'] == ['T_0', 'PV'], 'Replacement of keys fails'
+    assert yaml_file['dataloader']['create_dataloader']['features'] == ['T_0', 'PV'], 'Replacement of keys fails'
 
     with pytest.raises(KeyError):  # error in the key_path to the highest level key
-        yaml_file = yaml.load(open(path / 'scripts/MultiModelInputEval.yaml'), Loader=yaml.FullLoader)
-        yaml_file = yaml_file.pop('Model001')
-        _ = yaml_file.pop('Template')
-        yaml_file['Model']['create_modle']['n_inp'] = 7
+        yaml_file = parse_yaml(path / 'scripts/MultiModelInputEval.yaml')
+        yaml_file = yaml_file.pop('model001')
+        _ = yaml_file.pop('template')
+        yaml_file['model']['create_modle']['n_inp'] = 7
         replace_keys(yaml_file, yamlTemplate)

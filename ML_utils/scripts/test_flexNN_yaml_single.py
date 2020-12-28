@@ -3,13 +3,11 @@
 #######################################################################################################################
 
 # import packages
-import yaml
-import argparse
 from pathlib import Path
 import pytest
 
 from stfs_pytoolbox.ML_Utils.flexNN_yaml_single import *
-
+from stfs_pytoolbox.ML_Utils.utils import parse_yaml
 
 @pytest.fixture(scope='module')
 def path():
@@ -19,8 +17,8 @@ def path():
 
 # @pytest.mark.dependency(depends=[path() / '.test_training.py'], scope='session')
 def test_complete_script(path, create_random_df, tmp_path):
-    yaml_file = yaml.load(open(path / 'SingleModelInputEval.yaml'), Loader=yaml.FullLoader)
+    yaml_file = parse_yaml(path / 'SingleModelInputEval.yaml')
     create_random_df.to_csv(tmp_path / 'example_samples.csv')
-    yaml_file['DataLoader']['create_DataLoader']['raw_data_path'] = str(tmp_path / 'example_samples.csv')
-    yaml_file['Trainer']['callbacks'][1]['params']['filepath'] = tmp_path / 'model'
+    yaml_file['dataloader']['create_dataloader']['raw_data_path'] = str(tmp_path / 'example_samples.csv')
+    yaml_file['trainer']['callbacks'][1]['params']['filepath'] = tmp_path / 'model'
     main(yaml_file)

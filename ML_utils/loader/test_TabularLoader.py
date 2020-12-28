@@ -7,6 +7,7 @@ import pytorch_lightning as pl
 
 from stfs_pytoolbox.ML_Utils.loader import TabularLoader
 from stfs_pytoolbox.ML_Utils.callbacks import Checkpointing
+from stfs_pytoolbox.ML_Utils.utils import parse_yaml
 
 
 @pytest.fixture(scope='module')
@@ -120,100 +121,100 @@ def test_read_from_yaml(tmp_path, create_random_df, create_example_TabularLoader
     path = Path(__file__).resolve()
     path = path.parents[0]
 
-    # test mutually exclusive of load_DataLoader and create_DataLoader and necessity to include one
+    # test mutually exclusive of load_dataloader and create_dataloader and necessity to include one
     with pytest.raises(AssertionError):
-        yaml_file = yaml.load(open(path / 'TabularLoaderEval.yaml'), Loader=yaml.FullLoader)
-        TabularLoader.read_from_yaml(yaml_file['DataLoader'])
+        yaml_file = parse_yaml(path / 'TabularLoaderEval.yaml')
+        TabularLoader.read_from_yaml(yaml_file['dataloader'])
     with pytest.raises(KeyError):
-        yaml_file = yaml.load(open(path / 'TabularLoaderEval.yaml'), Loader=yaml.FullLoader)
-        _ = yaml_file.pop('load_DataLoader')
-        _ = yaml_file.pop('create_DataLoader')
-        TabularLoader.read_from_yaml(yaml_file['DataLoader'])
+        yaml_file = parse_yaml(path / 'TabularLoaderEval.yaml')
+        _ = yaml_file.pop('load_dataloader')
+        _ = yaml_file.pop('create_dataloader')
+        TabularLoader.read_from_yaml(yaml_file['dataloader'])
 
     # test load functionality
     create_example_TabularLoader.save(tmp_path / 'exampleTabularLoader.pkl')
-    yaml_file = yaml.load(open(path / 'TabularLoaderEval.yaml'), Loader=yaml.FullLoader)
-    _ = yaml_file['DataLoader'].pop('create_DataLoader')
-    yaml_file['DataLoader']['load_DataLoader']['path'] = str(tmp_path / 'exampleTabularLoader.pkl')
-    dataLoader = TabularLoader.read_from_yaml(yaml_file['DataLoader'], batch=16, num_workers=2)
+    yaml_file = parse_yaml(path / 'TabularLoaderEval.yaml')
+    _ = yaml_file['dataloader'].pop('create_dataloader')
+    yaml_file['dataloader']['load_dataloader']['path'] = str(tmp_path / 'exampleTabularLoader.pkl')
+    dataLoader = TabularLoader.read_from_yaml(yaml_file['dataloader'], batch=16, num_workers=2)
     assert dataLoader.lparams.batch == 16, 'Batch overwrite does not succeed'
     assert dataLoader.lparams.num_workers == 2, 'Num_workers overwrite does not succeed'
 
     with pytest.raises(AssertionError):
-        yaml_file = yaml.load(open(path / 'TabularLoaderEval.yaml'), Loader=yaml.FullLoader)
-        yaml_file['DataLoader']['load_DataLoader'] = {}
-        _ = yaml_file['DataLoader'].pop('create_DataLoader')
-        TabularLoader.read_from_yaml(yaml_file['DataLoader'])
+        yaml_file = parse_yaml(path / 'TabularLoaderEval.yaml')
+        yaml_file['dataloader']['load_dataloader'] = {}
+        _ = yaml_file['dataloader'].pop('create_dataloader')
+        TabularLoader.read_from_yaml(yaml_file['dataloader'])
     with pytest.raises(TypeError):
-        yaml_file = yaml.load(open(path / 'TabularLoaderEval.yaml'), Loader=yaml.FullLoader)
-        yaml_file['DataLoader']['load_DataLoader']['path'] = str(tmp_path / 'TabularLoader.pkg')
-        _ = yaml_file['DataLoader'].pop('create_DataLoader')
-        TabularLoader.read_from_yaml(yaml_file['DataLoader'])
+        yaml_file = parse_yaml(path / 'TabularLoaderEval.yaml')
+        yaml_file['dataloader']['load_dataloader']['path'] = str(tmp_path / 'TabularLoader.pkg')
+        _ = yaml_file['dataloader'].pop('create_dataloader')
+        TabularLoader.read_from_yaml(yaml_file['dataloader'])
 
     # test create functionality
     create_random_df.to_csv(tmp_path / 'example_samples.csv')
-    yaml_file = yaml.load(open(path / 'TabularLoaderEval.yaml'), Loader=yaml.FullLoader)
-    yaml_file['DataLoader']['create_DataLoader']['raw_data_path'] = str(tmp_path / 'example_samples.csv')
-    _ = yaml_file['DataLoader'].pop('load_DataLoader')
-    _ = yaml_file['DataLoader']['create_DataLoader']['validation_data'].pop('load_data')
-    _ = yaml_file['DataLoader']['create_DataLoader']['test_data'].pop('load_data')
-    yaml_file['DataLoader']['create_DataLoader']['save_Loader']['path'] = str(tmp_path / 'example_TabularLoader.pkl')
-    dataLoader = TabularLoader.read_from_yaml(yaml_file['DataLoader'], batch=16, num_workers=2)
+    yaml_file = parse_yaml(path / 'TabularLoaderEval.yaml')
+    yaml_file['dataloader']['create_dataloader']['raw_data_path'] = str(tmp_path / 'example_samples.csv')
+    _ = yaml_file['dataloader'].pop('load_dataloader')
+    _ = yaml_file['dataloader']['create_dataloader']['validation_data'].pop('load_data')
+    _ = yaml_file['dataloader']['create_dataloader']['test_data'].pop('load_data')
+    yaml_file['dataloader']['create_dataloader']['save_loader']['path'] = str(tmp_path / 'example_TabularLoader.pkl')
+    dataLoader = TabularLoader.read_from_yaml(yaml_file['dataloader'], batch=16, num_workers=2)
     assert dataLoader.lparams.batch == 16, 'Batch overwrite does not succeed'
     assert dataLoader.lparams.num_workers == 2, 'Num_workers overwrite does not succeed'
 
     with pytest.raises(AssertionError):  # required arg missing
-        yaml_file = yaml.load(open(path / 'TabularLoaderEval.yaml'), Loader=yaml.FullLoader)
-        _ = yaml_file['DataLoader'].pop('load_DataLoader')
-        _ = yaml_file['DataLoader']['create_DataLoader'].pop('raw_data_path')
-        TabularLoader.read_from_yaml(yaml_file['DataLoader'])
+        yaml_file = parse_yaml(path / 'TabularLoaderEval.yaml')
+        _ = yaml_file['dataloader'].pop('load_dataloader')
+        _ = yaml_file['dataloader']['create_dataloader'].pop('raw_data_path')
+        TabularLoader.read_from_yaml(yaml_file['dataloader'])
     with pytest.raises(AssertionError):  # required arg missing
-        yaml_file = yaml.load(open(path / 'TabularLoaderEval.yaml'), Loader=yaml.FullLoader)
-        _ = yaml_file['DataLoader'].pop('load_DataLoader')
-        _ = yaml_file['DataLoader']['create_DataLoader'].pop('features')
-        TabularLoader.read_from_yaml(yaml_file['DataLoader'])
+        yaml_file = parse_yaml(path / 'TabularLoaderEval.yaml')
+        _ = yaml_file['dataloader'].pop('load_dataloader')
+        _ = yaml_file['dataloader']['create_dataloader'].pop('features')
+        TabularLoader.read_from_yaml(yaml_file['dataloader'])
     with pytest.raises(AssertionError):  # required arg missing
-        yaml_file = yaml.load(open(path / 'TabularLoaderEval.yaml'), Loader=yaml.FullLoader)
-        _ = yaml_file['DataLoader'].pop('load_DataLoader')
-        _ = yaml_file['DataLoader']['create_DataLoader'].pop('labels')
-        TabularLoader.read_from_yaml(yaml_file['DataLoader'])
+        yaml_file = parse_yaml(path / 'TabularLoaderEval.yaml')
+        _ = yaml_file['dataloader'].pop('load_dataloader')
+        _ = yaml_file['dataloader']['create_dataloader'].pop('labels')
+        TabularLoader.read_from_yaml(yaml_file['dataloader'])
     with pytest.raises(AssertionError):  # required arg missing
-        yaml_file = yaml.load(open(path / 'TabularLoaderEval.yaml'), Loader=yaml.FullLoader)
-        _ = yaml_file['DataLoader'].pop('load_DataLoader')
-        _ = yaml_file['DataLoader']['create_DataLoader'].pop('validation_data')
-        yaml_file['DataLoader']['create_DataLoader']['raw_data_path'] = tmp_path / 'example_samples.csv'
-        TabularLoader.read_from_yaml(yaml_file['DataLoader'])
+        yaml_file = parse_yaml(path / 'TabularLoaderEval.yaml')
+        _ = yaml_file['dataloader'].pop('load_dataloader')
+        _ = yaml_file['dataloader']['create_dataloader'].pop('validation_data')
+        yaml_file['dataloader']['create_dataloader']['raw_data_path'] = tmp_path / 'example_samples.csv'
+        TabularLoader.read_from_yaml(yaml_file['dataloader'])
     with pytest.raises(AssertionError):  # required arg missing
-        yaml_file = yaml.load(open(path / 'TabularLoaderEval.yaml'), Loader=yaml.FullLoader)
-        _ = yaml_file['DataLoader'].pop('load_DataLoader')
-        _ = yaml_file['DataLoader']['create_DataLoader'].pop('test_data')
-        yaml_file['DataLoader']['create_DataLoader']['raw_data_path'] = tmp_path / 'example_samples.csv'
-        TabularLoader.read_from_yaml(yaml_file['DataLoader'])
+        yaml_file = parse_yaml(path / 'TabularLoaderEval.yaml')
+        _ = yaml_file['dataloader'].pop('load_dataloader')
+        _ = yaml_file['dataloader']['create_dataloader'].pop('test_data')
+        yaml_file['dataloader']['create_dataloader']['raw_data_path'] = tmp_path / 'example_samples.csv'
+        TabularLoader.read_from_yaml(yaml_file['dataloader'])
 
     with pytest.raises(AssertionError):  # load_data and split_data in validation data mutually exclusive
-        yaml_file = yaml.load(open(path / 'TabularLoaderEval.yaml'), Loader=yaml.FullLoader)
-        _ = yaml_file['DataLoader'].pop('load_DataLoader')
-        _ = yaml_file['DataLoader']['create_DataLoader']['test_data'].pop('load_data')
-        TabularLoader.read_from_yaml(yaml_file['DataLoader'])
+        yaml_file = parse_yaml(path / 'TabularLoaderEval.yaml')
+        _ = yaml_file['dataloader'].pop('load_dataloader')
+        _ = yaml_file['dataloader']['create_dataloader']['test_data'].pop('load_data')
+        TabularLoader.read_from_yaml(yaml_file['dataloader'])
 
     with pytest.raises(AssertionError):  # required arg missing
-        yaml_file = yaml.load(open(path / 'TabularLoaderEval.yaml'), Loader=yaml.FullLoader)
-        _ = yaml_file['DataLoader'].pop('load_DataLoader')
-        _ = yaml_file['DataLoader']['create_DataLoader']['validation_data']['load_data'].pop('path')
-        _ = yaml_file['DataLoader']['create_DataLoader']['validation_data'].pop('split_data')
-        TabularLoader.read_from_yaml(yaml_file['DataLoader'])
+        yaml_file = parse_yaml(path / 'TabularLoaderEval.yaml')
+        _ = yaml_file['dataloader'].pop('load_dataloader')
+        _ = yaml_file['dataloader']['create_dataloader']['validation_data']['load_data'].pop('path')
+        _ = yaml_file['dataloader']['create_dataloader']['validation_data'].pop('split_data')
+        TabularLoader.read_from_yaml(yaml_file['dataloader'])
     with pytest.raises(AssertionError):  # required arg missing
-        yaml_file = yaml.load(open(path / 'TabularLoaderEval.yaml'), Loader=yaml.FullLoader)
-        _ = yaml_file['DataLoader'].pop('load_DataLoader')
-        _ = yaml_file['DataLoader']['create_DataLoader']['validation_data']['split_data'].pop('method')
-        _ = yaml_file['DataLoader']['create_DataLoader']['validation_data'].pop('load_data')
-        TabularLoader.read_from_yaml(yaml_file['DataLoader'])
+        yaml_file = parse_yaml(path / 'TabularLoaderEval.yaml')
+        _ = yaml_file['dataloader'].pop('load_dataloader')
+        _ = yaml_file['dataloader']['create_dataloader']['validation_data']['split_data'].pop('method')
+        _ = yaml_file['dataloader']['create_dataloader']['validation_data'].pop('load_data')
+        TabularLoader.read_from_yaml(yaml_file['dataloader'])
     with pytest.raises(AssertionError):  # required arg missing
-        yaml_file = yaml.load(open(path / 'TabularLoaderEval.yaml'), Loader=yaml.FullLoader)
-        _ = yaml_file['DataLoader'].pop('load_DataLoader')
-        _ = yaml_file['DataLoader']['create_DataLoader']['validation_data']['split_data'].pop('params')
-        _ = yaml_file['DataLoader']['create_DataLoader']['validation_data'].pop('load_data')
-        TabularLoader.read_from_yaml(yaml_file['DataLoader'])
+        yaml_file = parse_yaml(path / 'TabularLoaderEval.yaml')
+        _ = yaml_file['dataloader'].pop('load_dataloader')
+        _ = yaml_file['dataloader']['create_dataloader']['validation_data']['split_data'].pop('params')
+        _ = yaml_file['dataloader']['create_dataloader']['validation_data'].pop('load_data')
+        TabularLoader.read_from_yaml(yaml_file['dataloader'])
 
 
 @pytest.mark.dependency(depends=['test_init', 'test_read_from_yaml'])
