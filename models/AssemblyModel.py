@@ -113,3 +113,29 @@ class AssemblyModel(torch.nn.Module):
 
         print("Saving assembly model as torchScript to {}".format(path))
         torch_script.save(path)
+
+    def to_onnx(self, path: str, dtype=torch.float) -> None:
+        """
+        Function to save assembly model in onnx format
+        Parameters
+        ----------
+        path:   str
+            path where .onnx file is saved
+        dtype:  torch.dtype, default: torch.float
+            dtype of saved model
+        """
+        import torch.onnx
+        n_inp = self.models[0].hparams.n_inp
+        x = torch.ones([8, n_inp], dtype=dtype)
+
+        # Export the model
+        torch.onnx.export(self.float(),  # model being run
+                          x.float(),  # model input (or a tuple for multiple inputs)
+                          path,  # where to save the model (can be a file or file-like object)
+                          export_params=True,  # store the trained parameter weights inside the model file
+                          opset_version=9,  # the ONNX version to export the model to
+                          do_constant_folding=True,  # whether to execute constant folding for optimization
+                          input_names=['input'],  # the model's input names
+                          output_names=['output'],  # the model's output names
+                          dynamic_axes={'input': {0: 'batch_size'},  # variable length axes
+                                        'output': {0: 'batch_size'}})
