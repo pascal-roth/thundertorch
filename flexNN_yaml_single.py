@@ -19,9 +19,9 @@ def main(args_yaml):
         check_argsConfig_single(args_yaml['config'])
         train_config(args_yaml['config'])
 
-    argsLoader = args_yaml['DataLoader']
-    argsModel = args_yaml['Model']
-    argsTrainer = args_yaml['Trainer']
+    argsLoader = args_yaml['dataloader']
+    argsModel = args_yaml['model']
+    argsTrainer = args_yaml['trainer']
 
     check_args(argsModel, argsLoader, argsTrainer)
 

@@ -19,10 +19,33 @@ from stfs_pytoolbox.ML_Utils import _modules_models, _modules_callbacks, _module
 
 def parse_yaml(yaml_path) -> dict:
     """
-    Parse yaml file
+    Parse yaml file and lower case all keys
     """
     flexMLP_yaml = open(yaml_path)
-    return yaml.load(flexMLP_yaml, Loader=yaml.FullLoader)
+    yaml_dict = yaml.load(flexMLP_yaml, Loader=yaml.FullLoader)
+    yaml_dict = lower_keys(yaml_dict)
+    return yaml_dict
+
+
+def lower_keys(yaml_dict: dict) -> dict:
+
+    def recursion(yaml_dict: dict):
+        yaml_dict = dict((k.lower(), v) for k, v in yaml_dict.items())
+
+        for key, value in yaml_dict.items():
+            if key == 'split_data':
+                pass
+            elif isinstance(value, dict):
+                yaml_dict[key] = recursion(value)
+            elif isinstance(value, list) and all(isinstance(elem, dict) for elem in value):
+                for i, list_dict in enumerate(value):
+                    value[i] = recursion(list_dict)
+                yaml_dict[key] = value
+
+        return yaml_dict
+
+    yaml_dict = recursion(yaml_dict)
+    return yaml_dict
 
 
 def check_yaml_version(args_yaml: dict) -> None:  # TODO: assert error if yaml file changed with a new version
@@ -79,8 +102,8 @@ def check_argsLoader(argsLoader: dict) -> None:
     """
     options = {'DataLoader': OptionClass(template=loader.DataLoaderTemplate.yaml_template(['DataLoader']))}
     options['DataLoader'].add_key('type', dtype=str, required=True, attr_of=_modules_loader)
-    options['DataLoader'].add_key('load_DataLoader', dtype=dict, mutually_exclusive=['create_DataLoader'], param_dict=True)
-    options['DataLoader'].add_key('create_DataLoader', dtype=dict, mutually_exclusive=['load_DataLoader'], param_dict=True)
+    options['DataLoader'].add_key('load_dataloader', dtype=dict, mutually_exclusive=['create_dataloader'], param_dict=True)
+    options['DataLoader'].add_key('create_dataloader', dtype=dict, mutually_exclusive=['load_dataloader'], param_dict=True)
 
     OptionClass.checker(input_dict={'DataLoader': argsLoader}, option_classes=options)
 
@@ -141,8 +164,8 @@ def check_argsConfig_multi(argsConfig: dict) -> None:
     """
     options = {'config': OptionClass(template=multimodel_training_yml_template(['config']))}
     options['config'].add_key('nbr_processes', dtype=int)
-    options['config'].add_key('GPU_per_model', dtype=int, mutually_exclusive=['CPU_per_model'])
-    options['config'].add_key('CPU_per_model', dtype=int, mutually_exclusive=['GPU_per_model'])
+    options['config'].add_key('gpu_per_model', dtype=int, mutually_exclusive=['cpu_per_model'])
+    options['config'].add_key('cpu_per_model', dtype=int, mutually_exclusive=['gpu_per_model'])
     options['config'].add_key('model_run', dtype=list)
 
     OptionClass.checker(input_dict={'config': argsConfig}, option_classes=options)
@@ -157,18 +180,18 @@ def check_yaml_structure(args_yaml: dict) -> None:
     ----------
     args_yaml       - parsed yaml dict
     """
-    assert 'DataLoader' in args_yaml, 'Training a model requires some data which is packed inside a DataLoader! ' \
+    assert 'dataloader' in args_yaml, 'Training a model requires some data which is packed inside a DataLoader! ' \
                                       'Definiton of the DataLoader type and the corresponding parameters is missing. ' \
                                       'DataLoaders can be found under stfs_pytoolbox/ML_utils/loader. The tempolate ' \
                                       'yml structure for a DataLoader is defined as follows: \n{}'.\
         format(loader.DataLoaderTemplate.yaml_template([]))
 
-    assert 'Model' in args_yaml, 'Neural Network Model definition is missing! Possible models are {}. The template ' \
+    assert 'model' in args_yaml, 'Neural Network Model definition is missing! Possible models are {}. The template ' \
                                  'yml structure for the Models is defined as follows: \n{}'.\
         format(glob.glob(os.path.dirname(inspect.getfile(models)) + '/Lightning*'),
                models.LightningModelTemplate.yaml_template([]))
 
-    assert 'Trainer' in args_yaml, 'No Trainer of the Network defined! The trainer is responsible for automating ' \
+    assert 'trainer' in args_yaml, 'No Trainer of the Network defined! The trainer is responsible for automating ' \
                                    'network training, tesing and saving. A detailed description of the possible ' \
                                    'parameters is given at: https://pytorch-lightning.readthedocs.io/en/latest/' \
                                    'trainer.html. The yml structure to include a trainer is as follows: \n{}'.\
@@ -271,6 +294,7 @@ def get_argsModel(argsMulti):
     # filter for models defined in Model_Run list
     if 'model_run' in argsConfig:
         model_run_list = argsConfig.pop('model_run')
+        model_run_list = list(name.lower() for name in model_run_list)
         assert all(elem in argsMulti for elem in model_run_list), 'Model name included in "model_run" not found!'
         argsModels = {model_key: argsMulti[model_key] for model_key in model_run_list}
         assert len(argsModels) != 0, 'No models defined in "input_MultiModelTraining.yaml"!'
@@ -290,12 +314,11 @@ def get_argsDict(argsModels):
     for ModelName in model_list:
         argsModel = argsModels[ModelName]
 
-        assert 'Template' in argsModel, 'Definition of a Template necessary to change model keys!'
-        yamlTemplate_location = argsModel.pop('Template')
+        assert 'template' in argsModel, 'Definition of a Template necessary to change model keys!'
+        yamlTemplate_location = argsModel.pop('template')
 
-        with open(yamlTemplate_location) as yaml_file:
-            yamlTemplate = yaml.load(yaml_file, Loader=yaml.FullLoader)
-            yamlModelRun = replace_keys(argsModel, yamlTemplate)
+        yamlTemplate = parse_yaml(yamlTemplate_location)
+        yamlModelRun = replace_keys(argsModel, yamlTemplate)
 
         model_dicts.append(yamlModelRun)
 
@@ -311,9 +334,9 @@ def get_num_processes(argsConfig: dict, argsModels: dict) -> tuple:
     nbr_gpu = torch.cuda.device_count()  # nbr of available GPUs
     gpu_per_process = 0
 
-    if 'GPU_per_model' in argsConfig:
+    if 'gpu_per_model' in argsConfig:
         assert nbr_gpu != 0, 'GPU per process defined. but NO GPU available!'
-        gpu_per_process = argsConfig.pop('GPU_per_model')
+        gpu_per_process = argsConfig.pop('gpu_per_model')
 
         nbr_processes = int((nbr_gpu - (nbr_gpu % gpu_per_process)) / gpu_per_process)
         assert nbr_processes != 0, f'Not enough GPUs! Model should be trained with {gpu_per_process} GPU(s), but' \
@@ -321,8 +344,8 @@ def get_num_processes(argsConfig: dict, argsModels: dict) -> tuple:
 
         _logger.debug(f'{nbr_processes} processes can be executed with {gpu_per_process} GPU(s) per process')
 
-    elif 'CPU_per_model' in argsConfig:
-        cpu_per_process = argsConfig.pop('CPU_per_model')
+    elif 'cpu_per_model' in argsConfig:
+        cpu_per_process = argsConfig.pop('cpu_per_model')
 
         nbr_processes = int((nbr_cpu - (nbr_cpu % cpu_per_process)) / cpu_per_process)
         assert nbr_processes != 0, f'Not enough CPUs! Model should be trained with {cpu_per_process} CPU(s), but' \

@@ -113,6 +113,7 @@ def data_split_explicit(x_samples: pd.DataFrame, y_samples: pd.DataFrame, split_
 
     for key, value in split_params.items():
 
+        assert key in x_samples.columns, f'Feature "{key}" not included in the data features "{x_samples.columns}"'
         key_options = x_samples['{}'.format(key)].drop_duplicates()
 
         if isinstance(value, (float, int)):

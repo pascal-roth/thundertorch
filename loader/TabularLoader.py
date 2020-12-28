@@ -274,13 +274,13 @@ class TabularLoader:
         options = TabularLoader.__get_OptionClass()
         OptionClass.checker(input_dict=argsLoader, option_classes=options)
 
-        if 'load_DataLoader' in argsLoader:
-            _, file_extention = os.path.splitext(argsLoader['load_DataLoader']['path'])
+        if 'load_dataloader' in argsLoader:
+            _, file_extention = os.path.splitext(argsLoader['load_dataloader']['path'])
             if file_extention == '.pkl':
-                Loader = TabularLoader.load(argsLoader['load_DataLoader']['path'])
-                Loader.lparams.data_path = argsLoader['load_DataLoader']['path']
+                Loader = TabularLoader.load(argsLoader['load_dataloader']['path'])
+                Loader.lparams.data_path = argsLoader['load_dataloader']['path']
             elif file_extention == '.ckpt':
-                Loader = TabularLoader.read_from_checkpoint(argsLoader['load_DataLoader']['path'])
+                Loader = TabularLoader.read_from_checkpoint(argsLoader['load_dataloader']['path'])
             else:
                 raise TypeError('Not supported file type to load DataLoader! Only supported are ".pkl" and ".ckpt"')
 
@@ -291,8 +291,8 @@ class TabularLoader:
                 Loader.lparams.num_workers = kwargs.pop('num_workers')
                 _logger.info('Num_workers stored in file in overwritten by kwargs argument')
 
-        elif 'create_DataLoader' in argsLoader:
-            argsCreate = argsLoader['create_DataLoader']
+        elif 'create_dataloader' in argsLoader:
+            argsCreate = argsLoader['create_dataloader']
 
             # create Loader
             Loader = TabularLoader.read_from_file(argsCreate.pop('raw_data_path'), features=argsCreate.pop('features'),
@@ -317,8 +317,8 @@ class TabularLoader:
                     raise KeyError('No test data selected! Either include dict "load_data" or "split_data".')
 
             # save loader
-            if 'save_Loader' in argsCreate:
-                Loader.save(argsCreate['save_Loader']['path'])
+            if 'save_loader' in argsCreate:
+                Loader.save(argsCreate['save_loader']['path'])
 
         else:
             raise KeyError('No DataLoader generated! Either include dict "load_DataLoader" or "create_DataLoader"!')
@@ -376,19 +376,19 @@ class TabularLoader:
     def __get_OptionClass() -> dict:
         options = {'DataLoader': OptionClass(template=TabularLoader.yaml_template(['DataLoader']))}
         options['DataLoader'].add_key('type', dtype=str, required=True)
-        options['DataLoader'].add_key('load_DataLoader', dtype=dict, mutually_exclusive=['create_DataLoader'])
-        options['DataLoader'].add_key('create_DataLoader', dtype=dict, mutually_exclusive=['load_DataLoader'])
+        options['DataLoader'].add_key('load_dataloader', dtype=dict, mutually_exclusive=['create_dataloader'])
+        options['DataLoader'].add_key('create_dataloader', dtype=dict, mutually_exclusive=['load_dataloader'])
 
-        options['load_DataLoader'] = OptionClass(template=TabularLoader.yaml_template(['DataLoader', 'load_DataLoader']))
-        options['load_DataLoader'].add_key('path', dtype=str, required=True)
+        options['load_dataloader'] = OptionClass(template=TabularLoader.yaml_template(['DataLoader', 'load_DataLoader']))
+        options['load_dataloader'].add_key('path', dtype=str, required=True)
 
-        options['create_DataLoader'] = OptionClass(template=TabularLoader.yaml_template(['DataLoader', 'create_DataLoader']))
-        options['create_DataLoader'].add_key('raw_data_path', dtype=str, required=True)
-        options['create_DataLoader'].add_key('features', dtype=list, required=True)
-        options['create_DataLoader'].add_key('labels', dtype=list, required=True)
-        options['create_DataLoader'].add_key('validation_data', dtype=dict)
-        options['create_DataLoader'].add_key('test_data', dtype=dict)
-        options['create_DataLoader'].add_key('save_Loader', dtype=dict)
+        options['create_dataloader'] = OptionClass(template=TabularLoader.yaml_template(['DataLoader', 'create_DataLoader']))
+        options['create_dataloader'].add_key('raw_data_path', dtype=str, required=True)
+        options['create_dataloader'].add_key('features', dtype=list, required=True)
+        options['create_dataloader'].add_key('labels', dtype=list, required=True)
+        options['create_dataloader'].add_key('validation_data', dtype=dict)
+        options['create_dataloader'].add_key('test_data', dtype=dict)
+        options['create_dataloader'].add_key('save_loader', dtype=dict)
 
         options['validation_data'] = OptionClass(template=TabularLoader.yaml_template(['DataLoader', 'create_DataLoader',
                                                                                        'validation_data']))
@@ -407,9 +407,9 @@ class TabularLoader:
         options['split_data'].add_key('method', dtype=str, required=True)
         options['split_data'].add_key('params', dtype=[float, dict], required=True, param_dict=True)
 
-        options['save_Loader'] = OptionClass(template=TabularLoader.yaml_template(['DataLoader', 'create_DataLoader',
+        options['save_loader'] = OptionClass(template=TabularLoader.yaml_template(['DataLoader', 'create_DataLoader',
                                                                                    'save_Loader']))
-        options['save_Loader'].add_key('path', dtype=str, required=True)
+        options['save_loader'].add_key('path', dtype=str, required=True)
 
         return options
 
