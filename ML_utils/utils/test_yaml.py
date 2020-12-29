@@ -5,16 +5,37 @@
 # import packages
 from pathlib import Path
 import pytest
+import os
 
 from stfs_pytoolbox.ML_Utils.utils.yaml import *
 from stfs_pytoolbox.ML_Utils.models import LightningModelTemplate
 from stfs_pytoolbox.ML_Utils.loader import DataLoaderTemplate
-from stfs_pytoolbox.ML_Utils.utils import parse_yaml
 
 @pytest.fixture(scope='module')
 def path():
     path = Path(__file__).resolve()
     return path.parents[1]
+
+
+@pytest.mark.dependency()
+def test_lower_keys():
+    example_dict = {'DataLoader': 'params', 'model': 'params', 'Trainer': 'params'}
+    example_dict = lower_keys(example_dict)
+    assert example_dict['dataloader'] == 'params', 'does not convert to lower keys'
+    assert example_dict['trainer'] == 'params', 'does not convert to lower keys'
+
+    example_dict = {'DataLoader': 'params', 'model': {'n_inp': 3, 'N_out': 4}, 'trainer': 'params'}
+    example_dict = lower_keys(example_dict)
+    assert example_dict['model']['n_out'] == 4, 'Recursion fails'
+
+    example_dict = {'DataLoader': 'params', 'model': 'params', 'Trainer': [{'callback_1': 'param'}, {'CallBack_2': 3}]}
+    example_dict = lower_keys(example_dict)
+    assert example_dict['trainer'][1]['callback_2'] == 3, 'List access fails'
+
+    example_dict = {'DataLoader': {'create_DataLoader': {'split_data': {'method': 'explicit', 'T_0': 745}}},
+                    'model': 'params', 'trainer': 'params'}
+    example_dict = lower_keys(example_dict)
+    assert example_dict['dataloader']['create_dataloader']['split_data']['T_0'] == 745, 'Split_data exception fails'
 
 
 def test_yaml_structure():
@@ -38,7 +59,7 @@ def test_check_argsModel():
     _ = argsModel.pop('load_model')
     check_argsModel(argsModel)
 
-    # check "type" and "source" flag
+    # check OptionClass Object
     with pytest.raises(AssertionError):
         argsModel = yaml.load(yamlTemplate, Loader=yaml.FullLoader)
         _ = argsModel.pop('type')
@@ -49,6 +70,8 @@ def test_check_argsModel():
         argsModel['type'] = 'some other fkt'
         _ = argsModel.pop('load_model')
         check_argsModel(argsModel)
+
+    # check model source error
     with pytest.raises(KeyError):
         argsModel = yaml.load(yamlTemplate, Loader=yaml.FullLoader)
         _ = argsModel.pop('load_model')
@@ -64,6 +87,7 @@ def test_check_argsLoader():
     _ = argsLoader.pop('###info###')
     check_argsLoader(argsLoader)
 
+    # check OptionClass Object
     with pytest.raises(AssertionError):
         argsLoader = yaml.load(yamlTemplate, Loader=yaml.FullLoader)
         argsLoader = lower_keys(argsLoader)
@@ -96,6 +120,41 @@ def test_check_argsTrainer():
         check_argsTrainer(argsTrainer)
 
 
+@pytest.mark.dependency(depends=['test_lower_keys'])
+def test_get_argsModels(path):
+    # without config tree
+    argsMulti = parse_yaml(path / 'scripts/MultiModelInputEval.yaml')
+    _ = argsMulti.pop('config')
+    argsModels, argsConfig = get_argsModel(argsMulti)
+    assert argsModels == argsMulti, 'filter accesses model_run, which should not be included'
+    assert argsConfig == [], 'argsConfig are created at some point, normally should not be present'
+
+    # with config tree
+    argsMulti = parse_yaml(path / 'scripts/MultiModelInputEval.yaml')
+    argsMulti['config']['model_run'] = 'model001'
+    argsModels, argsConfig = get_argsModel(argsMulti)
+    print(argsMulti)
+    assert argsModels == {'model001': argsMulti['model001']}, 'model_run filter not working'
+    assert 'config' not in argsMulti, 'argsConfig not separated correctly from argsMulti'
+    assert 'config' not in argsModels, 'Config file not removed from argsModels'
+
+    with pytest.raises(AssertionError):  # model name included in model_run not found
+        argsMulti = parse_yaml(path / 'scripts/MultiModelInputEval.yaml')
+        argsMulti['config']['model_run'] = 'model1'
+        get_argsModel(argsMulti)
+    with pytest.raises(AssertionError):  # model_run is empty
+        argsMulti = parse_yaml(path / 'scripts/MultiModelInputEval.yaml')
+        argsMulti['config']['model_run'] = []
+        get_argsModel(argsMulti)
+
+    # with empty config tree
+    with pytest.raises(AssertionError):
+        argsMulti = parse_yaml(path / 'scripts/MultiModelInputEval.yaml')
+        _ = argsMulti['config'].pop('model_run')
+        get_argsModel(argsMulti)
+
+
+@pytest.mark.dependency(depends=['test_lower_keys'])
 def test_replace_keys(path):
     yaml_file = parse_yaml(path / 'scripts/MultiModelInputEval.yaml')
     yamlTemplate = parse_yaml(path / 'scripts/SingleModelInputEval.yaml')
@@ -111,3 +170,68 @@ def test_replace_keys(path):
         _ = yaml_file.pop('template')
         yaml_file['model']['create_modle']['n_inp'] = 7
         replace_keys(yaml_file, yamlTemplate)
+
+
+@pytest.mark.dependency(depends=['test_replace_keys', 'test_get_argsModels'])
+def test_get_argsDict(path):
+    argsMulti = parse_yaml(path / 'scripts/MultiModelInputEval.yaml')
+    argsMulti['model001']['template'] = argsMulti['model002']['template'] = str(
+        path / 'scripts/SingleModelInputEval.yaml')
+    argsModels, argsConfig = get_argsModel(argsMulti)
+    model_dicts = get_argsDict(argsModels)
+    assert len(model_dicts) == 2, 'dict appending fails'
+    assert 'template' not in model_dicts[0], 'removal of template key fails'
+
+    with pytest.raises(AssertionError):  # template definition missing
+        argsMulti = parse_yaml(path / 'scripts/MultiModelInputEval.yaml')
+        _ = argsMulti['model001'].pop('template')
+        argsModels, argsConfig = get_argsModel(argsMulti)
+        get_argsDict(argsModels)
+
+
+@pytest.mark.dependency(depends=['test_get_argsModels'])
+def test_get_num_processes(path):
+    # without definition of cpu_per_model and gpu_per_model
+    argsMulti = parse_yaml(path / 'scripts/MultiModelInputEval.yaml')
+    argsMulti['model001']['template'] = argsMulti['model002']['template'] = str(
+        path / 'scripts/SingleModelInputEval.yaml')
+    argsModels, argsConfig = get_argsModel(argsMulti)
+    nbr_processes, list_gpu = get_num_processes(argsConfig, argsModels)
+    assert nbr_processes == 1, 'default nbr of processes for the given case not changed at some point'
+    assert list_gpu == [0], 'default list if no gpu is given is wrong'
+
+    # with definition of gpu_per_model
+    with pytest.raises(AssertionError):
+        argsMulti = parse_yaml(path / 'scripts/MultiModelInputEval.yaml')
+        argsModels, argsConfig = get_argsModel(argsMulti)
+        argsConfig['gpu_per_model'] = 1
+        get_num_processes(argsConfig, argsModels)
+
+    # with defintion of cpu_per_model
+    argsMulti = parse_yaml(path / 'scripts/MultiModelInputEval.yaml')
+    argsModels, argsConfig = get_argsModel(argsMulti)
+    argsConfig['cpu_per_model'] = int(os.cpu_count() / 2)
+    nbr_processes, list_gpu = get_num_processes(argsConfig, argsModels)
+    assert nbr_processes == 2, f'nbr_processes "{nbr_processes}" intended to be 2'
+
+    argsMulti = parse_yaml(path / 'scripts/MultiModelInputEval.yaml')
+    argsModels, argsConfig = get_argsModel(argsMulti)
+    argsConfig['cpu_per_model'] = int(os.cpu_count() / 4)
+    nbr_processes, list_gpu = get_num_processes(argsConfig, argsModels)
+    assert nbr_processes == 2, f'nbr_processes "{nbr_processes}" has to be downgraded to 2 since only two models are ' \
+                               f'available'
+
+    with pytest.raises(AssertionError):  # nbr of cpu_per_model exceeds available cpu's
+        argsMulti = parse_yaml(path / 'scripts/MultiModelInputEval.yaml')
+        argsModels, argsConfig = get_argsModel(argsMulti)
+        argsConfig['cpu_per_model'] = os.cpu_count() + 1
+        get_num_processes(argsConfig, argsModels)
+
+    # with definition of nbr_processes
+    argsMulti = parse_yaml(path / 'scripts/MultiModelInputEval.yaml')
+    argsModels, argsConfig = get_argsModel(argsMulti)
+    argsConfig['cpu_per_model'] = int(os.cpu_count() / 2)
+    argsConfig['nbr_processes'] = 1
+    nbr_processes, list_gpu = get_num_processes(argsConfig, argsModels)
+    assert nbr_processes == 1, f'nbr_processes "{nbr_processes}" has to be downgraded to 1 since the defined nbr of ' \
+                               f'cannot be exceeded'

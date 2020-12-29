@@ -59,12 +59,14 @@ def test_split_data_random(create_random_dataset):
 def test_split_data_percentage(create_random_dataset):
     x_samples, y_samples = create_random_dataset
 
-    with pytest.raises(AssertionError):
+    with pytest.raises(AssertionError):  # percentage too low
         data_split_percentage(x_samples=x_samples, y_samples=y_samples, split_params={'T_0': 0.05})
-    with pytest.raises(AssertionError):
+    with pytest.raises(AssertionError):  # percentage too large
         data_split_percentage(x_samples=x_samples, y_samples=y_samples, split_params={'T_0': 1.2})
-    with pytest.raises(AssertionError):
+    with pytest.raises(AssertionError):  # feature missing
         data_split_percentage(x_samples=x_samples, y_samples=y_samples, split_params=0.5)
+    with pytest.raises(AssertionError):  # feature not in data
+        data_split_percentage(x_samples=x_samples, y_samples=y_samples, split_params={'T_1': 0.25})
 
     x_samples, x_split, y_samples, y_split = data_split_percentage\
         (x_samples=x_samples, y_samples=y_samples, split_params={'T_0': 0.5})
@@ -78,12 +80,14 @@ def test_split_data_percentage(create_random_dataset):
 def test_split_data_explicit(create_random_dataset):
     x_samples, y_samples = create_random_dataset
 
-    with pytest.raises(TypeError):
+    with pytest.raises(TypeError):  # wrong feature value type
         data_split_explicit(x_samples=x_samples, y_samples=y_samples, split_params={'T_0': 'false type'})
-    with pytest.raises(AssertionError):
+    with pytest.raises(AssertionError):  # wrong feature value
         data_split_explicit(x_samples=x_samples, y_samples=y_samples, split_params={'T_0': 5})
-    with pytest.raises(AssertionError):
+    with pytest.raises(AssertionError):  # feature missing
         data_split_explicit(x_samples=x_samples, y_samples=y_samples, split_params=0.5)
+    with pytest.raises(AssertionError):  # feature not in data
+        data_split_explicit(x_samples=x_samples, y_samples=y_samples, split_params={'T_1': x_samples['T_0'].iloc[1]})
 
     x_samples, x_split, y_samples, y_split = data_split_explicit\
         (x_samples=x_samples, y_samples=y_samples, split_params={'T_0': x_samples['T_0'].iloc[1]})

@@ -5,15 +5,45 @@
 # import packages
 from pathlib import Path
 import pytest
+import argparse
+import pytorch_lightning as pl
 
 from stfs_pytoolbox.ML_Utils.utils.training import *
 from stfs_pytoolbox.ML_Utils.loader import TabularLoader
+from stfs_pytoolbox.ML_Utils.models import LightningFlexMLP
 from stfs_pytoolbox.ML_Utils.utils import parse_yaml
+from stfs_pytoolbox.ML_Utils import _modules_models
 
 @pytest.fixture(scope='module')
 def path():
     path = Path(__file__).resolve()
     return path.parents[0]
+
+
+def test_config_source_files(tmp_path):
+    argsConfig = {'source_files': str(tmp_path)}
+    train_config(argsConfig)
+    assert str(tmp_path) in _modules_models, 'append of source path fails'
+
+
+def test_config_reproducibility(create_TabularLoader):
+    argsConfig = {'reproducibility': True}
+    train_config(argsConfig)
+
+    hparams = argparse.Namespace(**{'n_inp': 2, 'n_out': 2, 'hidden_layer': [16, 16]})
+    model_1 = LightningFlexMLP(hparams)
+
+    trainer_1 = pl.Trainer(max_epochs=2)
+    trainer_1.fit(model_1, train_dataloader=create_TabularLoader.train_dataloader(),
+                  val_dataloaders=create_TabularLoader.val_dataloader())
+    trainer_2 = pl.Trainer(max_epochs=2)
+    trainer_2.fit(model_1, train_dataloader=create_TabularLoader.train_dataloader(),
+                  val_dataloaders=create_TabularLoader.val_dataloader())
+
+    print('Model 1', trainer_1.tng_tqdm_dic['loss'])
+    print('Model 2', trainer_2.tng_tqdm_dic['loss'])
+
+    assert trainer_1.tng_tqdm_dic['loss'] == trainer_2.tng_tqdm_dic['loss'], 'reproducibility failed'
 
 
 def test_get_model(path):
