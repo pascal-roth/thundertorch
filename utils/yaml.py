@@ -166,7 +166,7 @@ def check_argsConfig_multi(argsConfig: dict) -> None:
     options['config'].add_key('nbr_processes', dtype=int)
     options['config'].add_key('gpu_per_model', dtype=int, mutually_exclusive=['cpu_per_model'])
     options['config'].add_key('cpu_per_model', dtype=int, mutually_exclusive=['gpu_per_model'])
-    options['config'].add_key('model_run', dtype=list)
+    options['config'].add_key('model_run', dtype=[list, str])
 
     OptionClass.checker(input_dict={'config': argsConfig}, option_classes=options)
 
@@ -287,6 +287,7 @@ def get_argsModel(argsMulti):
         argsConfig = argsMulti.pop('config')
         check_argsConfig_multi(argsConfig)
         _logger.debug('Config file included and controlled')
+        if not argsConfig: _logger.warning('Defined config tree is empty!')
     else:
         _logger.debug('No Config file included in MultiModel Training yaml!')
         argsConfig = []
@@ -294,7 +295,10 @@ def get_argsModel(argsMulti):
     # filter for models defined in Model_Run list
     if 'model_run' in argsConfig:
         model_run_list = argsConfig.pop('model_run')
+
+        if isinstance(model_run_list, str): model_run_list = [model_run_list]
         model_run_list = list(name.lower() for name in model_run_list)
+
         assert all(elem in argsMulti for elem in model_run_list), 'Model name included in "model_run" not found!'
         argsModels = {model_key: argsMulti[model_key] for model_key in model_run_list}
         assert len(argsModels) != 0, 'No models defined in "input_MultiModelTraining.yaml"!'
@@ -360,8 +364,8 @@ def get_num_processes(argsConfig: dict, argsModels: dict) -> tuple:
             nbr_processes = nbr_gpu
             _logger.debug(f'{nbr_processes} processes can be executed with {gpu_per_process} GPU(s) per process')
         else:
-            cpu_per_process = 1
-            nbr_processes = nbr_cpu
+            cpu_per_process = nbr_cpu
+            nbr_processes = 1
             _logger.debug(f'{nbr_processes} processes can be executed with {cpu_per_process} CPU(s) per process')
 
     if 'nbr_processes' in argsConfig:

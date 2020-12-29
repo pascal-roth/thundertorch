@@ -69,7 +69,10 @@ class TabularLoader:
         self.x_train = df_samples[features]
         self.y_train = df_samples[labels]
 
-        self.x_val = self.y_val = self.x_test = self.y_test = None
+        self.x_val = None
+        self.y_val = None
+        self.x_test = None
+        self.y_test = None
         if kwargs.get('val_split', None):
             self.val_split(**kwargs.pop('val_split'))
         elif kwargs.get('val_path', None):
@@ -254,8 +257,7 @@ class TabularLoader:
         """
         sep = kwargs.pop('sep', ',')
         df_samples = _utils.read_df_from_file(file, sep)
-        return cls(df_samples, features, labels, data_path=file,
-                   **kwargs)
+        return cls(df_samples, features, labels, data_path=file, **kwargs)
 
     @classmethod
     def read_from_yaml(cls, argsLoader: dict, **kwargs) -> object:
