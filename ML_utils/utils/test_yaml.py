@@ -56,26 +56,34 @@ def test_yaml_structure():
 def test_check_argsModel():
     yamlTemplate = LightningModelTemplate.yaml_template(key_list=['Model'])
     argsModel = yaml.load(yamlTemplate, Loader=yaml.FullLoader)
+    argsModel = lower_keys(argsModel)
     _ = argsModel.pop('load_model')
+    _ = argsModel.pop('###info###')
     check_argsModel(argsModel)
 
     # check OptionClass Object
     with pytest.raises(AssertionError):
         argsModel = yaml.load(yamlTemplate, Loader=yaml.FullLoader)
+        argsModel = lower_keys(argsModel)
         _ = argsModel.pop('type')
         _ = argsModel.pop('load_model')
+        _ = argsModel.pop('###info###')
         check_argsModel(argsModel)
     with pytest.raises(AssertionError):
         argsModel = yaml.load(yamlTemplate, Loader=yaml.FullLoader)
         argsModel['type'] = 'some other fkt'
+        argsModel = lower_keys(argsModel)
         _ = argsModel.pop('load_model')
+        _ = argsModel.pop('###info###')
         check_argsModel(argsModel)
 
     # check model source error
     with pytest.raises(KeyError):
         argsModel = yaml.load(yamlTemplate, Loader=yaml.FullLoader)
+        argsModel = lower_keys(argsModel)
         _ = argsModel.pop('load_model')
         _ = argsModel.pop('create_model')
+        _ = argsModel.pop('###info###')
         check_argsModel(argsModel)
 
 

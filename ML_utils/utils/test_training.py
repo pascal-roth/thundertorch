@@ -12,7 +12,8 @@ from stfs_pytoolbox.ML_Utils.utils.training import *
 from stfs_pytoolbox.ML_Utils.loader import TabularLoader
 from stfs_pytoolbox.ML_Utils.models import LightningFlexMLP
 from stfs_pytoolbox.ML_Utils.utils import parse_yaml
-from stfs_pytoolbox.ML_Utils import _modules_models
+from stfs_pytoolbox.ML_Utils import _modules_models, _modules_loader, _modules_callbacks, _modules_loss, \
+    _modules_optim, _modules_activation, _modules_lr_scheduler
 
 @pytest.fixture(scope='module')
 def path():
@@ -21,9 +22,9 @@ def path():
 
 
 def test_config_source_files(tmp_path):
-    argsConfig = {'source_files': str(tmp_path)}
-    train_config(argsConfig)
-    assert str(tmp_path) in _modules_models, 'append of source path fails'
+    with pytest.raises(ModuleNotFoundError):
+        argsConfig = {'source_files': str(tmp_path)}
+        train_config(argsConfig)
 
 
 def test_config_reproducibility(create_TabularLoader):
