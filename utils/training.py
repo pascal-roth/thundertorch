@@ -28,13 +28,17 @@ def train_config(argsConfig: dict) -> None:
         except ModuleNotFoundError:
             raise ModuleNotFoundError('Defined path is not a module!')
 
-        _modules_models.append(source_path)
-        _modules_callbacks.append(source_path)
-        _modules_optim.append(source_path)
-        _modules_loss.append(source_path)
-        _modules_activation.append(source_path)
-        _modules_lr_scheduler.append(source_path)
-        _modules_loader.append(source_path)
+        if source_path in _modules_models:
+            _logger.debug(f'Individual Module {source_path} already included')
+        else:
+            _modules_models.append(source_path)
+            _modules_callbacks.append(source_path)
+            _modules_optim.append(source_path)
+            _modules_loss.append(source_path)
+            _modules_activation.append(source_path)
+            _modules_lr_scheduler.append(source_path)
+            _modules_loader.append(source_path)
+            _logger.debug(f'Individual Module {source_path} added')
 
     # check for reproducibility https://pytorch.org/docs/stable/notes/randomness.html
     if 'reproducibility' in argsConfig and argsConfig['reproducibility'] is True:

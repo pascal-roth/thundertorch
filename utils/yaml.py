@@ -317,6 +317,7 @@ def get_argsDict(argsModels):
     model_dicts = []
     for ModelName in model_list:
         argsModel = argsModels[ModelName]
+        argsModel = replace_expression(argsModel, ModelName)
 
         assert 'template' in argsModel, 'Definition of a Template necessary to change model keys!'
         yamlTemplate_location = argsModel.pop('template')
@@ -369,8 +370,8 @@ def get_num_processes(argsConfig: dict, argsModels: dict) -> tuple:
             _logger.debug(f'{nbr_processes} processes can be executed with {cpu_per_process} CPU(s) per process')
 
     if 'nbr_processes' in argsConfig:
-        _logger.debug(f'Config nbr_processes {argsConfig["nbr_processes"]} is compared with maximal possible number of '
-                      f'processes {nbr_processes}, minimum is selected')
+        _logger.debug(f'Config nbr_processes {argsConfig["nbr_processes"]} is compared with maximal possible or '
+                      f'default number of processes {nbr_processes}, minimum is selected')
         nbr_processes = min(nbr_processes, argsConfig['nbr_processes'])
 
     nbr_processes = min(len(argsModels), nbr_processes)
@@ -464,3 +465,24 @@ def replace_keys(dictMultiModel: dict, dictSingleModel: dict) -> dict:
 
     return dictRunModel
 
+
+def replace_expression(argsModel: dict, ModelName: str, expression: str = '{model_name}') -> dict:
+    """
+    In a multi layer dict replace the expression "{model_name}" by the defined ModelName. Convenience feature for the
+    MultiModel Training
+    """
+    def recursion(rec_dict: dict):
+        for key, value in rec_dict.items():
+            if isinstance(value, str):
+                rec_dict[key] = value.replace(expression, ModelName)
+            elif isinstance(value, dict):
+                rec_dict[key] = recursion(value)
+            elif isinstance(value, list) and all(isinstance(elem, dict) for elem in value):
+                for i, list_dict in enumerate(value):
+                    value[i] = recursion(list_dict)
+                rec_dict[key] = value
+
+        return rec_dict
+
+    argsModel = recursion(argsModel)
+    return argsModel
