@@ -4,12 +4,30 @@ Working Example: Code implementation
 The general usage of the ML Toolbox should be demonstrated here.
 Therefore, the following elements are included in this Example:
 
+-  Configuration of the training (optional)
 -  Creation of a DataLoader
 -  Creation of a LightningModel
 -  Training and testing of the Model
 -  Model Loading and training continuation
 
 Thereby, the TabularLoader and the LightningFlexMLP are used.
+
+Configuration
+-------------
+
+In the configuration individual modules can be added and the
+reproducibility option of the training activated. For a detailed
+explanation of the individual modules can be found
+`here <../getting_started/Individualized_modules.html>`__. If the
+reproducibility option it is selected the random seed of PyTorch and
+Numpy a set to fix value. The configuration is executed as follows:
+
+.. code:: python
+
+    from stfs_pytoolbox.ML_Utils.utils import train_config
+    
+    argsConfig = {'source_files': module_path, 'reproducibility': True}
+    train_config(argsConfig)
 
 DataLoader
 ----------

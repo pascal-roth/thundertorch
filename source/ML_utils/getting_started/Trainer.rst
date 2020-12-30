@@ -4,8 +4,9 @@ Trainer
 After having organized the model as LightningModule, the Trainer
 automates everything else. It governs training and testing, can decide
 whether and when a model is saved, if the losses are logged, how many
-epochs to train and so on … In case only default values are used, the
-trainer is reduced to the following code:
+epochs to train and so on … In case only default values are used and the
+DataLoader includes training, validation, and test data set, the trainer
+is reduced to the following code:
 
 .. code:: python
 
@@ -59,6 +60,8 @@ The most important callbacks are:
       further training can be initialized in the same script without
       entering the name with the corresponding epoch!!!
    -  has an own keyword in the trainer class
+
+A more detailed explanation is given `here <./Callbacks.html>`__.
 
 Logger
 ------

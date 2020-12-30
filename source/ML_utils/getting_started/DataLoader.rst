@@ -47,9 +47,9 @@ TabularLoader
     import yaml
     from stfs_pytoolbox.ML_Utils.utils import *
     
-    args_yaml = yaml.load(open('path.yaml'), Loader=yaml.FullLoader)
-    check_argsLoader(args_yaml)
-    dataLoader = get_dataLoader(argsLoader)
+    args_yaml = parse_yaml('path.yaml')
+    check_argsLoader(args_yaml['dataloader'])
+    dataLoader = get_dataLoader(args_yaml['dataloader'])
 
 DataLoader Classmethods
 -----------------------
@@ -61,7 +61,7 @@ known:
 
 -  Read from a file
 
-   -  supported file datatypes: .csv, .txt, .h5
+   -  supported file datatypes: .csv, .txt, .h5, .ulf
    -  there has to be only one key stored in the HDFStore
 
 -  Read from checkpoint

@@ -39,9 +39,9 @@ the yaml approach is demonstrated using the LightingFlexMLP:
     import yaml
     from stfs_pytoolbox.ML_Utils.utils import *
     
-    args_yaml = yaml.load(open('path.yaml'), Loader=yaml.FullLoader)
-    check_argsModel(args_yaml)
-    model = get_model(argsModel)
+    args_yaml = parse_yaml('path.yaml')
+    check_argsModel(args_yaml['model'])
+    model = get_model(argsModel['model'])
 
 If a Model is initialized by a direct code implementation, it requires a
 Namespace object as input. This object contains all required
@@ -162,14 +162,26 @@ example shown that employs the LightningFlexMLP:
     # save hparams to yaml file
     model.hparams_save('some_path.yaml')
 
-Evaluation metrics
-------------------
+LightningModelBase and Individual Models
+----------------------------------------
 
-It is possible to use different metrics to evaluate the training of the
-network. However, the metrics implemented in pytorch lightning are not
-available with version 0.7.6 so that the source code has to be copied
-into the metrics directory of the ML_Utils toolbox. As an example, this
-has been made with the “Explained Variance” metric which is included in
-the LightningFlexMLP network. As a consequence of using this metric the
-training, validation, and test steps/ epoch_end functions have to be
-adjusted.
+The Toolbox has an own ModelBase class which contains the repeading
+functions like training, validation and test step. This ModelBase Class
+furthermore has two functionalities that can construct most of the
+network layers which are included in torch.nn so that most models can be
+constructed by just using these functions.
+
+However, if the addressed task cannot be solved using the
+pre-implemented methods, individual modules can be constructed and then
+used instead. A detailed explanation on how to include individual models
+in the toolbox can be found `here <./Individualized_modules>`__. It is
+important to keep in mind that the functions defined in the
+stfs_pytoolbox.ML_utils.model._LightningModelTemplate.LightningModelTemplate
+have to be included since they will be used in the training procedure.
+
+Model Extensions
+----------------
+
+Model functionalities can be extended using different callbacks or
+metrics. Detailed explanations can be found here: -
+`Callbacks <./Callbacks.html>`__ - `Metrics <./Metrics.html>`__
