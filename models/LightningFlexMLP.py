@@ -47,9 +47,6 @@ class LightningFlexMLP(LightningModelBase):
         """
         super().__init__()
 
-        self.loss_fn = None
-        self.activation_fn = None
-
         self.hparams = hparams
         self.check_hparams()
         self.get_default()
