@@ -22,6 +22,12 @@ def train_config(argsConfig: dict) -> None:
     if 'source_files' in argsConfig:
         # source_path = os.path.join(os.getcwd(), argsConfig['source_files'] + '.py')
         source_path = argsConfig['source_files']
+
+        try:
+            importlib.import_module(source_path)
+        except ModuleNotFoundError:
+            raise ModuleNotFoundError('Defined path is not a module!')
+
         _modules_models.append(source_path)
         _modules_callbacks.append(source_path)
         _modules_optim.append(source_path)

@@ -7,10 +7,12 @@ import os
 import torch
 import pickle
 import yaml
+import importlib
 import pandas as pd
 from sklearn import preprocessing
 from argparse import Namespace
 
+from stfs_pytoolbox.ML_Utils import _modules_models
 from stfs_pytoolbox.ML_Utils import _logger
 from stfs_pytoolbox.ML_Utils.loader import _utils
 from stfs_pytoolbox.ML_Utils.utils.option_class import OptionClass
@@ -187,7 +189,7 @@ class CFDLoader:
     # save and load TabluarLoader object ##############################################################################
     def save(self, filename) -> None:
         """
-        Save TabularLoader cls as .pkl file
+        Save CFDLoader cls as .pkl file
 
         Parameters
         ----------
@@ -196,7 +198,7 @@ class CFDLoader:
         with open(filename, 'wb') as output:  # Overwrites any existing file.
             pickle.dump(self, output, pickle.HIGHEST_PROTOCOL)
         self.lparams.filename = filename
-        _logger.info('TabularLoader object saved')
+        _logger.info('CFDLoader object saved')
 
     @classmethod
     def load(cls, filename: str) -> object:
@@ -207,7 +209,7 @@ class CFDLoader:
     @classmethod
     def read_from_file(cls, file, features: list, labels: list, **kwargs) -> object:
         """
-        Create TabularLoader object from file
+        Create CFDLoader object from file
 
         Parameters
         ----------
@@ -218,7 +220,7 @@ class CFDLoader:
 
         Returns
         -------
-        object          - TabularLoader object
+        object          - CFDLoader object
         """
         df_samples = _utils.read_df_from_file(file)
         return cls(df_samples, features, labels, data_path=file,
@@ -227,7 +229,7 @@ class CFDLoader:
     @classmethod
     def read_from_yaml(cls, argsLoader: dict, **kwargs) -> object:
         """
-        Create TabularLoader object from a dict similar to the one given under yml_template
+        Create CFDLoader object from a dict similar to the one given under yml_template
 
         Parameters
         ----------
@@ -236,18 +238,18 @@ class CFDLoader:
 
         Returns
         -------
-        object          - TabularLoader object
+        object          - CFDLoader object
         """
-        options = TabularLoader.__get_OptionClass()
+        options = CFDLoader.__get_OptionClass()
         OptionClass.checker(input_dict=argsLoader, option_classes=options)
 
         if 'load_DataLoader' in argsLoader:
             _, file_extention = os.path.splitext(argsLoader['load_DataLoader']['path'])
             if file_extention == '.pkl':
-                Loader = TabularLoader.load(argsLoader['load_DataLoader']['path'])
+                Loader = CFDLoader.load(argsLoader['load_DataLoader']['path'])
                 Loader.lparams.data_path = argsLoader['load_DataLoader']['path']
             elif file_extention == '.ckpt':
-                Loader = TabularLoader.read_from_checkpoint(argsLoader['load_DataLoader']['path'])
+                Loader = CFDLoader.read_from_checkpoint(argsLoader['load_DataLoader']['path'])
             else:
                 raise TypeError('Not supported file type to load DataLoader! Only supported are ".pkl" and ".ckpt"')
 
@@ -262,7 +264,7 @@ class CFDLoader:
             argsCreate = argsLoader['create_DataLoader']
 
             # create Loader
-            Loader = TabularLoader.read_from_file(argsCreate.pop('raw_data_path'), features=argsCreate.pop('features'),
+            Loader = CFDLoader.read_from_file(argsCreate.pop('raw_data_path'), features=argsCreate.pop('features'),
                                                   labels=argsCreate.pop('labels'), **kwargs)
 
             # validation data
@@ -291,7 +293,7 @@ class CFDLoader:
         return Loader
 
     @classmethod
-    def read_from_checkpoint(cls, ckpt_file) -> object:
+    def read_from_checkpoint(cls, ckpt_file: str, model: str = 'LightningFlexMLP') -> object:
         """
         Create cls TabluarLoader from pytorch lightning checkpoint
         !! Hparams of the checkpoint had to be updated with lparams of the Loader in order to reconstruct the Loader!!
@@ -302,22 +304,31 @@ class CFDLoader:
 
         Returns
         -------
-        object          - TabularLoader object
+        object          - CFDLoader object
         """
-        from stfs_pytoolbox.ML_Utils import models
+        model_cls = None
+        for m in _modules_models:
+            try:
+                model_cls = getattr(importlib.import_module(m), model)
+                _logger.debug(f'Model Class of type {model} has been loaded from {m}')
+                break
+            except AttributeError or ModuleNotFoundError:
+                _logger.debug(f'Model Class of type {model} has NOT been loaded from {m}')
 
-        model = models.LightningFlexMLP.load_from_checkpoint(ckpt_file)  # TODO: implement for all model types
-        lparams = model.hparams.lparams
+        assert model_cls is not None, f'Model {model} not found in {_modules_models}'
+
+        pl_model = model_cls.load_from_checkpoint(ckpt_file)
+        lparams = pl_model.hparams.lparams
 
         assert hasattr(lparams, 'data_path'), 'Data cannot be reloaded because the pass is missing'
         _, file_extention = os.path.splitext(lparams.data_path)
 
         if file_extention == '.pkl':
-            Loader = TabularLoader.load(lparams.data_path)
+            Loader = CFDLoader.load(lparams.data_path)
         else:
             assert all(hasattr(lparams, elem) for elem in ['features', 'labels', 'batch', 'num_workers',
                                                            'x_scaler', 'y_scaler']), 'Parameters missing!'
-            Loader = TabularLoader.read_from_file(lparams.data_path, features=lparams.features,
+            Loader = CFDLoader.read_from_file(lparams.data_path, features=lparams.features,
                                                   labels=lparams.labels, batch=lparams.batch,
                                                   num_workers=lparams.num_workers,
                                                   x_scaler=lparams.x_scaler, y_scaler=lparams.y_scaler)
@@ -340,17 +351,17 @@ class CFDLoader:
 
     @staticmethod
     def get_OptionClass() -> dict:
-        options = {'DataLoader': OptionClass(template=TabularLoader.yaml_template(['DataLoader']))}
+        options = {'DataLoader': OptionClass(template=CFDLoader.yaml_template(['DataLoader']))}
         options['DataLoader'].add_key('type', dtype=str, required=True)
         options['DataLoader'].add_key('load_DataLoader', dtype=dict, mutually_exclusive=['create_DataLoader'])
         options['DataLoader'].add_key('create_DataLoader', dtype=dict, mutually_exclusive=['load_DataLoader'])
 
         options['load_DataLoader'] = OptionClass(
-            template=TabularLoader.yaml_template(['DataLoader', 'load_DataLoader']))
+            template=CFDLoader.yaml_template(['DataLoader', 'load_DataLoader']))
         options['load_DataLoader'].add_key('path', dtype=str, required=True)
 
         options['create_DataLoader'] = OptionClass(
-            template=TabularLoader.yaml_template(['DataLoader', 'create_DataLoader']))
+            template=CFDLoader.yaml_template(['DataLoader', 'create_DataLoader']))
         options['create_DataLoader'].add_key('raw_data_path', dtype=str, required=True)
         options['create_DataLoader'].add_key('features', dtype=list, required=True)
         options['create_DataLoader'].add_key('labels', dtype=list, required=True)
@@ -359,23 +370,23 @@ class CFDLoader:
         options['create_DataLoader'].add_key('save_Loader', dtype=dict)
 
         options['validation_data'] = OptionClass(
-            template=TabularLoader.yaml_template(['DataLoader', 'create_DataLoader',
+            template=CFDLoader.yaml_template(['DataLoader', 'create_DataLoader',
                                                   'validation_data']))
         options['validation_data'].add_key('load_data', dtype=dict, mutually_exclusive=['split_data'])
         options['validation_data'].add_key('split_data', dtype=dict, mutually_exclusive=['load_data'])
         options['test_data'] = options['validation_data']
-        options['test_data'].template = TabularLoader.yaml_template(['DataLoader', 'create_DataLoader', 'test_data'])
+        options['test_data'].template = CFDLoader.yaml_template(['DataLoader', 'create_DataLoader', 'test_data'])
 
-        options['load_data'] = OptionClass(template=TabularLoader.yaml_template(['DataLoader', 'create_DataLoader',
+        options['load_data'] = OptionClass(template=CFDLoader.yaml_template(['DataLoader', 'create_DataLoader',
                                                                                  'validation_data', 'load_data']))
         options['load_data'].add_key('path', dtype=str, required=True)
 
-        options['split_data'] = OptionClass(template=TabularLoader.yaml_template(['DataLoader', 'create_DataLoader',
+        options['split_data'] = OptionClass(template=CFDLoader.yaml_template(['DataLoader', 'create_DataLoader',
                                                                                   'validation_data', 'split_data']))
         options['split_data'].add_key('method', dtype=str, required=True)
         options['split_data'].add_key('params', dtype=[float, dict], required=True, param_dict=True)
 
-        options['save_Loader'] = OptionClass(template=TabularLoader.yaml_template(['DataLoader', 'create_DataLoader',
+        options['save_Loader'] = OptionClass(template=CFDLoader.yaml_template(['DataLoader', 'create_DataLoader',
                                                                                    'save_Loader']))
         options['save_Loader'].add_key('path', dtype=str, required=True)
 
@@ -384,9 +395,9 @@ class CFDLoader:
     @staticmethod
     def yaml_template(key_list: list) -> str:
         """
-        Yaml template of a TabularLoader object
+        Yaml template of a CFDLoader object
         """
-        template = {'DataLoader': {'type': 'TabularLoader',
+        template = {'DataLoader': {'type': 'CFDLoader',
                                    '###INFO###': 'load_DataLoader and create_DataLoader mutually exclusive',
                                    'load_DataLoader': {'path': 'name.pkl or modelXXX.ckpt'},
                                    'create_DataLoader': {'raw_data_path': 'samples_name.csv, .txt, .h5, .ulf',

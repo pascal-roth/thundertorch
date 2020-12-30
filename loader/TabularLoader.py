@@ -7,10 +7,12 @@ import os
 import torch
 import pickle
 import yaml
+import importlib
 import pandas as pd
 from sklearn import preprocessing
 from argparse import Namespace
 
+from stfs_pytoolbox.ML_Utils import _modules_models
 from stfs_pytoolbox.ML_Utils import _logger
 from stfs_pytoolbox.ML_Utils import models
 from stfs_pytoolbox.ML_Utils.loader import _utils
@@ -341,8 +343,18 @@ class TabularLoader:
         -------
         object          - TabularLoader object
         """
+        model_cls = None
+        for m in _modules_models:
+            try:
+                model_cls = getattr(importlib.import_module(m), model)
+                _logger.debug(f'Model Class of type {model} has been loaded from {m}')
+                break
+            except AttributeError or ModuleNotFoundError:
+                _logger.debug(f'Model Class of type {model} has NOT been loaded from {m}')
 
-        pl_model = getattr(models, model).load_from_checkpoint(ckpt_file)
+        assert model_cls is not None, f'Model {model} not found in {_modules_models}'
+
+        pl_model = model_cls.load_from_checkpoint(ckpt_file)
         lparams = pl_model.hparams.lparams
 
         assert hasattr(lparams, 'data_path'), 'Data cannot be reloaded because the pass is missing'
