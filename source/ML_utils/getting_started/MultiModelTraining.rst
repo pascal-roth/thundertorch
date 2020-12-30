@@ -105,3 +105,40 @@ Model001:
       - type: Checkpointing
         params:
           filepath: checkpoints/try
+
+Convenience Features
+--------------------
+
+There are two features implemented to support a quick construction of
+the MultiModelTraining:
+
+-  **path abbrevation**: in order to load a model checkpoint the
+   directory is sufficient if only one checkpoint is in the directory
+-  **expression replacement**: if a model should be saved or loaded,
+   often the name of the model (e. g. model001) is used either in the
+   path or for the checkpoint name itself. In order to allow a quicker
+   copy-paste creation of multiple models, the expression “{model_name}”
+   can be used. When the yaml file is read, this expression will be
+   replaced by the model name
+
+In the following example, the :
+
+Model001:
+  Template: single_model.yaml
+  DataLoader:
+    create_DataLoader:
+      raw_data_path: example_samples.csv
+      features: [feature_1, feature_2]
+      labels: [label_1, label_2]
+  Model:
+    load_model:
+      path: checkpoints/{model_name}
+    params:
+      loss: mse_loss
+  Trainer:
+    params:
+      max_epochs: 3
+    callbacks:
+      - type: Checkpointing
+        params:
+          filepath: checkpoints/{model_name}/{model_name}_conti
