@@ -17,7 +17,7 @@ from stfs_pytoolbox.ML_Utils import metrics
 # flexible MLP class
 class LightningModelBase(pl.LightningModule):
     """
-    Model Base of the Toolbox, includes repeading functions
+    Model Base of the Toolbox, includes repeating functions and functionalities to build network layers
     """
 
     def __init__(self):
@@ -41,6 +41,14 @@ class LightningModelBase(pl.LightningModule):
         self.layer_activation = (torch.nn.Conv1d, torch.nn.Conv2d, torch.nn.Conv3d, torch.nn.Linear,)
 
     def construct_nn(self, layer_list) -> None:
+        """
+        Functionality to build any kind of torch.nn layer (convolutional, pooling, padding, normalization, recurrent,
+        dropout, linear ...)
+
+        Parameters
+        ----------
+        layer_list          - list of layers with the corresponding parameters
+        """
         # Construct all conv layers
         for layer_dict in layer_list:
             if 'params' in layer_dict:
@@ -64,6 +72,15 @@ class LightningModelBase(pl.LightningModule):
                 self.layers.append(self.activation_fn)
 
     def construct_mlp(self, in_dim, hidden_layer, out_dim) -> None:
+        """
+        Quick functionality to built a MLP network
+
+        Parameters
+        ----------
+        in_dim              - input dimensions
+        hidden_layer        - dimensions of the hidden layers
+        out_dim             - output dimensions
+        """
         # Construct all MLP layers
         self.layers.append(torch.nn.Linear(in_dim, hidden_layer[0]))
         self.layers.append(self.activation_fn)
@@ -100,6 +117,9 @@ class LightningModelBase(pl.LightningModule):
             self.hparams.batch = 64
 
     def get_functions(self) -> None:
+        """
+        get activation and loss function from a source defined in _modules_activation or _modules_loss
+        """
         for m in _modules_activation:
             try:
                 self.activation_fn = getattr(importlib.import_module(m), self.hparams.activation)()
@@ -168,6 +188,10 @@ class LightningModelBase(pl.LightningModule):
             return optimizer
 
     def training_step(self, batch, batch_idx) -> dict:
+        """
+        Training step of the network
+        the "hiddens" dicts saves parameters which can be used in callback
+        """
         x, y = batch
         y_hat = self(x)
         try:
@@ -180,6 +204,10 @@ class LightningModelBase(pl.LightningModule):
         return results
 
     def validation_step(self, batch, batch_idx) -> dict:
+        """
+        Validation step of the network
+        the "hiddens" dicts saves parameters which can be used in callback
+        """
         x, y = batch
         y_hat = self(x)
         try:
@@ -190,6 +218,9 @@ class LightningModelBase(pl.LightningModule):
         return {'val_loss': loss, 'hiddens': hiddens}
 
     def validation_epoch_end(self, outputs) -> dict:
+        """
+        Actions performed at the end of validation epoch (incl. calculating the val_loss)
+        """
         val_loss = torch.stack([x['val_loss'] for x in outputs]).mean()
         if self.current_epoch == 0: self.min_val_loss = val_loss
         if val_loss < self.min_val_loss:
@@ -200,6 +231,10 @@ class LightningModelBase(pl.LightningModule):
         return results
 
     def test_step(self, batch, batch_idx) -> dict:
+        """
+        Test step of the network
+        the "hiddens" dicts saves parameters which can be used in callback
+        """
         x, y = batch
         y_hat = self(x)
         try:
@@ -210,6 +245,9 @@ class LightningModelBase(pl.LightningModule):
         return {'test_loss': loss, 'hiddens': hiddens}
 
     def test_epoch_end(self, outputs) -> dict:
+        """
+        Actions performed at the end of test epoch (incl. calculating the test_loss)
+        """
         test_loss = torch.stack([x['test_loss'] for x in outputs]).mean()
         log = {'avg_test_loss': test_loss}
         results = {'log': log, 'test_loss': test_loss}
