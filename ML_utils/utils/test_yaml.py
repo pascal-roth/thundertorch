@@ -180,6 +180,25 @@ def test_replace_keys(path):
         replace_keys(yaml_file, yamlTemplate)
 
 
+def test_replace_expression():
+    example_dict = {'dataloader': 'params', 'model': 'params', 'trainer': 'params_{model_name}'}
+    example_dict = replace_expression(example_dict, 'Model001')
+    assert example_dict['trainer'] == 'params_Model001', 'does not find expression'
+
+    example_dict = {'trainer': {'max_epochs': 3, 'load_from_checkpoint': './checkpoints/{model_name}'}}
+    example_dict = replace_expression(example_dict, 'Model001')
+    assert example_dict['trainer']['load_from_checkpoint'] == './checkpoints/Model001', 'Recursion fails'
+
+    example_dict = {'trainer': {'max_epochs': 3, 'load_from_checkpoint': './checkpoints/{model_name_new}'}}
+    example_dict = replace_expression(example_dict, 'Model001', '{model_name_new}')
+    assert example_dict['trainer']['load_from_checkpoint'] == './checkpoints/Model001', 'Expression adjustment fails'
+
+    example_dict = {'DataLoader': 'params', 'model': 'params', 'trainer':
+        [{'callback_1': 'param'}, {'callback_2': {'load_from_checkpoint': './checkpoints/{model_name}'}}]}
+    example_dict = replace_expression(example_dict, 'Model001')
+    assert example_dict['trainer'][1]['callback_2']['load_from_checkpoint'] == './checkpoints/Model001', 'List fails'
+
+
 @pytest.mark.dependency(depends=['test_replace_keys', 'test_get_argsModels'])
 def test_get_argsDict(path):
     argsMulti = parse_yaml(path / 'scripts/MultiModelInputEval.yaml')
