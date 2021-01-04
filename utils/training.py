@@ -158,6 +158,7 @@ def train_model(model: pl.LightningModule, dataLoader, argsTrainer) -> None:
 
         for i in range(len(argsTrainer.callbacks)):
 
+            # Extra handling of EarlyStopping and Checkpointing callbacks because they have extra flags in the Trainer
             if argsTrainer.callbacks[i]['type'] == 'EarlyStopping':
                 earlyStopping = pl.callbacks.EarlyStopping(**argsTrainer.callbacks[i]['params'])
                 argsTrainer.params['early_stop_callback'] = earlyStopping
@@ -179,8 +180,10 @@ def train_model(model: pl.LightningModule, dataLoader, argsTrainer) -> None:
                     callback = callback_cls()
                 callback_list.append(callback)
 
-        if callback_list != []:
+        if not callback_list:
             argsTrainer.params['callbacks'] = callback_list
+        else:
+            argsTrainer.params['callbacks'] = []
 
     else:
         _logger.info('No callbacks implemented')
