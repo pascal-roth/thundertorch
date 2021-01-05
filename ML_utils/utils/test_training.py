@@ -12,8 +12,7 @@ from stfs_pytoolbox.ML_Utils.utils.training import *
 from stfs_pytoolbox.ML_Utils.loader import TabularLoader
 from stfs_pytoolbox.ML_Utils.models import LightningFlexMLP
 from stfs_pytoolbox.ML_Utils.utils import parse_yaml
-from stfs_pytoolbox.ML_Utils import _modules_models, _modules_loader, _modules_callbacks, _modules_loss, \
-    _modules_optim, _modules_activation, _modules_lr_scheduler
+
 
 @pytest.fixture(scope='module')
 def path():
@@ -24,20 +23,22 @@ def path():
 def test_config_source_files(tmp_path):
     with pytest.raises(ModuleNotFoundError):
         argsConfig = {'source_files': str(tmp_path)}
-        train_config(argsConfig)
+        train_config(argsConfig, argsTrainer={})
 
 
 def test_config_reproducibility(create_TabularLoader):
     argsConfig = {'reproducibility': True}
-    train_config(argsConfig)
+    argsTrainer = {'params': {'max_epochs': 2, 'logger': False}}
+    argsTrainer = train_config(argsConfig, argsTrainer)
 
-    hparams = argparse.Namespace(**{'n_inp': 2, 'n_out': 2, 'hidden_layer': [16, 16]})
+    print(argsTrainer)
+    hparams = argparse.Namespace(**{'n_inp': 2, 'n_out': 2, 'hidden_layer': [8]})
     model_1 = LightningFlexMLP(hparams)
 
-    trainer_1 = pl.Trainer(max_epochs=2)
+    trainer_1 = pl.Trainer(**argsTrainer['params'])
     trainer_1.fit(model_1, train_dataloader=create_TabularLoader.train_dataloader(),
                   val_dataloaders=create_TabularLoader.val_dataloader())
-    trainer_2 = pl.Trainer(max_epochs=2)
+    trainer_2 = pl.Trainer(**argsTrainer['params'])
     trainer_2.fit(model_1, train_dataloader=create_TabularLoader.train_dataloader(),
                   val_dataloaders=create_TabularLoader.val_dataloader())
 

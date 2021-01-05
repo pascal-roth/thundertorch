@@ -11,6 +11,7 @@ from stfs_pytoolbox.ML_Utils.utils.yaml import *
 from stfs_pytoolbox.ML_Utils.models import LightningModelTemplate
 from stfs_pytoolbox.ML_Utils.loader import DataLoaderTemplate
 
+
 @pytest.fixture(scope='module')
 def path():
     path = Path(__file__).resolve()
@@ -181,11 +182,11 @@ def test_replace_keys(path):
 
 
 def test_replace_expression():
-    example_dict = {'dataloader': 'params', 'model': 'params', 'trainer': 'params_{model_name}'}
+    example_dict = {'dataloader': 'params', 'model': 'params', 'trainer': 'params_<model_name>'}
     example_dict = replace_expression(example_dict, 'Model001')
     assert example_dict['trainer'] == 'params_Model001', 'does not find expression'
 
-    example_dict = {'trainer': {'max_epochs': 3, 'load_from_checkpoint': './checkpoints/{model_name}'}}
+    example_dict = {'trainer': {'max_epochs': 3, 'load_from_checkpoint': './checkpoints/<model_name>'}}
     example_dict = replace_expression(example_dict, 'Model001')
     assert example_dict['trainer']['load_from_checkpoint'] == './checkpoints/Model001', 'Recursion fails'
 
@@ -194,9 +195,13 @@ def test_replace_expression():
     assert example_dict['trainer']['load_from_checkpoint'] == './checkpoints/Model001', 'Expression adjustment fails'
 
     example_dict = {'DataLoader': 'params', 'model': 'params', 'trainer':
-        [{'callback_1': 'param'}, {'callback_2': {'load_from_checkpoint': './checkpoints/{model_name}'}}]}
+        [{'callback_1': 'param'}, {'callback_2': {'load_from_checkpoint': './checkpoints/<model_name>'}}]}
     example_dict = replace_expression(example_dict, 'Model001')
     assert example_dict['trainer'][1]['callback_2']['load_from_checkpoint'] == './checkpoints/Model001', 'List fails'
+
+    example_dict = {'model': ['label_1', '<model_name>', 'label_3']}
+    example_dict = replace_expression(example_dict, 'Model001')
+    assert example_dict['model'][1] == 'Model001', 'List of str fails'
 
 
 @pytest.mark.dependency(depends=['test_replace_keys', 'test_get_argsModels'])
