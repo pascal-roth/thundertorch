@@ -54,11 +54,12 @@ def check_yaml_version(args_yaml: dict) -> None:  # TODO: assert error if yaml f
 
 
 # argument checking ###################################################################################################
-def check_args(argsModel: dict, argsLoader: dict, argsTrainer: dict) -> None:
-    # transform to namespace objects
-    check_argsModel(argsModel)
-    check_argsLoader(argsLoader)
-    check_argsTrainer(argsTrainer)
+def check_args(argsYaml: dict) -> None:
+    check_argsModel(argsYaml['model'])
+    check_argsLoader(argsYaml['dataloader'])
+    check_argsTrainer(argsYaml['trainer'])
+    if 'config' in argsYaml:
+        check_argsConfig_single(argsYaml['config'])
 
 
 def check_argsModel(argsModel: dict) -> None:

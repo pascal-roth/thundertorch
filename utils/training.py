@@ -8,7 +8,6 @@ import importlib
 import os
 import pytorch_lightning as pl
 import torch
-import numpy as np
 
 from stfs_pytoolbox.ML_Utils import _logger
 from stfs_pytoolbox.ML_Utils import logger     # Logger that are defined in __all__ in the __init__ file
@@ -17,7 +16,7 @@ from stfs_pytoolbox.ML_Utils import _modules_models, _modules_loader, _modules_c
     _modules_optim, _modules_activation, _modules_lr_scheduler
 
 
-def train_config(argsConfig: dict) -> None:
+def train_config(argsConfig: dict, argsTrainer: dict) -> dict:
     # add source path for modules defined in __init__
     if 'source_files' in argsConfig:
         # source_path = os.path.join(os.getcwd(), argsConfig['source_files'] + '.py')
@@ -42,9 +41,10 @@ def train_config(argsConfig: dict) -> None:
 
     # check for reproducibility https://pytorch.org/docs/stable/notes/randomness.html
     if 'reproducibility' in argsConfig and argsConfig['reproducibility'] is True:
-        torch.manual_seed(0)
-        np.random.seed(0)
-        # torch.backends.cudnn.benchmark = False   # can decrease performance!!!
+        pl.seed_everything(42)
+        argsTrainer['params']['deterministic'] = True
+
+    return argsTrainer
 
 
 def get_model(argsModel) -> pl.LightningModule:

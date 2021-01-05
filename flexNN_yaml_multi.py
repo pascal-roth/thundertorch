@@ -11,7 +11,7 @@ from stfs_pytoolbox.ML_Utils.utils import *
 
 
 def execute_model(model, argsTrainer: dict, dataLoader, argsConfig: dict) -> None:
-    train_config(argsConfig)
+    argsTrainer = train_config(argsConfig, argsTrainer)
     train_model(model, dataLoader, argsTrainer)
 
 
