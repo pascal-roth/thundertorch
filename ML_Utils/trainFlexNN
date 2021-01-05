@@ -15,19 +15,14 @@ def main(args_yaml):
     check_yaml_version(args_yaml)
     check_yaml_structure(args_yaml)
 
+    check_args(args_yaml)
+
     if 'config' in args_yaml:
-        check_argsConfig(args_yaml['config'])
-        train_config(args_yaml['config'])
+        args_yaml['trainer'] = train_config(args_yaml['config'], args_yaml['trainer'])
 
-    argsLoader = args_yaml['dataloader']
-    argsModel = args_yaml['model']
-    argsTrainer = args_yaml['trainer']
-
-    check_args(argsModel, argsLoader, argsTrainer)
-
-    model = get_model(argsModel)
-    dataLoader = get_dataLoader(argsLoader, model=model)
-    train_model(model, dataLoader, argsTrainer)
+    model = get_model(args_yaml['model'])
+    dataLoader = get_dataLoader(args_yaml['dataloader'], model=model)
+    train_model(model, dataLoader, args_yaml['trainer'])
 
 
 if __name__ == '__main__':
