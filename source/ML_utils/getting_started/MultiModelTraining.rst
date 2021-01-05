@@ -117,11 +117,18 @@ the MultiModelTraining:
 -  **expression replacement**: if a model should be saved or loaded,
    often the name of the model (e. g. model001) is used either in the
    path or for the checkpoint name itself. In order to allow a quicker
-   copy-paste creation of multiple models, the expression “{model_name}”
-   can be used. When the yaml file is read, this expression will be
-   replaced by the model name
+   copy-paste creation of multiple models, the expression “” can be
+   used. When the yaml file is read, this expression will be replaced by
+   the model name
 
-In the following example, the :
+   -  ATTENTION: keep in mind that the model name is transformed to
+      lower letters, this can be important if the model name should be
+      used in features or labels since there occurance in the raw data
+      will most likely be still case sensitive
+
+In the following example, the only model in the directory
+“checkpoints/model001” will be loaded and saved under the path
+“checkpoints/model001/model001_conti”:
 
 Model001:
   Template: single_model.yaml
@@ -132,7 +139,7 @@ Model001:
       labels: [label_1, label_2]
   Model:
     load_model:
-      path: checkpoints/{model_name}
+      path: checkpoints/<model_name>
     params:
       loss: mse_loss
   Trainer:
@@ -141,4 +148,4 @@ Model001:
     callbacks:
       - type: Checkpointing
         params:
-          filepath: checkpoints/{model_name}/{model_name}_conti
+          filepath: checkpoints/<model_name>/<model_name>_conti
