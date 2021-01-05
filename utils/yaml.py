@@ -467,7 +467,7 @@ def replace_keys(dictMultiModel: dict, dictSingleModel: dict) -> dict:
     return dictRunModel
 
 
-def replace_expression(argsModel: dict, ModelName: str, expression: str = '{model_name}') -> dict:
+def replace_expression(argsModel: dict, ModelName: str, expression: str = '<model_name>') -> dict:
     """
     In a multi layer dict replace the expression "{model_name}" by the defined ModelName. Convenience feature for the
     MultiModel Training
@@ -482,6 +482,8 @@ def replace_expression(argsModel: dict, ModelName: str, expression: str = '{mode
                 for i, list_dict in enumerate(value):
                     value[i] = recursion(list_dict)
                 rec_dict[key] = value
+            elif isinstance(value, list) and all(isinstance(elem, str) for elem in value):
+                rec_dict[key] = list(elem.replace(expression, ModelName) for elem in value)
 
         return rec_dict
 
