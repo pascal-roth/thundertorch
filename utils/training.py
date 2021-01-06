@@ -151,9 +151,9 @@ def train_model(model: pl.LightningModule, dataLoader, argsTrainer) -> None:
     if isinstance(argsTrainer, dict):
         argsTrainer = argparse.Namespace(**argsTrainer)
 
+    callback_list = []
     # create callback objects
     if hasattr(argsTrainer, 'callbacks'):
-        callback_list = []
         if not isinstance(argsTrainer.callbacks, list): argsTrainer.callbacks = list(argsTrainer.callbacks)
 
         for i in range(len(argsTrainer.callbacks)):
