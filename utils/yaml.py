@@ -489,3 +489,37 @@ def replace_expression(argsModel: dict, ModelName: str, expression: str = '<mode
 
     argsModel = recursion(argsModel)
     return argsModel
+
+
+# Header for single and multi-model YAML ##############################################################################
+def header(name_model: str, name_loader: str) -> tuple:
+    # construct single yaml header
+    header_single = f"+-----------------------------+\n" \
+                    f"|  Machine Learning ToolBox   |\n" \
+                    f"+-----------------------------+\n \n" \
+                    f"YAML for Single Model Training\n" \
+                    f"------------------------------\n \n" \
+                    f"The YAML contains 4 parts (Config, DataLoader, Model and Trainer) which are required for " \
+                    f"the ML task. This template is fitted for: \n" \
+                    f"   Model:         {name_model}\n" \
+                    f"   DataLoader:    {name_loader}\n" \
+                    f"After adjusting the YAML run the script 'trainFlexNN' to execute the ML task.\n" \
+                    f"For the documentation see: https://boettler.pages.rwth-aachen.de/pythonToolBox/ML_utils" \
+                    f"/working_examples/working_example_yaml.html \n" \
+                    f"------------------------------ \n"
+
+    # construct single yaml header
+    header_multi = "+-----------------------------+\n" \
+                   "|  Machine Learning ToolBox   |\n" \
+                   "+-----------------------------+\n \n" \
+                   "YAML for Multi Model Training \n" \
+                   "------------------------------\n \n" \
+                   "YAML interface for training multiple model in parallel. Parallel computing parameters can be " \
+                   "adjusted at the config tree. \n Each model has an own tree and required the definition of a " \
+                   "single-model yaml as template. \n In the following the keys of the single-yaml can be adjusted.\n" \
+                   "After adjusting the YAML run the script 'trainFlexNNmulti' to execute the ML task. \n" \
+                   "For the documentation see: https://boettler.pages.rwth-aachen.de/pythonToolBox/ML_utils" \
+                   "/getting_started/MultiModelTraining.html \n" \
+                   "-----------------------------\n"
+
+    return header_single, header_multi

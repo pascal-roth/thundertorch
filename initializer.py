@@ -25,14 +25,17 @@ def initializer():
     trainer_dict = utils.yaml.trainer_yml_template([])
     config_dict = utils.yaml.config_yml_template([])
 
+    # get header
+    header_single, header_multi = utils.yaml.header(name_model, name_loader)
+
     with open(f'{os.getcwd()}/{name_loader}_{name_model}.yaml', 'w') as file:
-        file.write(f'{config_dict}\n{loader_dict}\n{model_dict}\n{trainer_dict}')
+        file.write(f'{header_single}\n{config_dict}\n{loader_dict}\n{model_dict}\n{trainer_dict}')
 
     # construct multi yaml
     multi_dict = utils.yaml.multimodel_training_yml_template([], template=f'{name_loader}_{name_model}.yaml')
 
     with open(f'{os.getcwd()}/MultiModelTraining.yaml', 'w') as file:
-        file.write(f'{multi_dict}')
+        file.write(f'{header_multi}\n{multi_dict}')
 
 
 if __name__ == '__main__':
