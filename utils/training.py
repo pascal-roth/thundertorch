@@ -180,7 +180,7 @@ def train_model(model: pl.LightningModule, dataLoader, argsTrainer) -> None:
                     callback = callback_cls()
                 callback_list.append(callback)
 
-        if not callback_list:
+        if callback_list:
             argsTrainer.params['callbacks'] = callback_list
         else:
             argsTrainer.params['callbacks'] = []
@@ -213,7 +213,6 @@ def train_model(model: pl.LightningModule, dataLoader, argsTrainer) -> None:
 
     # define trainer and start training
     trainer = pl.Trainer.from_argparse_args(argparse.Namespace(**argsTrainer.params))
-    trainer.callbacks = callback_list
 
     if all(getattr(dataLoader, item) is not None for item in ['x_val', 'y_val']):
         _logger.debug('Training and validation data included in DataLoader -> Model validation is performed!')
