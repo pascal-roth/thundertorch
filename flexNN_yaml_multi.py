@@ -1,5 +1,5 @@
 #######################################################################################################################
-# Load arguments of input_LightningFlexMLP_single.yaml and execute LightningFlexMLP.py
+# Load arguments of multi yaml and execute single yaml
 #######################################################################################################################
 
 # import packages
@@ -11,7 +11,7 @@ from stfs_pytoolbox.ML_Utils.utils import *
 
 
 def execute_model(model, argsTrainer: dict, dataLoader, argsConfig: dict) -> None:
-    train_config(argsConfig)
+    argsTrainer = train_config(argsConfig, argsTrainer)
     train_model(model, dataLoader, argsTrainer)
 
 
@@ -36,20 +36,16 @@ def main(argsMulti):
             check_yaml_version(model_dicts[ii])
             check_yaml_structure(model_dicts[ii])
 
-            argsLoader = model_dicts[ii]['dataloader']
-            argsModel = model_dicts[ii]['model']
-            argsTrainer.append(model_dicts[ii]['trainer'])
+            check_args(model_dicts[ii])
 
             if 'config' in model_dicts[ii]:
                 argsConfig.append(model_dicts[ii]['config'])
-                check_argsConfig_single(model_dicts[ii]['config'])
             else:
                 argsConfig.append([])
 
-            check_args(argsModel, argsLoader, argsTrainer[i])
-
-            models.append(get_model(argsModel))
-            dataLoader.append(get_dataLoader(argsLoader, models[i]))
+            models.append(get_model(model_dicts[ii]['model']))
+            argsTrainer.append(model_dicts[ii]['trainer'])
+            dataLoader.append(get_dataLoader(model_dicts[ii]['dataloader'], models[i]))
 
             # Increase outer loop counter, need to check if while loop condition is still valid, if not exit inner loop
             ii += 1

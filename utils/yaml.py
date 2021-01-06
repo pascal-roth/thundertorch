@@ -54,11 +54,12 @@ def check_yaml_version(args_yaml: dict) -> None:  # TODO: assert error if yaml f
 
 
 # argument checking ###################################################################################################
-def check_args(argsModel: dict, argsLoader: dict, argsTrainer: dict) -> None:
-    # transform to namespace objects
-    check_argsModel(argsModel)
-    check_argsLoader(argsLoader)
-    check_argsTrainer(argsTrainer)
+def check_args(argsYaml: dict) -> None:
+    check_argsModel(argsYaml['model'])
+    check_argsLoader(argsYaml['dataloader'])
+    check_argsTrainer(argsYaml['trainer'])
+    if 'config' in argsYaml:
+        check_argsConfig_single(argsYaml['config'])
 
 
 def check_argsModel(argsModel: dict) -> None:
@@ -466,7 +467,7 @@ def replace_keys(dictMultiModel: dict, dictSingleModel: dict) -> dict:
     return dictRunModel
 
 
-def replace_expression(argsModel: dict, ModelName: str, expression: str = '{model_name}') -> dict:
+def replace_expression(argsModel: dict, ModelName: str, expression: str = '<model_name>') -> dict:
     """
     In a multi layer dict replace the expression "{model_name}" by the defined ModelName. Convenience feature for the
     MultiModel Training
@@ -481,6 +482,8 @@ def replace_expression(argsModel: dict, ModelName: str, expression: str = '{mode
                 for i, list_dict in enumerate(value):
                     value[i] = recursion(list_dict)
                 rec_dict[key] = value
+            elif isinstance(value, list) and all(isinstance(elem, str) for elem in value):
+                rec_dict[key] = list(elem.replace(expression, ModelName) for elem in value)
 
         return rec_dict
 
