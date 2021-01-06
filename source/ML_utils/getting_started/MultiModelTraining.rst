@@ -84,9 +84,7 @@ operation.
 list, the type is required in order to add/ change keys in the params
 dict. - Only keys in the last layer can be changed and the path towards
 those keys has to be included in both, the template yaml and the model
-definition in the MultiModel yaml. - model names have to be different by
-at least on letter, since every key is transformed to lower case (except
-after split case where the features can be defined)
+definition in the MultiModel yaml.
 
 Model001:
   Template: single_model.yaml
@@ -121,10 +119,11 @@ the MultiModelTraining:
    used. When the yaml file is read, this expression will be replaced by
    the model name
 
-   -  ATTENTION: keep in mind that the model name is transformed to
-      lower letters, this can be important if the model name should be
-      used in features or labels since there occurance in the raw data
-      will most likely be still case sensitive
+   -  ATTENTION: keep in mind that the model name **is not transformed
+      to lower letters** (in opposite of all other keys), this can be
+      important if the model name should be used in features or labels
+      since there occurance in the raw data will most likely be case
+      sensitive so that the right still can be found
 
 In the following example, the only model in the directory
 “checkpoints/model001” will be loaded and saved under the path
