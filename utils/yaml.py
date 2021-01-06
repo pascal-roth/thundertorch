@@ -17,35 +17,36 @@ from stfs_pytoolbox.ML_Utils.utils.option_class import OptionClass
 from stfs_pytoolbox.ML_Utils import _modules_models, _modules_callbacks, _modules_loader
 
 
-def parse_yaml(yaml_path) -> dict:
+def parse_yaml(yaml_path: str, low_key: bool = True) -> dict:
     """
     Parse yaml file and lower case all keys
     """
     flexMLP_yaml = open(yaml_path)
     yaml_dict = yaml.load(flexMLP_yaml, Loader=yaml.FullLoader)
-    yaml_dict = lower_keys(yaml_dict)
+    if low_key:
+        yaml_dict = lower_keys(yaml_dict)
     return yaml_dict
 
 
-def lower_keys(yaml_dict: dict) -> dict:
+def lower_keys(dict_file: dict) -> dict:
 
-    def recursion(yaml_dict: dict):
-        yaml_dict = dict((k.lower(), v) for k, v in yaml_dict.items())
+    def recursion(dict_file_rec: dict):
+        dict_file_rec = dict((k.lower(), v) for k, v in dict_file_rec.items())
 
-        for key, value in yaml_dict.items():
+        for key, value in dict_file_rec.items():
             if key == 'split_data':
                 pass
             elif isinstance(value, dict):
-                yaml_dict[key] = recursion(value)
+                dict_file_rec[key] = recursion(value)
             elif isinstance(value, list) and all(isinstance(elem, dict) for elem in value):
                 for i, list_dict in enumerate(value):
                     value[i] = recursion(list_dict)
-                yaml_dict[key] = value
+                dict_file_rec[key] = value
 
-        return yaml_dict
+        return dict_file_rec
 
-    yaml_dict = recursion(yaml_dict)
-    return yaml_dict
+    dict_file = recursion(dict_file)
+    return dict_file
 
 
 def check_yaml_version(args_yaml: dict) -> None:  # TODO: assert error if yaml file changed with a new version
@@ -279,13 +280,17 @@ def config_multi(argsMulti: dict) -> tuple:
     return nbr_processes, list_gpu, model_dicts
 
 
-def get_argsModel(argsMulti):
+def get_argsModel(argsMulti: dict) -> tuple:
     """
     Select the defined models which should be trained
     """
     # check if config dict in yaml
-    if 'config' in argsMulti:
-        argsConfig = argsMulti.pop('config')
+    if 'config' or 'Config' in argsMulti:
+        try:
+            argsConfig = argsMulti.pop('config')
+        except KeyError:
+            argsConfig = argsMulti.pop('Config')
+        argsConfig = lower_keys(argsConfig)
         check_argsConfig_multi(argsConfig)
         _logger.debug('Config file included and controlled')
         if not argsConfig: _logger.warning('Defined config tree is empty!')
@@ -298,9 +303,9 @@ def get_argsModel(argsMulti):
         model_run_list = argsConfig.pop('model_run')
 
         if isinstance(model_run_list, str): model_run_list = [model_run_list]
-        model_run_list = list(name.lower() for name in model_run_list)
 
-        assert all(elem in argsMulti for elem in model_run_list), 'Model name included in "model_run" not found!'
+        assert all(elem in argsMulti for elem in model_run_list), f'Model name included in "model_run": ' \
+                                                                  f'{model_run_list} not found!'
         argsModels = {model_key: argsMulti[model_key] for model_key in model_run_list}
         assert len(argsModels) != 0, 'No models defined in "input_MultiModelTraining.yaml"!'
     else:
@@ -310,7 +315,7 @@ def get_argsModel(argsMulti):
     return argsModels, argsConfig
 
 
-def get_argsDict(argsModels):
+def get_argsDict(argsModels: dict) -> list:
     """
     Get the defined keys in the MultiModel yaml and compare it to the template. Final keys are given back for training
     """
@@ -318,6 +323,7 @@ def get_argsDict(argsModels):
     model_dicts = []
     for ModelName in model_list:
         argsModel = argsModels[ModelName]
+        argsModel = lower_keys(argsModel)
         argsModel = replace_expression(argsModel, ModelName)
 
         assert 'template' in argsModel, 'Definition of a Template necessary to change model keys!'
