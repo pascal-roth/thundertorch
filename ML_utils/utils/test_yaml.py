@@ -132,33 +132,32 @@ def test_check_argsTrainer():
 @pytest.mark.dependency(depends=['test_lower_keys'])
 def test_get_argsModels(path):
     # without config tree
-    argsMulti = parse_yaml(path / 'scripts/MultiModelInputEval.yaml')
+    argsMulti = parse_yaml(path / 'scripts/MultiModelInputEval.yaml', low_key=False)
     _ = argsMulti.pop('config')
     argsModels, argsConfig = get_argsModel(argsMulti)
     assert argsModels == argsMulti, 'filter accesses model_run, which should not be included'
     assert argsConfig == [], 'argsConfig are created at some point, normally should not be present'
 
     # with config tree
-    argsMulti = parse_yaml(path / 'scripts/MultiModelInputEval.yaml')
-    argsMulti['config']['model_run'] = 'model001'
+    argsMulti = parse_yaml(path / 'scripts/MultiModelInputEval.yaml', low_key=False)
+    argsMulti['config']['model_run'] = 'Model001'
     argsModels, argsConfig = get_argsModel(argsMulti)
-    print(argsMulti)
-    assert argsModels == {'model001': argsMulti['model001']}, 'model_run filter not working'
+    assert argsModels == {'Model001': argsMulti['Model001']}, 'model_run filter not working'
     assert 'config' not in argsMulti, 'argsConfig not separated correctly from argsMulti'
     assert 'config' not in argsModels, 'Config file not removed from argsModels'
 
     with pytest.raises(AssertionError):  # model name included in model_run not found
-        argsMulti = parse_yaml(path / 'scripts/MultiModelInputEval.yaml')
+        argsMulti = parse_yaml(path / 'scripts/MultiModelInputEval.yaml', low_key=False)
         argsMulti['config']['model_run'] = 'model1'
         get_argsModel(argsMulti)
     with pytest.raises(AssertionError):  # model_run is empty
-        argsMulti = parse_yaml(path / 'scripts/MultiModelInputEval.yaml')
+        argsMulti = parse_yaml(path / 'scripts/MultiModelInputEval.yaml', low_key=False)
         argsMulti['config']['model_run'] = []
         get_argsModel(argsMulti)
 
     # with empty config tree
     with pytest.raises(AssertionError):
-        argsMulti = parse_yaml(path / 'scripts/MultiModelInputEval.yaml')
+        argsMulti = parse_yaml(path / 'scripts/MultiModelInputEval.yaml', low_key=False)
         _ = argsMulti['config'].pop('model_run')
         get_argsModel(argsMulti)
 
@@ -206,26 +205,30 @@ def test_replace_expression():
 
 @pytest.mark.dependency(depends=['test_replace_keys', 'test_get_argsModels'])
 def test_get_argsDict(path):
-    argsMulti = parse_yaml(path / 'scripts/MultiModelInputEval.yaml')
-    argsMulti['model001']['template'] = argsMulti['model002']['template'] = str(
+    argsMulti = parse_yaml(path / 'scripts/MultiModelInputEval.yaml', low_key=False)
+    argsMulti['Model001']['template'] = argsMulti['Model002']['template'] = str(
         path / 'scripts/SingleModelInputEval.yaml')
+    argsMulti['Model001']['Trainer']['callbacks'][1]['params']['filepath'] = '<model_name>'
     argsModels, argsConfig = get_argsModel(argsMulti)
     model_dicts = get_argsDict(argsModels)
     assert len(model_dicts) == 2, 'dict appending fails'
     assert 'template' not in model_dicts[0], 'removal of template key fails'
+    assert model_dicts[0]['trainer']['callbacks'][1]['params']['filepath'] == 'Model001', \
+        'replace expression with capital letter model name fails'
 
     with pytest.raises(AssertionError):  # template definition missing
-        argsMulti = parse_yaml(path / 'scripts/MultiModelInputEval.yaml')
-        _ = argsMulti['model001'].pop('template')
+        argsMulti = parse_yaml(path / 'scripts/MultiModelInputEval.yaml', low_key=False)
+        _ = argsMulti['Model001'].pop('Template')
         argsModels, argsConfig = get_argsModel(argsMulti)
         get_argsDict(argsModels)
+
 
 
 @pytest.mark.dependency(depends=['test_get_argsModels'])
 def test_get_num_processes(path):
     # without definition of cpu_per_model and gpu_per_model
-    argsMulti = parse_yaml(path / 'scripts/MultiModelInputEval.yaml')
-    argsMulti['model001']['template'] = argsMulti['model002']['template'] = str(
+    argsMulti = parse_yaml(path / 'scripts/MultiModelInputEval.yaml', low_key=False)
+    argsMulti['Model001']['template'] = argsMulti['Model002']['template'] = str(
         path / 'scripts/SingleModelInputEval.yaml')
     argsModels, argsConfig = get_argsModel(argsMulti)
     nbr_processes, list_gpu = get_num_processes(argsConfig, argsModels)
@@ -234,19 +237,19 @@ def test_get_num_processes(path):
 
     # with definition of gpu_per_model
     with pytest.raises(AssertionError):
-        argsMulti = parse_yaml(path / 'scripts/MultiModelInputEval.yaml')
+        argsMulti = parse_yaml(path / 'scripts/MultiModelInputEval.yaml', low_key=False)
         argsModels, argsConfig = get_argsModel(argsMulti)
         argsConfig['gpu_per_model'] = 1
         get_num_processes(argsConfig, argsModels)
 
     # with defintion of cpu_per_model
-    argsMulti = parse_yaml(path / 'scripts/MultiModelInputEval.yaml')
+    argsMulti = parse_yaml(path / 'scripts/MultiModelInputEval.yaml', low_key=False)
     argsModels, argsConfig = get_argsModel(argsMulti)
     argsConfig['cpu_per_model'] = int(os.cpu_count() / 2)
     nbr_processes, list_gpu = get_num_processes(argsConfig, argsModels)
     assert nbr_processes == 2, f'nbr_processes "{nbr_processes}" intended to be 2'
 
-    argsMulti = parse_yaml(path / 'scripts/MultiModelInputEval.yaml')
+    argsMulti = parse_yaml(path / 'scripts/MultiModelInputEval.yaml', low_key=False)
     argsModels, argsConfig = get_argsModel(argsMulti)
     argsConfig['cpu_per_model'] = int(os.cpu_count() / 4)
     nbr_processes, list_gpu = get_num_processes(argsConfig, argsModels)
@@ -254,13 +257,13 @@ def test_get_num_processes(path):
                                f'available'
 
     with pytest.raises(AssertionError):  # nbr of cpu_per_model exceeds available cpu's
-        argsMulti = parse_yaml(path / 'scripts/MultiModelInputEval.yaml')
+        argsMulti = parse_yaml(path / 'scripts/MultiModelInputEval.yaml', low_key=False)
         argsModels, argsConfig = get_argsModel(argsMulti)
         argsConfig['cpu_per_model'] = os.cpu_count() + 1
         get_num_processes(argsConfig, argsModels)
 
     # with definition of nbr_processes
-    argsMulti = parse_yaml(path / 'scripts/MultiModelInputEval.yaml')
+    argsMulti = parse_yaml(path / 'scripts/MultiModelInputEval.yaml', low_key=False)
     argsModels, argsConfig = get_argsModel(argsMulti)
     argsConfig['cpu_per_model'] = int(os.cpu_count() / 2)
     argsConfig['nbr_processes'] = 1
