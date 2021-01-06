@@ -70,5 +70,5 @@ def main(argsMulti):
 if __name__ == '__main__':
     args = parse_arguments()
     logger_level(args)
-    args_yaml = parse_yaml(args.yaml_path)
+    args_yaml = parse_yaml(args.yaml_path, low_key=False)
     main(args_yaml)
