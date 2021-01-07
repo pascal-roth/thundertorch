@@ -285,7 +285,7 @@ def get_argsModel(argsMulti: dict) -> tuple:
     Select the defined models which should be trained
     """
     # check if config dict in yaml
-    if 'config' or 'Config' in argsMulti:
+    if 'config' in argsMulti or 'Config' in argsMulti:
         try:
             argsConfig = argsMulti.pop('config')
         except KeyError:
