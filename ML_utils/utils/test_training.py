@@ -65,6 +65,17 @@ def test_get_dataloader(path, create_LightningFlexMLP, tmp_path, create_random_d
     assert isinstance(dataLoader, TabularLoader)
 
 
+@pytest.mark.dependency()
+def test_callbacks():
+    pass
+
+
+@pytest.mark.dependency()
+def test_logger():
+    pass
+
+
+@pytest.mark.dependency(depend=['test_callbacks', 'test_logger'])
 def test_train_model(path, create_LightningFlexMLP, create_TabularLoader):
     yaml_file = parse_yaml(path / 'MinimalSingleModelInputEval.yml')
     argsTrainer = yaml_file.pop('trainer')

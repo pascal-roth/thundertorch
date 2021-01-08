@@ -18,7 +18,7 @@ Model001:
     create_model:
       n_inp: 1
       n_out: 2
-      hidden_layer: [64, 64, 64]
+      hidden_layer: [16]
   Trainer:
     params:
       max_epochs: 3
@@ -47,7 +47,7 @@ Model002:
     create_model:
       n_inp: 2
       n_out: 2
-      hidden_layer: [64, 64]
+      hidden_layer: [8]
     params:
       optimizer:
         type: SGD
