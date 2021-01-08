@@ -139,6 +139,7 @@ def get_dataLoader(argsLoader: dict, model: pl.LightningModule = None):
 
 
 def train_model(model: pl.LightningModule, dataLoader, argsTrainer) -> None:
+    # TODO: change argsTrainer to dict
     """
     Train a given model with the data included in the DataLoader object
 
@@ -151,69 +152,88 @@ def train_model(model: pl.LightningModule, dataLoader, argsTrainer) -> None:
     if isinstance(argsTrainer, dict):
         argsTrainer = argparse.Namespace(**argsTrainer)
 
-    callback_list = []
     # create callback objects
     if hasattr(argsTrainer, 'callbacks'):
-        if not isinstance(argsTrainer.callbacks, list): argsTrainer.callbacks = list(argsTrainer.callbacks)
-
-        for i in range(len(argsTrainer.callbacks)):
-
-            # Extra handling of EarlyStopping and Checkpointing callbacks because they have extra flags in the Trainer
-            if argsTrainer.callbacks[i]['type'] == 'EarlyStopping':
-                earlyStopping = pl.callbacks.EarlyStopping(**argsTrainer.callbacks[i]['params'])
-                argsTrainer.params['early_stop_callback'] = earlyStopping
-            elif argsTrainer.callbacks[i]['type'] == 'Checkpointing':
-                checkpoint = callbacks.Checkpointing(**argsTrainer.callbacks[i]['params'])
-                argsTrainer.params['checkpoint_callback'] = checkpoint
-            else:
-                # Check from which destination the callback class is loaded
-                for m in _modules_callbacks:
-                    try:
-                        callback_cls = getattr(importlib.import_module(m), argsTrainer.callbacks[i]['type'])
-                        break
-                    except AttributeError:
-                        _logger.debug('Callback of type {} NOT found in {}'.format(argsTrainer.callbacks[i]['type'], m))
-
-                if 'params' in argsTrainer.callbacks[i]:
-                    callback = callback_cls(**argsTrainer.callbacks[i]['params'])
-                else:
-                    callback = callback_cls()
-                callback_list.append(callback)
-
-        if callback_list:
-            argsTrainer.params['callbacks'] = callback_list
-        else:
-            argsTrainer.params['callbacks'] = []
-
+        argsTrainer = train_callbacks(argsTrainer)
+        _logger.info(f'Callbacks added: {argsTrainer.callbacks}')
     else:
         _logger.info('No callbacks implemented')
 
     # create logger_fn objects
     if hasattr(argsTrainer, 'logger'):
-        loggers = []
-        if not isinstance(argsTrainer.logger, list): argsTrainer.logger = list(argsTrainer.logger)
-
-        for i in range(len(argsTrainer.logger)):
-
-            if argsTrainer.logger[i]['type'] == 'comet-ml':
-                from pytorch_lightning.loggers.comet import CometLogger
-                logger_fn = CometLogger(**argsTrainer.logger[i]['params'])
-            elif argsTrainer.logger[i]['type'] == 'tensorboard':
-                logger_fn = logger.TensorBoardLoggerAdjusted
-            else:
-                raise ValueError('Selected logger not implemented!')
-
-            loggers.append(logger_fn)
-
-        argsTrainer.params['logger'] = loggers
-
+        argsTrainer.params['logger'] = train_logger(argsTrainer)
+        _logger.info(f'Training logger added: {argsTrainer.params["logger"]}')
     else:
         argsTrainer.params['logger'] = False
         _logger.info('No logger selected')
 
-    # define trainer and start training
+    # define trainer and start training, testing
     trainer = pl.Trainer.from_argparse_args(argparse.Namespace(**argsTrainer.params))
+    execute_training(model, dataLoader, trainer)
+    execute_testing(model, dataLoader, trainer)
+    _logger.debug('MODEL TRAINING DONE')
 
+
+def train_callbacks(argsTrainer):
+    # TODO: change argsTrainer to dict
+    callback_list = []
+
+    if not isinstance(argsTrainer.callbacks, list): argsTrainer.callbacks = list(argsTrainer.callbacks)
+
+    for i in range(len(argsTrainer.callbacks)):
+
+        # Extra handling of EarlyStopping and Checkpointing callbacks because they have extra flags in the Trainer
+        if argsTrainer.callbacks[i]['type'] == 'EarlyStopping':
+            earlyStopping = pl.callbacks.EarlyStopping(**argsTrainer.callbacks[i]['params'])
+            argsTrainer.params['early_stop_callback'] = earlyStopping
+        elif argsTrainer.callbacks[i]['type'] == 'Checkpointing':
+            checkpoint = callbacks.Checkpointing(**argsTrainer.callbacks[i]['params'])
+            argsTrainer.params['checkpoint_callback'] = checkpoint
+        else:
+            # Check from which destination the callback class is loaded
+            for m in _modules_callbacks:
+                try:
+                    callback_cls = getattr(importlib.import_module(m), argsTrainer.callbacks[i]['type'])
+                    break
+                except AttributeError:
+                    _logger.debug('Callback of type {} NOT found in {}'.format(argsTrainer.callbacks[i]['type'], m))
+
+            if 'params' in argsTrainer.callbacks[i]:
+                callback = callback_cls(**argsTrainer.callbacks[i]['params'])
+            else:
+                callback = callback_cls()
+            callback_list.append(callback)
+
+    if callback_list:
+        argsTrainer.params['callbacks'] = callback_list
+    else:
+        argsTrainer.params['callbacks'] = []
+
+    return argsTrainer
+
+
+def train_logger(argsTrainer):
+    # TODO: change argsTrainer to dict
+    loggers = []
+    if not isinstance(argsTrainer.logger, list): argsTrainer.logger = list(argsTrainer.logger)
+
+    for i in range(len(argsTrainer.logger)):
+
+        if argsTrainer.logger[i]['type'] == 'comet-ml':
+            from pytorch_lightning.loggers.comet import CometLogger
+            logger_fn = CometLogger(**argsTrainer.logger[i]['params'])
+        elif argsTrainer.logger[i]['type'] == 'tensorboard':
+            logger_fn = logger.TensorBoardLoggerAdjusted
+        else:
+            raise ValueError('Selected logger not implemented!')
+
+        loggers.append(logger_fn)
+
+    return loggers
+
+
+def execute_training(model, dataLoader, trainer):
+    # TODO: add case if val step not included in model
     if all(getattr(dataLoader, item) is not None for item in ['x_val', 'y_val']):
         _logger.debug('Training and validation data included in DataLoader -> Model validation is performed!')
         trainer.fit(model, train_dataloader=dataLoader.train_dataloader(), val_dataloaders=dataLoader.val_dataloader())
@@ -224,20 +244,14 @@ def train_model(model: pl.LightningModule, dataLoader, argsTrainer) -> None:
         x_empty_size[0] = 1
         y_empty_size = list(dataLoader.y_train.shape)
         y_empty_size[0] = 1
-        val_dataloader = torch.utils.data.DataLoader(torch.utils.data.TensorDataset(torch.empty(x_empty_size), torch.empty(y_empty_size)))
-
-        # def validation_pass(self, batch, batch_idx):
-        #     pass
-        #
-        # def validation_epoch_pass(self, outputs):
-        #     pass
-        #
-        # from stfs_pytoolbox.ML_Utils.models import LightningFlexMLP
-        # model.validation_step = validation_pass.__get__(model, LightningFlexMLP)
-        # model.validation_epoch_end = validation_epoch_pass.__get__(model, LightningFlexMLP)
+        val_dataloader = torch.utils.data.DataLoader(torch.utils.data.TensorDataset(torch.empty(x_empty_size),
+                                                                                    torch.empty(y_empty_size)))
 
         trainer.fit(model, train_dataloader=dataLoader.train_dataloader(), val_dataloaders=val_dataloader)
 
+
+def execute_testing(model, dataLoader, trainer):
+    # TODO: add case if test step not included in model
     if all(getattr(dataLoader, item) is not None for item in ['x_test', 'y_test']):
         _logger.debug('Test data included in DataLoader -> Model testing performed!')
         trainer.test(model, test_dataloaders=dataLoader.test_dataloader())
@@ -248,8 +262,7 @@ def train_model(model: pl.LightningModule, dataLoader, argsTrainer) -> None:
         x_empty_size[0] = 1
         y_empty_size = list(dataLoader.y_train.shape)
         y_empty_size[0] = 1
-        test_dataloader = torch.utils.data.DataLoader(torch.utils.data.TensorDataset(torch.empty(x_empty_size), torch.empty(y_empty_size)))
+        test_dataloader = torch.utils.data.DataLoader(torch.utils.data.TensorDataset(torch.empty(x_empty_size),
+                                                                                     torch.empty(y_empty_size)))
 
         trainer.test(model, test_dataloaders=test_dataloader)
-
-    _logger.debug('MODEL TRAINING DONE')
