@@ -20,7 +20,7 @@ def create_random_df():
 
 @pytest.fixture(scope='session')
 def create_LightningFlexMLP():
-    hparams = argparse.Namespace(**{'n_inp': 2, 'n_out': 2, 'hidden_layer': [16, 16]})
+    hparams = argparse.Namespace(**{'n_inp': 2, 'n_out': 2, 'hidden_layer': [8]})
     return LightningFlexMLP(hparams)
 
 
