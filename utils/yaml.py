@@ -120,7 +120,7 @@ def check_argsTrainer(argsTrainer: dict) -> None:
     argsTrainer     - Dict including the trainer arguments of a yaml file
     """
     options = {'Trainer': OptionClass(template=trainer_yml_template(['Trainer']))}
-    options['Trainer'].add_key('params', dtype=dict, param_dict=True)
+    options['Trainer'].add_key('params', dtype=dict, param_dict=True, required=True)
     options['Trainer'].add_key('callbacks', dtype=[dict, list])
     options['Trainer'].add_key('logger', dtype=[dict, list])
 

@@ -138,8 +138,7 @@ def get_dataLoader(argsLoader: dict, model: pl.LightningModule = None):
     return dataLoader
 
 
-def train_model(model: pl.LightningModule, dataLoader, argsTrainer) -> None:
-    # TODO: change argsTrainer to dict
+def train_model(model: pl.LightningModule, dataLoader, argsTrainer: dict) -> None:
     """
     Train a given model with the data included in the DataLoader object
 
@@ -149,80 +148,77 @@ def train_model(model: pl.LightningModule, dataLoader, argsTrainer) -> None:
     dataLoader      - DataLoader object including training, validation and test dataset
     argsTrainer     - Trainer arguments
     """
-    if isinstance(argsTrainer, dict):
-        argsTrainer = argparse.Namespace(**argsTrainer)
-
     # create callback objects
-    if hasattr(argsTrainer, 'callbacks'):
+    if 'callbacks' in argsTrainer:
         argsTrainer = train_callbacks(argsTrainer)
-        _logger.info(f'Callbacks added: {argsTrainer.callbacks}')
+        _logger.info(f'Callbacks added: {argsTrainer["callbacks"]}')
     else:
         _logger.info('No callbacks implemented')
 
     # create logger_fn objects
-    if hasattr(argsTrainer, 'logger'):
-        argsTrainer.params['logger'] = train_logger(argsTrainer)
-        _logger.info(f'Training logger added: {argsTrainer.params["logger"]}')
+    if 'logger' in argsTrainer:
+        argsTrainer['params']['logger'] = train_logger(argsTrainer)
+        _logger.info(f'Training logger added: {argsTrainer["params"]["logger"]}')
     else:
-        argsTrainer.params['logger'] = False
+        argsTrainer['params']['logger'] = False
         _logger.info('No logger selected')
 
     # define trainer and start training, testing
-    trainer = pl.Trainer.from_argparse_args(argparse.Namespace(**argsTrainer.params))
+    trainer = pl.Trainer.from_argparse_args(argparse.Namespace(**argsTrainer['params']))
     execute_training(model, dataLoader, trainer)
     execute_testing(model, dataLoader, trainer)
     _logger.debug('MODEL TRAINING DONE')
 
 
-def train_callbacks(argsTrainer):
-    # TODO: change argsTrainer to dict
+def train_callbacks(argsTrainer: dict) -> dict:
     callback_list = []
 
-    if not isinstance(argsTrainer.callbacks, list): argsTrainer.callbacks = list(argsTrainer.callbacks)
+    if not isinstance(argsTrainer['callbacks'], list):
+        argsTrainer['callbacks'] = list(argsTrainer['callbacks'])
 
-    for i in range(len(argsTrainer.callbacks)):
+    for i in range(len(argsTrainer['callbacks'])):
 
         # Extra handling of EarlyStopping and Checkpointing callbacks because they have extra flags in the Trainer
-        if argsTrainer.callbacks[i]['type'] == 'EarlyStopping':
-            earlyStopping = pl.callbacks.EarlyStopping(**argsTrainer.callbacks[i]['params'])
-            argsTrainer.params['early_stop_callback'] = earlyStopping
-        elif argsTrainer.callbacks[i]['type'] == 'Checkpointing':
-            checkpoint = callbacks.Checkpointing(**argsTrainer.callbacks[i]['params'])
-            argsTrainer.params['checkpoint_callback'] = checkpoint
+        if argsTrainer['callbacks'][i]['type'] == 'EarlyStopping':
+            earlyStopping = pl.callbacks.EarlyStopping(**argsTrainer['callbacks'][i]['params'])
+            argsTrainer['params']['early_stop_callback'] = earlyStopping
+        elif argsTrainer['callbacks'][i]['type'] == 'Checkpointing':
+            checkpoint = callbacks.Checkpointing(**argsTrainer['callbacks'][i]['params'])
+            argsTrainer['params']['checkpoint_callback'] = checkpoint
         else:
             # Check from which destination the callback class is loaded
             for m in _modules_callbacks:
                 try:
-                    callback_cls = getattr(importlib.import_module(m), argsTrainer.callbacks[i]['type'])
+                    callback_cls = getattr(importlib.import_module(m), argsTrainer['callbacks'][i]['type'])
                     break
                 except AttributeError:
-                    _logger.debug('Callback of type {} NOT found in {}'.format(argsTrainer.callbacks[i]['type'], m))
+                    _logger.debug('Callback of type {} NOT found in {}'.format(argsTrainer['callbacks'][i]['type'], m))
 
-            if 'params' in argsTrainer.callbacks[i]:
-                callback = callback_cls(**argsTrainer.callbacks[i]['params'])
+            if 'params' in argsTrainer['callbacks'][i]:
+                callback = callback_cls(**argsTrainer['callbacks'][i]['params'])
             else:
                 callback = callback_cls()
             callback_list.append(callback)
 
     if callback_list:
-        argsTrainer.params['callbacks'] = callback_list
+        argsTrainer['params']['callbacks'] = callback_list
     else:
-        argsTrainer.params['callbacks'] = []
+        argsTrainer['params']['callbacks'] = []
 
     return argsTrainer
 
 
-def train_logger(argsTrainer):
-    # TODO: change argsTrainer to dict
+def train_logger(argsTrainer: dict) -> list:
     loggers = []
-    if not isinstance(argsTrainer.logger, list): argsTrainer.logger = list(argsTrainer.logger)
+    if not isinstance(argsTrainer['logger'], list):
+        argsTrainer['logger'] = list(argsTrainer['logger'])
 
-    for i in range(len(argsTrainer.logger)):
+    for i in range(len(argsTrainer['logger'])):
 
-        if argsTrainer.logger[i]['type'] == 'comet-ml':
+        if argsTrainer['logger'][i]['type'] == 'comet-ml':
             from pytorch_lightning.loggers.comet import CometLogger
-            logger_fn = CometLogger(**argsTrainer.logger[i]['params'])
-        elif argsTrainer.logger[i]['type'] == 'tensorboard':
+            logger_fn = CometLogger(**argsTrainer['logger'][i]['params'])
+        elif argsTrainer['logger'][i]['type'] == 'tensorboard':
             logger_fn = logger.TensorBoardLoggerAdjusted
         else:
             raise ValueError('Selected logger not implemented!')
@@ -232,13 +228,16 @@ def train_logger(argsTrainer):
     return loggers
 
 
-def execute_training(model, dataLoader, trainer):
-    # TODO: add case if val step not included in model
-    if all(getattr(dataLoader, item) is not None for item in ['x_val', 'y_val']):
+def execute_training(model: pl.LightningModule, dataLoader, trainer: pl.Trainer) -> None:
+    if all(getattr(dataLoader, item) is not None for item in ['x_val', 'y_val']) and hasattr(model, 'validation_step'):
         _logger.debug('Training and validation data included in DataLoader -> Model validation is performed!')
         trainer.fit(model, train_dataloader=dataLoader.train_dataloader(), val_dataloaders=dataLoader.val_dataloader())
+    elif not hasattr(model, 'validation_step'):
+        _logger.debug('Model does not include a validation step -> only Model training is performed')
+        trainer.fit(model, train_dataloader=dataLoader.train_dataloader())
     else:
-        _logger.debug('NO validation data included in DataLoader -> Model validation is NOT performed!')
+        _logger.warning('NO validation data included in DataLoader but Model has validation step -> Model validation '
+                        'is NOT performed (as validation set a tensor filled with zeros is created)!')
 
         x_empty_size = list(dataLoader.x_train.shape)
         x_empty_size[0] = 1
@@ -250,13 +249,12 @@ def execute_training(model, dataLoader, trainer):
         trainer.fit(model, train_dataloader=dataLoader.train_dataloader(), val_dataloaders=val_dataloader)
 
 
-def execute_testing(model, dataLoader, trainer):
-    # TODO: add case if test step not included in model
-    if all(getattr(dataLoader, item) is not None for item in ['x_test', 'y_test']):
-        _logger.debug('Test data included in DataLoader -> Model testing performed!')
+def execute_testing(model: pl.LightningModule, dataLoader, trainer: pl.Trainer) -> None:
+    if all(getattr(dataLoader, item) is not None for item in ['x_test', 'y_test']) and hasattr(model, 'test_step'):
+        _logger.debug('test_step included in Model and Test data included in DataLoader -> Model testing performed!')
         trainer.test(model, test_dataloaders=dataLoader.test_dataloader())
-    else:
-        _logger.debug('NO test data included in DataLoader -> Model testing is NOT performed!')
+    elif hasattr(model, 'test_step'):
+        _logger.warning('NO test data included in DataLoader but model hast test_step -> testing with zeros tensor!')
 
         x_empty_size = list(dataLoader.x_train.shape)
         x_empty_size[0] = 1
@@ -266,3 +264,5 @@ def execute_testing(model, dataLoader, trainer):
                                                                                      torch.empty(y_empty_size)))
 
         trainer.test(model, test_dataloaders=test_dataloader)
+    else:
+        _logger.debug('No testing performed since model is missing test_step')
