@@ -10,7 +10,7 @@ import pytorch_lightning as pl
 import torch
 
 from stfs_pytoolbox.ML_Utils import _logger
-from stfs_pytoolbox.ML_Utils import logger     # Logger that are defined in __all__ in the __init__ file
+from stfs_pytoolbox.ML_Utils import logger  # Logger that are defined in __all__ in the __init__ file
 from stfs_pytoolbox.ML_Utils import callbacks  # Callbacks that are defined in __all__ in the __init__ file
 from stfs_pytoolbox.ML_Utils import _modules_models, _modules_loader, _modules_callbacks, _modules_loss, \
     _modules_optim, _modules_activation, _modules_lr_scheduler
@@ -151,20 +151,20 @@ def train_model(model: pl.LightningModule, dataLoader, argsTrainer: dict) -> Non
     # create callback objects
     if 'callbacks' in argsTrainer:
         argsTrainer = train_callbacks(argsTrainer)
-        _logger.info(f'Callbacks added: {argsTrainer["callbacks"]}')
+        _logger.debug(f'Callbacks added: {argsTrainer["callbacks"]}')
     else:
-        _logger.info('No callbacks implemented')
+        _logger.debug('No callbacks implemented')
 
     # create logger_fn objects
     if 'logger' in argsTrainer:
         argsTrainer['params']['logger'] = train_logger(argsTrainer)
-        _logger.info(f'Training logger added: {argsTrainer["params"]["logger"]}')
+        _logger.debug(f'Training logger added: {argsTrainer["params"]["logger"]}')
     else:
         argsTrainer['params']['logger'] = False
-        _logger.info('No logger selected')
+        _logger.debug('No logger selected')
 
     # define trainer and start training, testing
-    trainer = pl.Trainer.from_argparse_args(argparse.Namespace(**argsTrainer['params']))
+    trainer = pl.Trainer(**argsTrainer['params'])
     execute_training(model, dataLoader, trainer)
     execute_testing(model, dataLoader, trainer)
     _logger.debug('MODEL TRAINING DONE')
@@ -215,11 +215,13 @@ def train_logger(argsTrainer: dict) -> list:
 
     for i in range(len(argsTrainer['logger'])):
 
+        assert 'params' in argsTrainer['logger'][i], 'For Logger params definition necessary'
+
         if argsTrainer['logger'][i]['type'] == 'comet-ml':
             from pytorch_lightning.loggers.comet import CometLogger
             logger_fn = CometLogger(**argsTrainer['logger'][i]['params'])
         elif argsTrainer['logger'][i]['type'] == 'tensorboard':
-            logger_fn = logger.TensorBoardLoggerAdjusted
+            logger_fn = logger.TensorBoardLoggerAdjusted(**argsTrainer['logger'][i]['params'])
         else:
             raise ValueError('Selected logger not implemented!')
 
@@ -229,10 +231,13 @@ def train_logger(argsTrainer: dict) -> list:
 
 
 def execute_training(model: pl.LightningModule, dataLoader, trainer: pl.Trainer) -> None:
-    if all(getattr(dataLoader, item) is not None for item in ['x_val', 'y_val']) and hasattr(model, 'validation_step'):
+    # check if validation_step fct in original LightningModule has been overwritten in model
+    is_overwritten = model.validation_step.__code__ is not pl.LightningModule.validation_step.__code__
+
+    if all(getattr(dataLoader, item) is not None for item in ['x_val', 'y_val']) and is_overwritten:
         _logger.debug('Training and validation data included in DataLoader -> Model validation is performed!')
         trainer.fit(model, train_dataloader=dataLoader.train_dataloader(), val_dataloaders=dataLoader.val_dataloader())
-    elif not hasattr(model, 'validation_step'):
+    elif not is_overwritten:
         _logger.debug('Model does not include a validation step -> only Model training is performed')
         trainer.fit(model, train_dataloader=dataLoader.train_dataloader())
     else:
@@ -250,10 +255,13 @@ def execute_training(model: pl.LightningModule, dataLoader, trainer: pl.Trainer)
 
 
 def execute_testing(model: pl.LightningModule, dataLoader, trainer: pl.Trainer) -> None:
-    if all(getattr(dataLoader, item) is not None for item in ['x_test', 'y_test']) and hasattr(model, 'test_step'):
+    # check if test_step fct in original LightningModule has been overwritten in model
+    is_overwritten = model.test_step.__code__ is not pl.LightningModule.test_step.__code__
+
+    if all(getattr(dataLoader, item) is not None for item in ['x_test', 'y_test']) and is_overwritten:
         _logger.debug('test_step included in Model and Test data included in DataLoader -> Model testing performed!')
         trainer.test(model, test_dataloaders=dataLoader.test_dataloader())
-    elif hasattr(model, 'test_step'):
+    elif is_overwritten:
         _logger.warning('NO test data included in DataLoader but model hast test_step -> testing with zeros tensor!')
 
         x_empty_size = list(dataLoader.x_train.shape)

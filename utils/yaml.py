@@ -130,7 +130,7 @@ def check_argsTrainer(argsTrainer: dict) -> None:
 
     options['logger'] = OptionClass(template=trainer_yml_template(['Trainer', 'logger']))
     options['logger'].add_key('type', dtype=str, required=True)
-    options['logger'].add_key('params', dtype=dict, param_dict=True)
+    options['logger'].add_key('params', dtype=dict, param_dict=True, required=True)
 
     OptionClass.checker(input_dict={'Trainer': argsTrainer}, option_classes=options)
 
@@ -215,7 +215,9 @@ def trainer_yml_template(key_list: list) -> dict:
                             'logger': [{'type': 'Comet-ml',
                                         'params': {'api_key': 'personal_comet_api', 'project_name': 'str',
                                                    'workspace': 'personal_comet_workspace', 'experiment_name': 'name'}},
-                                       {'type': 'Tensorboard'}]}}
+                                       {'type': 'Tensorboard',
+                                        'params': {'save_dir': 'path', 'name': 'log_name',
+                                                   'version': 'experiment version'}}]}}
 
     for i, key in enumerate(key_list):
         template = template.get(key)
