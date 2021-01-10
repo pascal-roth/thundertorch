@@ -10,8 +10,7 @@ from stfs_pytoolbox.ML_Utils import _logger
 from stfs_pytoolbox.ML_Utils.utils import *
 
 
-def execute_model(model, argsTrainer: dict, dataLoader, argsConfig: dict) -> None:
-    argsTrainer = train_config(argsConfig, argsTrainer)
+def execute_model(model, argsTrainer: dict, dataLoader) -> None:
     train_model(model, dataLoader, argsTrainer)
 
 
@@ -26,7 +25,6 @@ def main(argsMulti):
     while ii < len(model_dicts):
         models = []
         argsTrainer = []
-        argsConfig = []
         dataLoader = []
 
         for i in range(nbr_processes):
@@ -39,9 +37,7 @@ def main(argsMulti):
             check_args(model_dicts[ii])
 
             if 'config' in model_dicts[ii]:
-                argsConfig.append(model_dicts[ii]['config'])
-            else:
-                argsConfig.append([])
+                model_dicts[ii]['trainer'] = train_config(model_dicts[ii]['config'], model_dicts[ii]['trainer'])
 
             models.append(get_model(model_dicts[ii]['model']))
             argsTrainer.append(model_dicts[ii]['trainer'])
@@ -53,7 +49,7 @@ def main(argsMulti):
                 break
 
         for i in range(nbr_processes):
-            p = mp_fn.Process(target=execute_model, args=(models[i], argsTrainer[i], dataLoader[i], argsConfig[i]))
+            p = mp_fn.Process(target=execute_model, args=(models[i], argsTrainer[i], dataLoader[i]))
             processes.append(p)
             p.start()
 
