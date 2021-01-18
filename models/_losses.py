@@ -7,10 +7,14 @@ class RelativeMSELoss(nn.Module):
     """
     Relative loss function based on MSE loss
     """
-    def __init__(self, r=0.01, truncated=False, threshold=1e-6) -> None:
+    def __init__(self, r: float = 0.01, truncated: bool = False, threshold: float = 1e-6) -> None:
         """
-        :param r: residual parameter to prevent a zero divide
-        :param truncated: True iff ReLU is activated for zero targets
+
+        Parameters
+        ----------
+        r                   - residual parameter to prevent a zero divide
+        truncated           - True if ReLU is activated for zero targets
+        threshold           - threshold
         """
         super().__init__()
         self.r = r
@@ -19,10 +23,15 @@ class RelativeMSELoss(nn.Module):
 
     def forward(self, y: torch.Tensor, t: torch.Tensor) -> torch.Tensor:
         """
-        Forward path
-        :param y: prediction
-        :param t: target
-        :return: loss
+
+        Parameters
+        ----------
+        y                   - predicted output by the NN
+        t                   - target output
+
+        Returns
+        -------
+        loss                - loss value
         """
         if self.truncated:
             y = torch.where(t < self.threshold, F.relu(y), y)

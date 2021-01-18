@@ -1,4 +1,4 @@
-import torch as th
+import torch
 
 
 class Regularizer(object):
