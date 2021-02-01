@@ -95,6 +95,7 @@ class LightningModelBase(pl.LightningModule):
 
     def check_hparams(self) -> None:
         options = self.get_OptionClass()
+        options["hparams"].add_key('model_type', dtype=str)
         OptionClass.checker(input_dict={'hparams': vars(self.hparams)}, option_classes=options)
 
     def get_default(self) -> None:
@@ -115,6 +116,11 @@ class LightningModelBase(pl.LightningModule):
 
         if not hasattr(self.hparams, 'batch'):
             self.hparams.batch = 64
+        if not hasattr(self.hparams, 'model_type'):
+            class_name = str(self.__class__)
+            class_name_split = class_name.split("'")[1]
+            model_type = class_name_split.split(".")[-1]
+            self.hparams.model_type = model_type
 
     def get_functions(self) -> None:
         """

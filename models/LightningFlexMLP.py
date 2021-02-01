@@ -16,6 +16,7 @@ from stfs_pytoolbox.ML_Utils.models.ModelBase import LightningModelBase
 from stfs_pytoolbox.ML_Utils.utils.option_class import OptionClass
 from stfs_pytoolbox.ML_Utils import _modules_activation, _modules_loss, _modules_lr_scheduler, _modules_optim
 
+
 # flexible MLP class
 class LightningFlexMLP(LightningModelBase):
     """
