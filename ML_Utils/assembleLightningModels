@@ -1,15 +1,12 @@
-import pandas as pd
 import stfs_pytoolbox.ML_Utils.models
 from stfs_pytoolbox.ML_Utils.models import *
 import numpy as np
-
+import torch
 import argparse
-import os
-import sys
 
 
 def parseArguments():
-    parser = argparse.ArgumentParser("This script assembles multiple model created by the stfs_pytoolbox.ML_Util "
+    parser = argparse.ArgumentParser("This script assembles multiple model created by the stfs_pytoolbox.ML_Utils "
                                      "package into a single torch script model which can be used for inference in"
                                      " in C++ codes")
 
@@ -59,6 +56,13 @@ def main():
 
     assemblyModel = AssemblyModel(models, xmin, xmax, ymin, ymax, limit_scale=args.scale)
     assemblyModel.toTorchScript(args.output)
+
+    # As of now and pyTorchLighnting 0.7.6 has a bug where a pl.LightningModule cannot be converted using
+    # torch.jit.script(model)
+    # This was later fixed see: https://github.com/PyTorchLightning/pytorch-lightning/pull/2657
+    # when using a never pytorchLightning version please don't use toTorchScript method anymore but the code below
+    #torchscript = torch.jit.script(assemblyModel)
+    #torchscript.save(args.output)
 
     if args.onnx:
         assemblyModel.to_onnx(args.onnx)
