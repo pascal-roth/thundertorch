@@ -1,5 +1,6 @@
 import torch
 import os
+from typing import List, Optional
 
 
 class AssemblyModel(torch.nn.Module):
@@ -27,7 +28,13 @@ class AssemblyModel(torch.nn.Module):
         self.Y_min = y_min if isinstance(y_min, torch.Tensor) else torch.tensor(y_min, dtype=torch.float64)
         self.limit_scale = limit_scale
 
-    def forward(self, Xorg: torch.tensor):
+        # Save features and labels as attributes of the torch script, emtpy list must be typed for the tracing
+        self.labels = torch.jit.annotate(List[str], [])
+        for model in models:
+            self.labels.append(model.hparams.lparams.labels)
+        self.features = models[0].hparams.lparams.features
+
+    def forward(self, Xorg: torch.Tensor):
         """
         Forward pass of model
             runs forward pass through all submodels and scales all in- and outputs
@@ -42,12 +49,11 @@ class AssemblyModel(torch.nn.Module):
 
         """
         X = Xorg.clone()
-        X.requires_grad_(False)
         X = (X - self.X_min) / (self.X_max - self.X_min)
         # If input are out of range of trained scales, set value to border
-        if self.limit_scale:
-            X[X > 1] = 1
-            X[X < 0] = 0
+        # if self.limit_scale:
+        #     X[X > 1] = 1
+        #     X[X < 0] = 0
         outputs = []
         for i, model in enumerate(self.models):
             out = model(X)
@@ -56,7 +62,11 @@ class AssemblyModel(torch.nn.Module):
             outputs.append(out)
         return torch.cat(outputs, 1)
 
-    @torch.jit.export
+    # Currently this function can only be traced using torch.jit.trace_module
+    # but not exported using torch.jit.script(self)
+    # For some reason self.models are unknown and cannot be iterated over, please try to use it in a later torch version
+    # as of now torch 1.7 and earlier does not work
+    # #@torch.jit.export
     def forward_parallel(self, Xorg: torch.tensor):
         """
         Forward pass of model
@@ -114,7 +124,7 @@ class AssemblyModel(torch.nn.Module):
         print("Saving assembly model as torchScript to {}".format(path))
         torch_script.save(path)
 
-    def to_onnx(self, path: str, dtype=torch.float) -> None:
+    def to_onnx(self, path: str) -> None:
         """
         Function to save assembly model in onnx format
         Parameters
@@ -126,11 +136,12 @@ class AssemblyModel(torch.nn.Module):
         """
         import torch.onnx
         n_inp = self.models[0].hparams.n_inp
+        dtype = self.models[0].dtype
         x = torch.ones([8, n_inp], dtype=dtype)
 
         # Export the model
-        torch.onnx.export(self.float(),  # model being run
-                          x.float(),  # model input (or a tuple for multiple inputs)
+        torch.onnx.export(self,  # model being run
+                          x,  # model input (or a tuple for multiple inputs)
                           path,  # where to save the model (can be a file or file-like object)
                           export_params=True,  # store the trained parameter weights inside the model file
                           opset_version=9,  # the ONNX version to export the model to
