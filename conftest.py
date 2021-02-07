@@ -11,6 +11,11 @@ from stfs_pytoolbox.ML_Utils.models import *
 from stfs_pytoolbox.ML_Utils.loader import *
 
 
+def pytest_configure(config):
+    plugin = config.pluginmanager.getplugin('mypy')
+    plugin.mypy_argv.append('--check-untyped-defs')
+
+
 @pytest.fixture(scope='session')
 def create_random_df():
     example_df = pd.DataFrame(np.random.rand(4, 4))
