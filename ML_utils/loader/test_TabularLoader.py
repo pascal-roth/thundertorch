@@ -97,10 +97,16 @@ def test_test_dataloader(create_example_TabularLoader):
 
 @pytest.mark.dependency(depends=['test_init'])
 def test_save_load(create_example_TabularLoader, tmp_path):
+    # Save and load DataLoader if the name has the file extension .pkl
     Loader = create_example_TabularLoader
     Loader.save(tmp_path / 'exampleLoader.pkg')
     Loader2 = TabularLoader.load(tmp_path / 'exampleLoader.pkg')
     assert isinstance(Loader2, TabularLoader)
+
+    # Save and load DataLoader without file extension
+    Loader.save(tmp_path / 'exampleLoader2')
+    Loader3 = TabularLoader.load(tmp_path / 'exampleLoader2')
+    assert isinstance(Loader3, TabularLoader)
 
 
 @pytest.mark.dependency(depends=['test_init'])
