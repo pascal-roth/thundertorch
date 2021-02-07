@@ -11,6 +11,8 @@ import importlib
 import pandas as pd
 from sklearn import preprocessing
 from argparse import Namespace
+from typing import Union
+from pathlib import Path
 
 from stfs_pytoolbox.ML_Utils import _modules_models
 from stfs_pytoolbox.ML_Utils import _logger
@@ -221,7 +223,7 @@ class TabularLoader:
                                            **kwargs)
 
     # save and load TabluarLoader object ##############################################################################
-    def save(self, filename) -> None:
+    def save(self, filename: Union[str, Path]) -> None:
         """
         Save TabularLoader cls as .pkl file
 
@@ -229,13 +231,23 @@ class TabularLoader:
         ----------
         filename        - path path of .pkl file
         """
+        if not isinstance(filename, str):
+            filename = str(filename)
+        if not filename.lower().endswith('.pkl'):
+            filename = filename + '.pkl'
+
         with open(filename, 'wb') as output:  # Overwrites any existing file.
             pickle.dump(self, output, pickle.HIGHEST_PROTOCOL)
         self.lparams.filename = filename
         _logger.info('TabularLoader object saved')
 
     @classmethod
-    def load(cls, filename: str) -> object:
+    def load(cls, filename: Union[str, Path]) -> object:
+        if not isinstance(filename, str):
+            filename = str(filename)
+        if not filename.lower().endswith('.pkl'):
+            filename = filename + '.pkl'
+
         with open(filename, 'rb') as input:
             return pickle.load(input)
 
