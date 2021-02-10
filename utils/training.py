@@ -47,6 +47,30 @@ def train_config(argsConfig: dict, argsTrainer: dict) -> dict:
     return argsTrainer
 
 
+def get_ckpt_path(path: str) -> str:
+    if os.path.isfile(path):
+        ckpt_path = path
+        _logger.debug('Direct path to ckpt is given')
+
+    elif os.path.isdir(path):
+        checkpoints = []
+
+        for file in os.listdir(path):
+            if file.endswith(".ckpt"):
+                checkpoints.append(os.path.join(path, file))
+
+        assert len(checkpoints) == 1, f'Either no or multiple checkpoint files are included in the given ' \
+                                      f'directory: {path}. Specify intended ckpt!'
+
+        ckpt_path = checkpoints[0]
+        _logger.debug('Directory with single ckpt is given')
+
+    else:
+        raise AttributeError(f'Entered path {path} does not exists!')
+
+    return ckpt_path
+
+
 def get_model(argsModel) -> pl.LightningModule:
     """
     Load/ create the model given the model arguments
@@ -71,25 +95,9 @@ def get_model(argsModel) -> pl.LightningModule:
             _logger.debug(f'Model Class of type {argsModel.type} has NOT been loaded from {m}')
 
     if hasattr(argsModel, 'load_model'):
-        if os.path.isfile(argsModel.load_model['path']):
-            model = model_cls.load_from_checkpoint(argsModel.load_model['path'])
-            _logger.debug(f'Model successfully loaded from given file')
-
-        elif os.path.isdir(argsModel.load_model['path']):
-            checkpoints = []
-
-            for file in os.listdir(argsModel.load_model['path']):
-                if file.endswith(".ckpt"):
-                    checkpoints.append(os.path.join(argsModel.load_model['path'], file))
-
-            assert len(checkpoints) == 1, f'Either no or multiple checkpoint files are included in the given ' \
-                                          f'directory: {argsModel.load_model["path"]}. Specify intended ckpt!'
-
-            model = model_cls.load_from_checkpoint(checkpoints[0])
-            _logger.debug(f'Model successfully loaded from given directory')
-
-        else:
-            raise AttributeError(f'Entered path {argsModel.load_model["path"]} does not exists!')
+        ckpt_path = get_ckpt_path(argsModel.load_model['path'])
+        model = model_cls.load_from_checkpoint(ckpt_path)
+        _logger.debug('Model successfully loaded')
 
     elif hasattr(argsModel, 'create_model'):
         model = model_cls(argparse.Namespace(**argsModel.create_model))
@@ -162,6 +170,9 @@ def train_model(model: pl.LightningModule, dataLoader, argsTrainer: dict) -> Non
     else:
         argsTrainer['params']['logger'] = False
         _logger.debug('No logger selected')
+
+    if 'resume_from_checkpoint' in argsTrainer['params'] and argsTrainer['params']['resume_from_checkpoint'] is not None:
+        argsTrainer['params']['resume_from_checkpoint'] = get_ckpt_path(argsTrainer['params']['resume_from_checkpoint'])
 
     # define trainer and start training, testing
     trainer = pl.Trainer(**argsTrainer['params'])
