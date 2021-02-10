@@ -59,8 +59,6 @@ def check_args(argsYaml: dict) -> None:
     check_argsModel(argsYaml['model'])
     check_argsLoader(argsYaml['dataloader'])
     check_argsTrainer(argsYaml['trainer'])
-    if 'config' in argsYaml:
-        check_argsConfig_single(argsYaml['config'])
 
 
 def check_argsModel(argsModel: dict) -> None:
