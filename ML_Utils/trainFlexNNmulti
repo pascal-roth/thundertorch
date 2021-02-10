@@ -34,10 +34,11 @@ def main(argsMulti):
             check_yaml_version(model_dicts[ii])
             check_yaml_structure(model_dicts[ii])
 
-            check_args(model_dicts[ii])
-
             if 'config' in model_dicts[ii]:
+                check_argsConfig_single(model_dicts[ii]['config'])
                 model_dicts[ii]['trainer'] = train_config(model_dicts[ii]['config'], model_dicts[ii]['trainer'])
+
+            check_args(model_dicts[ii])
 
             models.append(get_model(model_dicts[ii]['model']))
             argsTrainer.append(model_dicts[ii]['trainer'])
