@@ -228,7 +228,7 @@ class LightningModelBase(pl.LightningModule):
         Actions performed at the end of validation epoch (incl. calculating the val_loss)
         """
         val_loss = torch.stack([x['val_loss'] for x in outputs]).mean()
-        if self.current_epoch == 0: self.min_val_loss = val_loss
+        if self.min_val_loss is None: self.min_val_loss = val_loss
         if val_loss < self.min_val_loss:
             self.min_val_loss = val_loss
         log = {'avg_val_loss': val_loss}
