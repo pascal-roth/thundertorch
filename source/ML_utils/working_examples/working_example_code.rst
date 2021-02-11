@@ -16,17 +16,17 @@ Configuration
 -------------
 
 In the configuration individual modules can be added and the
-reproducibility option of the training activated. For a detailed
+deterministic option of the training activated. For a detailed
 explanation of the individual modules can be found
 `here <../getting_started/Individualized_modules.html>`__. If the
-reproducibility option it is selected the random seed of PyTorch and
+deterministic option it is selected the random seed of PyTorch and
 Numpy a set to fix value. The configuration is executed as follows:
 
 .. code:: python
 
     from stfs_pytoolbox.ML_Utils.utils import train_config
     
-    argsConfig = {'source_files': module_path, 'reproducibility': True}
+    argsConfig = {'source_files': module_path, 'deterministic': True}
     train_config(argsConfig)
 
 DataLoader

@@ -16,7 +16,7 @@ that the following yaml_file for the single model training is obtained:
 
 config:
   source_files: individual_fct
-  reproducibility: True
+  deterministic: True
 
 DataLoader:
   type: TabularLoader
@@ -108,7 +108,7 @@ discussed in detail:
    -  the “source_files” key is used to add individual modules, its
       usage is explained in `Individual Modules
       Tutorial <../getting_started/Individualized_modules.html>`__
-   -  the “reproducibility” key is used to make training and tesing
+   -  the “deterministic” key is used to make training and tesing
       reproducable. If it is selected the random seed of PyTorch and
       Numpy a set to fix value
 
