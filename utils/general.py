@@ -6,6 +6,7 @@ import importlib
 from stfs_pytoolbox.ML_Utils import _logger
 import logging
 from stfs_pytoolbox.ML_Utils import _modules_models
+from typing import Optional
 
 
 def parse_arguments() -> argparse.Namespace:
@@ -67,3 +68,52 @@ def load_model_from_checkpoint(checkpoint_path: str):
         assert False, f'{model_type} could not be found in {_modules_models}'
 
     return model_class.load_from_checkpoint(checkpoint_path)
+
+
+def dynamic_imp(module_path: str, class_name: Optional[str] = None):
+    """
+
+    Helper function to dynamically import class from custom modules.
+    Adapted from: https://www.geeksforgeeks.org/how-to-dynamically-load-modules-or-classes-in-python/
+
+    Parameters
+    ----------
+    module_path: str
+        path to the file of the module
+    class_name: Optional(str)
+        name of the class that is to be imported
+
+    Returns
+    -------
+    mypackage
+        imported package
+    myclass: class
+        import class
+
+    """
+    import imp
+    myclass = None
+    mypackage = None
+    # find_module() method is used
+    # to find the module and return
+    # its description and path
+    try:
+        mypackage = importlib.import_module(module_path)
+        if class_name:
+            myclass = getattr(mypackage, class_name)
+
+    except ModuleNotFoundError:
+        _logger.debug(f"Module '{module_path}' could not be imported, trying imp import")
+        try:
+            fp, path, desc = imp.find_module(module_path)
+            # load_modules loads the module
+            # dynamically ans takes the filepath
+            # module and description as parameter
+            mypackage = imp.load_module(module_path, fp, path, desc)
+            if myclass:
+                myclass = imp.load_module(f"{module_path}.{class_name}", fp, path, desc)
+
+        except ImportError:
+            raise ImportError(f"Neither importlib nor imp could not load '{class_name}' from '{module_path}'")
+
+    return mypackage, myclass

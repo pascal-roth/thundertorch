@@ -1,8 +1,8 @@
 """
  ML_Utils - a collection of useful routines for machine learning applications
 
- author: Pascal Roth
- email:  roth.pascal@outlook.de
+ author: Pascal Roth, Julian Bissantz
+ email:  roth.pascal@outlook.de, bissantz@stfs.tu-darmstadt.de
 
 """
 

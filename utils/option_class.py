@@ -1,5 +1,5 @@
 from stfs_pytoolbox.ML_Utils import _logger
-import importlib
+from stfs_pytoolbox.ML_Utils.utils.general import dynamic_imp
 
 
 class OptionClass:
@@ -122,8 +122,17 @@ class OptionClass:
         if not isinstance(self.keylist[key].get('attr_of'), list):
             self.keylist[key]['attr_of'] = [self.keylist[key].get('attr_of')]
 
-        assert any(hasattr(importlib.import_module(fct), item) for fct in self.keylist[key]['attr_of']), \
-            'Function "{}" not implemented in "{}"!'.format(item, self.keylist[key].get('attr_of'))
+        # check if searched attributes is found in given module list
+        module_found = False
+        for module in self.keylist[key]['attr_of']:
+            try:
+                _, _ = dynamic_imp(module, item)
+                module_found = True
+                break
+            except (ImportError, AttributeError):
+                pass
+        if not module_found:
+            raise AttributeError(f"'Function or class '{item}' not found in '{self.keylist[key].get('attr_of')}'")
 
     @staticmethod
     def checker(input_dict: dict, option_classes: dict) -> None:

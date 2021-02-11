@@ -14,6 +14,7 @@ from stfs_pytoolbox.ML_Utils import logger  # Logger that are defined in __all__
 from stfs_pytoolbox.ML_Utils import callbacks  # Callbacks that are defined in __all__ in the __init__ file
 from stfs_pytoolbox.ML_Utils import _modules_models, _modules_loader, _modules_callbacks, _modules_loss, \
     _modules_optim, _modules_activation, _modules_lr_scheduler
+from stfs_pytoolbox.ML_Utils.utils.general import dynamic_imp
 
 
 def train_config(argsConfig: dict, argsTrainer: dict) -> dict:
@@ -22,10 +23,14 @@ def train_config(argsConfig: dict, argsTrainer: dict) -> dict:
         # source_path = os.path.join(os.getcwd(), argsConfig['source_files'] + '.py')
         source_path = argsConfig['source_files']
 
-        try:
-            importlib.import_module(source_path)
-        except ModuleNotFoundError:
-            raise ModuleNotFoundError('Defined path is not a module!')
+        # Check if module can be imported, exception would be raised within dynamic_imp
+        # source path must be full path with .py file extension
+        source_path = source_path.split(".")[0]
+        source_path = os.getcwd()+"/"+source_path
+        if not os.path.exists(source_path+".py"):
+            raise FileNotFoundError(f"Source file for custom function or class does not exists.\nSearched for file: "
+                                    f"{source_path+'.py'}")
+        mod, _ = dynamic_imp(source_path)
 
         if source_path in _modules_models:
             _logger.debug(f'Individual Module {source_path} already included')
@@ -39,8 +44,8 @@ def train_config(argsConfig: dict, argsTrainer: dict) -> dict:
             _modules_loader.append(source_path)
             _logger.debug(f'Individual Module {source_path} added')
 
-    # check for reproducibility https://pytorch.org/docs/stable/notes/randomness.html
-    if 'reproducibility' in argsConfig and argsConfig['reproducibility'] is True:
+    # check for deterministic https://pytorch.org/docs/stable/notes/randomness.html
+    if 'deterministic' in argsConfig and argsConfig['deterministic'] is True:
         pl.seed_everything(42)
         argsTrainer['params']['deterministic'] = True
 
