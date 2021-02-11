@@ -30,8 +30,8 @@ def test_config_source_files(tmp_path):
         train_config(argsConfig, argsTrainer={})
 
 
-def test_config_reproducibility(create_TabularLoader, create_LightningFlexMLP):
-    argsConfig = {'reproducibility': True}
+def test_config_deterministic(create_TabularLoader, create_LightningFlexMLP):
+    argsConfig = {'deterministic': True}
     argsTrainer = {'params': {'max_epochs': 2, 'logger': False}}
     argsTrainer = train_config(argsConfig, argsTrainer)
 
@@ -45,7 +45,7 @@ def test_config_reproducibility(create_TabularLoader, create_LightningFlexMLP):
     print('Model 1', trainer_1.tng_tqdm_dic['loss'])
     print('Model 2', trainer_2.tng_tqdm_dic['loss'])
 
-    assert trainer_1.tng_tqdm_dic['loss'] == trainer_2.tng_tqdm_dic['loss'], 'reproducibility failed'
+    assert trainer_1.tng_tqdm_dic['loss'] == trainer_2.tng_tqdm_dic['loss'], 'deterministic failed'
 
 
 def test_get_model(path):
