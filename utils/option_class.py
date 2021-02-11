@@ -70,9 +70,11 @@ class OptionClass:
         input_key = kwargs.pop('input_key', 'Key not given!')
 
         assert bool(input_dict), 'Dict "{}" is empty! {}'.format(input_key, self.template)
-        assert all(key in self.keylist.keys() for key in input_dict.keys()), \
-            'Input dict keys: "{}" are partly not included in the keylist of the Options Object "{}"'.\
-            format(input_dict.keys(), self.keylist.keys())
+        if not all(key in self.keylist.keys() for key in input_dict.keys()):
+            wrong_keys = [x for x in input_dict.keys() if x not in self.keylist.keys()]
+            assert False, \
+                'Input dict keys: "{}" are not included in the accepted key list of the Options Object "{}"'.\
+                format(wrong_keys, self.keylist.keys())
 
         self.check_required_keys(input_dict)
 
