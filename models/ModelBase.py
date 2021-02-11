@@ -284,5 +284,14 @@ class LightningModelBase(pl.LightningModule):
             update_dict = vars(update_dict)
 
         update_hparams(vars(self.hparams), update_dict)
-        self.check_hparams()
+        if self.get_OptionClass():
+            self.check_hparams()
         self.get_functions()
+
+    @staticmethod
+    def get_OptionClass():
+        pass
+
+    @staticmethod
+    def yaml_template():
+        pass
