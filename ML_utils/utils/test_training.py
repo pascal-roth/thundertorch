@@ -25,7 +25,7 @@ def path():
 
 
 def test_config_source_files(tmp_path):
-    with pytest.raises(ModuleNotFoundError):
+    with pytest.raises(FileNotFoundError):
         argsConfig = {'source_files': str(tmp_path)}
         train_config(argsConfig, argsTrainer={})
 
@@ -52,6 +52,26 @@ def test_get_model(path):
     yaml_file = parse_yaml(path / 'MinimalSingleModelInputEval.yml')
     yaml_file = yaml_file.pop('model')
     model = get_model(yaml_file)
+    assert isinstance(model, pl.LightningModule)
+    assert model.dtype == torch.float64
+
+
+def test_get_custom_model(path):
+    """
+    This tests imports a minimal model from the imported.py
+
+    """
+    yaml_file = parse_yaml(path / 'MinimalSingleModelInputEval.yml')
+    config = yaml_file.pop('config')
+    config["source_files"] = "test/ML_Utils/utils/imported.py"
+    trainer_args = yaml_file["trainer"]["params"]
+    train_config(config, trainer_args)
+
+    # adjust model config to match model in imported.py
+    model_config = yaml_file.pop('model')
+    model_config["type"] = "LightningFlexMLPImported"
+    model_config["create_model"] = {"inputs": 2, "outputs": 2, "number_hidden_layers": [300, 300]}
+    model = get_model(model_config)
     assert isinstance(model, pl.LightningModule)
     assert model.dtype == torch.float64
 
@@ -103,7 +123,7 @@ def test_train_callbacks():
 
 
 @pytest.mark.dependency()
-def test_train_logger():  # control of comet logger fails even if it is working 
+def test_train_logger():  # control of comet logger fails even if it is working
     # argsTrainer = {'params': {'max_epochs': 3},
     #                'logger': [{'type': 'comet-ml',
     #                            'params': {'api_key': 'ENlkidpOntcgkoGGs5nkyhFv5', 'project_name': 'general',

@@ -70,7 +70,7 @@ def test_check_argsModel():
         _ = argsModel.pop('load_model')
         _ = argsModel.pop('###info###')
         check_argsModel(argsModel)
-    with pytest.raises(AssertionError):
+    with pytest.raises(AttributeError):
         argsModel = yaml.load(yamlTemplate, Loader=yaml.FullLoader)
         argsModel['type'] = 'some other fkt'
         argsModel = lower_keys(argsModel)
@@ -104,7 +104,7 @@ def test_check_argsLoader():
         _ = argsLoader.pop('load_dataloader')
         _ = argsLoader.pop('###info###')
         check_argsLoader(argsLoader)
-    with pytest.raises(AssertionError):
+    with pytest.raises(AttributeError):
         argsLoader = yaml.load(yamlTemplate, Loader=yaml.FullLoader)
         argsLoader = lower_keys(argsLoader)
         argsLoader['type'] = 'some other fkt'
@@ -123,7 +123,7 @@ def test_check_argsTrainer():
         argsTrainer = yaml.load(yamlTemplate, Loader=yaml.FullLoader)
         _ = argsTrainer['callbacks'][0].pop('type')
         check_argsTrainer(argsTrainer)
-    with pytest.raises(AssertionError):
+    with pytest.raises(AttributeError):
         argsTrainer = yaml.load(yamlTemplate, Loader=yaml.FullLoader)
         argsTrainer['callbacks'][0]['type'] = 'some other fkt'
         check_argsTrainer(argsTrainer)

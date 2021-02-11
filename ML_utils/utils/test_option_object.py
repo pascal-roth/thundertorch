@@ -63,7 +63,7 @@ def test_check_attr_of(create_OptionsObject):
     for key, item in input_dict.items():
         create_OptionsObject.check_attr_of(key, item)
 
-    with pytest.raises(AssertionError):
+    with pytest.raises(AttributeError):
         input_dict = {'some_key': 'some_attr'}
         create_OptionsObject.add_key('some_key', dtype=str, attr_of='stfs_pytoolbox.ML_Utils.utils')
         for key, item in input_dict.items():

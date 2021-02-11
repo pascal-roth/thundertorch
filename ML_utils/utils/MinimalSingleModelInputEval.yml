@@ -3,6 +3,9 @@
 ####################################################################################################
 # basic contruction of Loader, LightningFlexMLP and pl.Trainer cannot be changed
 
+config:
+  source_files: imported.py
+
 # Generate class including train, val and test data
 DataLoader:
   type: TabularLoader

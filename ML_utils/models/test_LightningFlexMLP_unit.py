@@ -43,14 +43,14 @@ def test_check_hparams():
     with pytest.raises(AssertionError):  # activation function wrong type
         hparams = argparse.Namespace(**{'n_inp': 3, 'n_out': 3, 'hidden_layer': [16, 16], 'activation': None})
         LightningFlexMLP(hparams)
-    with pytest.raises(AssertionError):  # activation function not included in torch
+    with pytest.raises(AttributeError):  # activation function not included in torch
         hparams = argparse.Namespace(**{'n_inp': 3, 'n_out': 3, 'hidden_layer': [16, 16], 'activation': 'adam'})
         LightningFlexMLP(hparams)
 
     with pytest.raises(AssertionError):  # loss function wrong type
         hparams = argparse.Namespace(**{'n_inp': 3, 'n_out': 3, 'hidden_layer': [16, 16], 'loss': 1.0})
         LightningFlexMLP(hparams)
-    with pytest.raises(AssertionError):  # loss function not included in torch
+    with pytest.raises(AttributeError):  # loss function not included in torch
         hparams = argparse.Namespace(**{'n_inp': 3, 'n_out': 3, 'hidden_layer': [16, 16], 'loss': 'mse'})
         LightningFlexMLP(hparams)
 
@@ -60,7 +60,7 @@ def test_check_hparams():
     with pytest.raises(AssertionError):  # optimizer function wrong type
         hparams = argparse.Namespace(**{'n_inp': 3, 'n_out': 3, 'hidden_layer': [16, 16], 'optimizer': {'type': None}})
         LightningFlexMLP(hparams)
-    with pytest.raises(AssertionError):  # optimizer function not included in torch
+    with pytest.raises(AttributeError):  # optimizer function not included in torch
         hparams = argparse.Namespace(**{'n_inp': 3, 'n_out': 3, 'hidden_layer': [16, 16], 'optimizer': {'type': 'ad'}})
         LightningFlexMLP(hparams)
 
@@ -71,7 +71,7 @@ def test_check_hparams():
         hparams = argparse.Namespace(**{'n_inp': 3, 'n_out': 3, 'hidden_layer': [16, 16], 'scheduler':
             {'execute': True, 'type': None}})
         LightningFlexMLP(hparams)
-    with pytest.raises(AssertionError):  # scheduler function not included in torch
+    with pytest.raises(AttributeError):  # scheduler function not included in torch
         hparams = argparse.Namespace(**{'n_inp': 3, 'n_out': 3, 'hidden_layer': [16, 16], 'scheduler':
             {'execute': True, 'type': 'some function'}})
         LightningFlexMLP(hparams)
