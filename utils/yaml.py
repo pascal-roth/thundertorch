@@ -148,7 +148,7 @@ def check_argsConfig_single(argsConfig: dict) -> None:
     """
     options = {'config': OptionClass(template=config_yml_template([]))}
     options['config'].add_key('source_files', dtype=str)
-    options['config'].add_key('reproducibility', dtype=bool)
+    options['config'].add_key('deterministic', dtype=bool)
 
     OptionClass.checker(input_dict={'config': argsConfig}, option_classes=options)
 
@@ -230,7 +230,7 @@ def config_yml_template(key_list: list) -> dict:
     template = {'config': {'source_files': 'individual module (individual function, model, loader, ... has to be '
                                            'mentioned in __all__ in the __init__ of the module, so that it can be '
                                            'loaded)',
-                           'reproducibility': 'True'}}
+                           'deterministic': 'True'}}
 
     for i, key in enumerate(key_list):
         template = template.get(key)
