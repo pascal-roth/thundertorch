@@ -93,7 +93,9 @@ def get_model(argsModel) -> pl.LightningModule:
 
     for m in _modules_models:
         try:
-            model_cls = getattr(importlib.import_module(m), argsModel.type)
+            print(m)
+            _, model_cls = dynamic_imp(m, argsModel.type)
+            #model_cls = getattr(importlib.import_module(m), argsModel.type)
             _logger.debug(f'Model Class of type {argsModel.type} has been loaded from {m}')
             break
         except AttributeError or ModuleNotFoundError:
