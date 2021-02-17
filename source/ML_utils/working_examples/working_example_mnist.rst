@@ -56,7 +56,7 @@ likely to fail. In the case of this example, only the model is creating
 using a yaml file, the trainer as well as the data are directly
 implemented. In order to construct the yaml, you don’t have to start
 from scratch since each model has a pre-implemented yaml template. To
-obtain the yaml file, we just call the staticmethod yml_template, give
+obtain the yaml file, we just call the staticmethod yml_template, pass
 it an empty list and then copy the output into a yaml file:
 
 .. code:: python
@@ -65,8 +65,7 @@ it an empty list and then copy the output into a yaml file:
     
     print(LightningFlexNN.yaml_template([]))
 
-
-.. parsed-literal::
+.. code:: python
 
     Model:
       type: LightningFlexNN
@@ -112,8 +111,8 @@ it an empty list and then copy the output into a yaml file:
             min_lr: float
         num_workers: 'int (default: 10)'
         batch: 'int (default: 64)'
-    
 
+This output is then modified according to the task:
 
 .. code:: python
 

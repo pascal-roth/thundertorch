@@ -37,10 +37,12 @@ the table is replaced by a NN.
    testing.
 
 Additionally, components can be defined in order to influence and
-individualize each of the previous steps: -
-`Callbacks <./getting_started/Callbacks.html>`__ -
-`Metrics <./getting_started/Metrics.html>`__ - `Individual
-Modules <./getting_started/Individualized_modules.html>`__
+individualize each of the previous steps:
+
+-  `Callbacks <./getting_started/Callbacks.html>`__
+-  `Metrics <./getting_started/Metrics.html>`__
+-  `Individual
+   Modules <./getting_started/Individualized_modules.html>`__
 
 The toolbox provides a YAML interface (recommended to use!) for single
 and multi model training. The interface is automatically adjusted for
@@ -50,9 +52,10 @@ execute any desired task. However, the multi model training is optimized
 for the yaml template and has to be modified in order to use a complete
 code based implementation. Both strategies can be combined. A detailed
 explanation for the YAML interface is provided unter the following
-locations: - `YAML single
-model <./working_examples/working_example_yaml.html>`__ - `YAML multi
-model <./getting_started/MultiModelTraining.html>`__
+locations:
+
+-  `YAML single model <./working_examples/working_example_yaml.html>`__
+-  `YAML multi model <./getting_started/MultiModelTraining.html>`__
 
 To use the full potential of the different classes, you are encouraged
 to use the different instructions as well as the documentation for the

@@ -66,12 +66,14 @@ in our current working directory. In order to add an individual loss
 function, we have to pack it in a module (directory with “\_\_ init \_\_
 .py”. Therefore, the following example structure will be implemented:
 
-.
-+-- TabularLoader_LightningFlexMLP.yaml
-+-- MultiModelTraining.yaml
-+-- individual_module
-|   +-- __init__.py
-|   +-- myloss.py
+.. code:: python
+
+    .
+    +-- TabularLoader_LightningFlexMLP.yaml
+    +-- MultiModelTraining.yaml
+    +-- individual_module
+    |   +-- __init__.py
+    |   +-- myloss.py
 
 With the \_\_ init \_\_ .py as follows:
 
@@ -110,13 +112,15 @@ strategies is given here:
     
     # then initialize model with the loss_fn='RelativeMSE' and start training
 
-config:
-  source_files: individual_module
-  
-...
+.. code:: python
 
-Model:
-  ...
-  params:
-    loss: RelativeMSE
+    config:
+      source_files: individual_module
+      
     ...
+    
+    Model:
+      ...
+      params:
+        loss: RelativeMSE
+        ...

@@ -183,5 +183,7 @@ Model Extensions
 ----------------
 
 Model functionalities can be extended using different callbacks or
-metrics. Detailed explanations can be found here: -
-`Callbacks <./Callbacks.html>`__ - `Metrics <./Metrics.html>`__
+metrics. Detailed explanations can be found here:
+
+-  `Callbacks <./Callbacks.html>`__
+-  `Metrics <./Metrics.html>`__

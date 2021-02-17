@@ -59,12 +59,14 @@ defined prior to the first model
    -  define which models should be executed, as a default all models
       are used
 
-config:
-  Nbr_processes: int
-  GPU_per_model: int
-  CPU_per_model: int
-  Model_run:
-    - Model001
+.. code:: python
+
+    config:
+      Nbr_processes: int
+      GPU_per_model: int
+      CPU_per_model: int
+      Model_run:
+        - Model001
 
 Model structure
 ---------------
@@ -80,29 +82,33 @@ where certain keys have been adapted and the other keys copied from the
 template, is then used to execute the DataLoader, Model, and Training
 operation.
 
-**Important Properties**: - In a list of dicts such as the callbacks
-list, the type is required in order to add/ change keys in the params
-dict. - Only keys in the last layer can be changed and the path towards
-those keys has to be included in both, the template yaml and the model
-definition in the MultiModel yaml.
+**Important Properties**:
 
-Model001:
-  Template: single_model.yaml
-  DataLoader:
-    create_DataLoader:
-      raw_data_path: example_samples.csv
-      features: [feature_1, feature_2]
-      labels: [label_1, label_2]
-  Model:
-    params:
-      loss: mse_loss
-  Trainer:
-    params:
-      max_epochs: 3
-    callbacks:
-      - type: Checkpointing
+-  In a list of dicts such as the callbacks list, the type is required
+   in order to add/ change keys in the params dict.
+-  Only keys in the last layer can be changed and the path towards those
+   keys has to be included in both, the template yaml and the model
+   definition in the MultiModel yaml.
+
+.. code:: python
+
+    Model001:
+      Template: single_model.yaml
+      DataLoader:
+        create_DataLoader:
+          raw_data_path: example_samples.csv
+          features: [feature_1, feature_2]
+          labels: [label_1, label_2]
+      Model:
         params:
-          filepath: checkpoints/try
+          loss: mse_loss
+      Trainer:
+        params:
+          max_epochs: 3
+        callbacks:
+          - type: Checkpointing
+            params:
+              filepath: checkpoints/try
 
 Convenience Features
 --------------------
@@ -129,22 +135,25 @@ In the following example, the only model in the directory
 “checkpoints/model001” will be loaded and saved under the path
 “checkpoints/model001/model001_conti”:
 
-Model001:
-  Template: single_model.yaml
-  DataLoader:
-    create_DataLoader:
-      raw_data_path: example_samples.csv
-      features: [feature_1, feature_2]
-      labels: [label_1, label_2]
-  Model:
-    load_model:
-      path: checkpoints/<model_name>
-    params:
-      loss: mse_loss
-  Trainer:
-    params:
-      max_epochs: 3
-    callbacks:
-      - type: Checkpointing
+.. code:: python
+
+    Model001:
+      Template: single_model.yaml
+      DataLoader:
+        create_DataLoader:
+          raw_data_path: example_samples.csv
+          features: [feature_1, feature_2]
+          labels: [label_1, label_2]
+      Model:
+        load_model:
+          path: checkpoints/<model_name>
         params:
-          filepath: checkpoints/<model_name>/<model_name>_conti
+          loss: mse_loss
+      Trainer:
+        params:
+          max_epochs: 3
+          resume_from_checkpoint: checkpoints/<model_name>
+        callbacks:
+          - type: Checkpointing
+            params:
+              filepath: checkpoints/<model_name>/<model_name>_conti
