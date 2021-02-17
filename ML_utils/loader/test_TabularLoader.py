@@ -82,7 +82,7 @@ def test_train_dataloader(create_example_TabularLoader):
 @pytest.mark.dependency(depends=['test_init'])
 def test_val_dataloader(create_example_TabularLoader):
     Loader = create_example_TabularLoader
-    Loader.val_split(method='random', val_size=0.25)
+    Loader.val_split(method='random', params=0.25)
     val_dataloader = Loader.val_dataloader()
     assert isinstance(val_dataloader, torch.utils.data.dataloader.DataLoader)
 
@@ -90,7 +90,7 @@ def test_val_dataloader(create_example_TabularLoader):
 @pytest.mark.dependency(depends=['test_init'])
 def test_test_dataloader(create_example_TabularLoader):
     Loader = create_example_TabularLoader
-    Loader.test_split(method='random', test_size=0.25)
+    Loader.test_split(method='random', params=0.25)
     test_dataloader = Loader.test_dataloader()
     assert isinstance(test_dataloader, torch.utils.data.dataloader.DataLoader)
 
