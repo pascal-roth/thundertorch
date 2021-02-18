@@ -171,8 +171,8 @@ def run_model(data: pd.DataFrame, checkpoint: Union[str, LightningModelBase], ba
         if noise is not None:
             assert noise_index <= len(features), "Noise index must be lower than number of features"
             gaussian_noise = np.random.normal(1, noise, len(x))
-            # x[noise] += gaussian_noise
             x[:, noise_index] = np.multiply(x[:, noise_index], gaussian_noise)
+            df.loc[ii, features[noise_index]+"_noise"] = x[:, noise_index]
             df.loc[ii, "noise"] = noise
 
         x = to_tensor(x)
