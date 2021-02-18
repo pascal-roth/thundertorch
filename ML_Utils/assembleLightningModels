@@ -1,5 +1,6 @@
 import stfs_pytoolbox.ML_Utils.models
 from stfs_pytoolbox.ML_Utils.models import *
+from stfs_pytoolbox.ML_Utils.utils.general import load_model_from_checkpoint
 import numpy as np
 import torch
 import argparse
@@ -13,8 +14,6 @@ def parseArguments():
     # Add mutually_exclusive_group to either load a FlexMLP model or create on based on input
     parser.add_argument('checkpoints', nargs='+',
                         help='Checkpoint files (.ckpt) that will be assembled into one model')
-    parser.add_argument('--type', '-t', dest='type', required=False, default='LightningFlexMLP',
-                        help='Type of model defined in ML_Utils to be loaded, default: LightningFlexMLP')
     parser.add_argument('--output', '-o', dest='output', required=False, default='AssemblyModel.pt',
                         help='file to which assembled model is saved in torch script format')
     parser.add_argument('--onnx', dest='onnx', required=False,
@@ -37,8 +36,7 @@ def main():
     models = []
 
     for file in args.checkpoints:
-
-        model = model_class.load_from_checkpoint(file)
+        model = load_model_from_checkpoint(file)
         ymin.append(model.hparams.lparams.y_scaler.data_min_)
         ymax.append(model.hparams.lparams.y_scaler.data_max_)
         models.append(model.eval())
@@ -54,8 +52,9 @@ def main():
     if args.scale:
         limit = False
 
-    assemblyModel = AssemblyModel(models, xmin, xmax, ymin, ymax, limit_scale=args.scale)
-    assemblyModel.toTorchScript(args.output)
+    with torch.no_grad():
+        assemblyModel = AssemblyModel(models, xmin, xmax, ymin, ymax, limit_scale=args.scale)
+        assemblyModel.toTorchScript(args.output)
 
     # As of now and pyTorchLighnting 0.7.6 has a bug where a pl.LightningModule cannot be converted using
     # torch.jit.script(model)
