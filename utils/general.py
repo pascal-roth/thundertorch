@@ -6,12 +6,12 @@ import importlib
 from stfs_pytoolbox.ML_Utils import _logger
 import logging
 from stfs_pytoolbox.ML_Utils import _modules_models
-from stfs_pytoolbox.ML_Utils import LightningModelBase
 from typing import Optional, Union
 from more_itertools import chunked
 import numpy as np
 from tqdm import tqdm
 import pandas as pd
+from pytorch_lightning import LightningModule
 
 
 def parse_arguments() -> argparse.Namespace:
@@ -124,7 +124,7 @@ def dynamic_imp(module_path: str, class_name: Optional[str] = None):
     return mypackage, myclass
 
 
-def run_model(data: pd.DataFrame, checkpoint: Union[str, LightningModelBase], batch: int = 1000, noise_index: int = 0,
+def run_model(data: pd.DataFrame, checkpoint: Union[str, LightningModule], batch: int = 1000, noise_index: int = 0,
               noise: Optional[float] = None) -> pd.DataFrame:
     """
     Function to run a model created by this toolbox
@@ -142,7 +142,6 @@ def run_model(data: pd.DataFrame, checkpoint: Union[str, LightningModelBase], ba
     prediction: DataFrame with inference result
 
     """
-
     def to_tensor(data):
         return torch.from_numpy(data.astype(np.float64))
 
