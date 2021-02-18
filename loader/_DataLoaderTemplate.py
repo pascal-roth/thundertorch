@@ -13,9 +13,10 @@ from stfs_pytoolbox.ML_Utils import _logger
 from stfs_pytoolbox.ML_Utils import models
 from stfs_pytoolbox.ML_Utils.loader import _utils
 from stfs_pytoolbox.ML_Utils.utils.option_class import OptionClass
+from stfs_pytoolbox.ML_Utils.loader.DataLoaderBase import DataLoaderBase
 
 
-class DataLoaderTemplate:
+class DataLoaderTemplate(DataLoaderBase):
     """
     Template class to create DataLoaders which get a certain input data, do preprocessing and can finally create PyTorch
     DataLoader that are used as input of the Lightning Trainer class
@@ -30,6 +31,8 @@ class DataLoaderTemplate:
         param_1             - Example parameter
         param_2             - Example parameter
         """
+        super().__init__()
+
         self.lparams = Namespace()  # Namespace object to group all important parameters of the DataLoader in order to
         # export them in the model checkpoint (and thus allow DataLoader rebuilt only with the model)
         self.lparams.param_1 = param_1
@@ -85,17 +88,6 @@ class DataLoaderTemplate:
         if self.x_val is not None: _logger.warning('Validation data overwritten')
         self.x_val = self.y_val = None
 
-    def val_split(self, **kwargs) -> None:
-        """
-        Split available samples into training and validation set
-        """
-        self.lparams.val_method = kwargs.pop('method', 'some default method')
-        self.lparams.val_params = kwargs.pop('val_params', 'some default parameters')
-
-        # to split the samples, the function found in _utils.py can be used or own function can be written
-        self.x_train, self.x_val, self.y_train, self.y_val = getattr(_utils, 'data_split_' + self.lparams.val_method) \
-            (self.x_train, self.y_train, self.lparams.val_params)
-
     # test_data #######################################################################################################
     def add_test_data(self, path) -> None:
         """
@@ -109,53 +101,6 @@ class DataLoaderTemplate:
         if self.x_test is not None: _logger.warning('Test data overwritten')
         self.x_test = None
         self.y_test = None
-
-    def test_split(self, **kwargs) -> None:
-        """
-        Split available samples into training and test set
-        """
-        self.lparams.test_method = kwargs.pop('method', 'some default method')
-        self.lparams.test_params = kwargs.pop('test_params', 'some default parameters')
-
-        # to split the samples, the function found in _utils.py can be used or own function can be written
-        self.x_train, self.x_test, self.y_train, self.y_test = getattr(_utils, 'data_split_' + self.lparams.test_method) \
-            (self.x_train, self.y_train, self.lparams.test_params)
-
-    # create pytorch dataloaders ######################################################################################
-    # possible pre-processing steps can be added directly in the dataloader functions
-    def train_dataloader(self, **kwargs):
-        tensor = torch.utils.data.TensorDataset(torch.tensor(self.x_train).float(), torch.tensor(self.y_train).float())
-        return torch.utils.data.DataLoader(tensor, batch_size=self.lparams.batch, num_workers=self.lparams.num_workers,
-                                           **kwargs)
-
-    def val_dataloader(self, **kwargs):
-        assert self.x_val is not None, 'Validation data has to be assigned before val_dataloader is created'
-        tensor = torch.utils.data.TensorDataset(torch.tensor(self.x_val).float(), torch.tensor(self.y_val).float())
-        return torch.utils.data.DataLoader(tensor, batch_size=self.lparams.batch, num_workers=self.lparams.num_workers,
-                                           **kwargs)
-
-    def test_dataloader(self, **kwargs):
-        assert self.x_test is not None, 'Test data has to be assigned before test_dataloader is created'
-        tensor = torch.utils.data.TensorDataset(torch.tensor(self.x_test).float(), torch.tensor(self.y_test).float())
-        return torch.utils.data.DataLoader(tensor, batch_size=self.lparams.batch, num_workers=self.lparams.num_workers,
-                                           **kwargs)
-
-    # save and load TabluarLoader object ##############################################################################
-    def save(self, filename) -> None:
-        """
-        Function to save DataLoader cls as .pkl file
-        """
-        with open(filename, 'wb') as output:  # Overwrites any existing file.
-            pickle.dump(self, output, pickle.HIGHEST_PROTOCOL)
-        self.lparams.filename = filename
-
-    @classmethod
-    def load(cls, filename):
-        """
-        Funtion to reconstruct saved DataLoader
-        """
-        with open(filename, 'rb') as input:
-            return pickle.load(input)
 
     # classmethods ####################################################################################################
     @classmethod
