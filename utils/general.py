@@ -154,8 +154,9 @@ def run_model(data: pd.DataFrame, checkpoint: Union[str, LightningModule], batch
     def scale_output(Y, labelScaler):
         return labelScaler.inverse_transform(Y)
 
-
-    m = load_model_from_checkpoint(checkpoint)
+    m = checkpoint
+    if isinstance(checkpoint, str):
+        m = load_model_from_checkpoint(checkpoint)
 
     features = m.hparams.lparams.features
     labels = m.hparams.lparams.labels
