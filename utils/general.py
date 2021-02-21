@@ -6,7 +6,12 @@ import importlib
 from stfs_pytoolbox.ML_Utils import _logger
 import logging
 from stfs_pytoolbox.ML_Utils import _modules_models
-from typing import Optional
+from typing import Optional, Union
+from more_itertools import chunked
+import numpy as np
+from tqdm import tqdm
+import pandas as pd
+from pytorch_lightning import LightningModule
 
 
 def parse_arguments() -> argparse.Namespace:
@@ -117,3 +122,59 @@ def dynamic_imp(module_path: str, class_name: Optional[str] = None):
             raise ImportError(f"Neither importlib nor imp could not load '{class_name}' from '{module_path}'")
 
     return mypackage, myclass
+
+
+def run_model(data: pd.DataFrame, checkpoint: Union[str, LightningModule], batch: int = 1000, noise_index: int = 0,
+              noise: Optional[float] = None) -> pd.DataFrame:
+    """
+    Function to run a model created by this toolbox
+
+    Parameters
+    ----------
+    data: DataFrame from which the input data for the model is taken
+    checkpoint: checkpoint path of model or with the toolbox created LightningModel
+    batch: Batch size to handle large inputs
+    noise_index: index of input on which noise will be applied
+    noise: amount of noise to apply
+
+    Returns
+    -------
+    prediction: DataFrame with inference result
+
+    """
+    def to_tensor(data):
+        return torch.from_numpy(data.astype(np.float64))
+
+    def to_numpy(tensor):
+        return tensor.detach().cpu().numpy() if tensor.requires_grad else tensor.cpu().numpy()
+
+    def scale_input(X, featureScaler):
+        return featureScaler.transform(X)
+
+    def scale_output(Y, labelScaler):
+        return labelScaler.inverse_transform(Y)
+
+
+    m = load_model_from_checkpoint(checkpoint)
+
+    features = m.hparams.lparams.features
+    labels = m.hparams.lparams.labels
+    featureScaler = m.hparams.lparams.x_scaler
+    labelScaler = m.hparams.lparams.y_scaler
+
+    df = data[features].copy()
+    index_chunks = chunked(df.index, batch)
+
+    for ii in tqdm(index_chunks):
+        x = scale_input(df.loc[ii, features].values, featureScaler)
+        if noise is not None:
+            assert noise_index <= len(features), "Noise index must be lower than number of features"
+            gaussian_noise = np.random.normal(1, noise, len(x))
+            x[:, noise_index] = np.multiply(x[:, noise_index], gaussian_noise)
+            df.loc[ii, features[noise_index]+"_noise"] = x[:, noise_index]
+            df.loc[ii, "noise"] = noise
+
+        x = to_tensor(x)
+        y = m(x)
+        df.loc[ii, labels] = scale_output(to_numpy(y), labelScaler)
+    return df
