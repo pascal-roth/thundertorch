@@ -49,11 +49,16 @@ def test_split_data_random(create_random_dataset):
     x_samples, y_samples = create_random_dataset
 
     with pytest.raises(AssertionError):
+        # Percentage defined in split_params cannot exceed 1.0
         data_split_random(x_samples=x_samples, y_samples=y_samples, split_params=1.2)
     with pytest.raises(AssertionError):
+        # Percentage defined in split_params has to be of type int
         data_split_random(x_samples=x_samples, y_samples=y_samples, split_params='str')
 
-    data_split_random(x_samples=x_samples, y_samples=y_samples, split_params=0.5)
+    x_samples, x_split, y_samples, y_split = data_split_random(x_samples=x_samples, y_samples=y_samples,
+                                                               split_params=0.5)
+    assert x_samples.shape == (2, 2), 'Split failed'
+    assert x_split.shape == (2, 2), 'Split failed'
 
 
 def test_split_data_percentage(create_random_dataset):
@@ -76,6 +81,9 @@ def test_split_data_percentage(create_random_dataset):
     assert isinstance(y_samples, pd.DataFrame) and not y_samples.empty, 'Returned y_samples not correct'
     assert isinstance(y_split, pd.DataFrame) and not y_split.empty, 'Returned y_split not correct'
 
+    assert x_samples.shape == (2, 2), 'Split not performed correct'
+    assert x_split.shape == (2, 2), 'Split not performed correct'
+
 
 def test_split_data_explicit(create_random_dataset):
     x_samples, y_samples = create_random_dataset
@@ -97,3 +105,5 @@ def test_split_data_explicit(create_random_dataset):
     assert isinstance(y_samples, pd.DataFrame) and not y_samples.empty, 'Returned y_samples not correct'
     assert isinstance(y_split, pd.DataFrame) and not y_split.empty, 'Returned y_split not correct'
 
+    assert x_samples.shape == (3, 2), 'Split not performed correct'
+    assert x_split.shape == (1, 2), 'Split not performed correct'
