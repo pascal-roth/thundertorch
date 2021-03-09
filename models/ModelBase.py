@@ -38,11 +38,12 @@ class LightningModelBase(pl.LightningModule):
         self.layers = []
         self.height = None
         self.width = None
+        self.depth = None
         self.layer_activation = (torch.nn.Conv1d, torch.nn.Conv2d, torch.nn.Conv3d, torch.nn.Linear,)
 
-    def construct_nn(self, layer_list) -> None:
+    def construct_nn2d(self, layer_list) -> None:
         """
-        Functionality to build any kind of torch.nn layer (convolutional, pooling, padding, normalization, recurrent,
+        Functionality to build any kind of torch.nn 2d layer (convolutional, pooling, padding, normalization, recurrent,
         dropout, linear ...)
 
         Parameters
@@ -66,6 +67,41 @@ class LightningModelBase(pl.LightningModule):
                     self.height = int((self.height + 2 * self.layers[-1].padding) /
                                       self.layers[-1].stride) - (self.height % self.layers[-1].kernel_size)
                     self.width = int((self.width + 2 * self.layers[-1].padding) /
+                                     self.layers[-1].stride) - (self.width % self.layers[-1].kernel_size)
+
+            if isinstance(self.layers[-1], self.layer_activation):
+                self.layers.append(self.activation_fn)
+
+    def construct_nn3d(self, layer_list) -> None:
+        """
+        Functionality to build any kind of torch.nn 3d layer (convolutional, pooling, padding, normalization, recurrent,
+        dropout, linear ...)
+
+        Parameters
+        ----------
+        layer_list          - list of layers with the corresponding parameters
+        """
+        # Construct all conv layers
+        for layer_dict in layer_list:
+            if 'params' in layer_dict:
+                self.layers.append(getattr(torch.nn, layer_dict['type'])(**layer_dict['params']))
+            else:
+                self.layers.append(getattr(torch.nn, layer_dict['type'])())
+
+            if all(hasattr(self.layers[-1], elem) for elem in ['padding', 'stride', 'kernel_size']):
+                if isinstance(self.layers[-1].padding, tuple):
+                    self.height = int((self.height + 2 * self.layers[-1].padding[0]) /
+                                      self.layers[-1].stride[0]) - (self.layers[-1].kernel_size[0] - 1)
+                    self.width = int((self.width + 2 * self.layers[-1].padding[1]) /
+                                     self.layers[-1].stride[1]) - (self.layers[-1].kernel_size[1] - 1)
+                    self.depth = int((self.depth + 2 * self.layers[-1].padding[2]) /
+                                     self.layers[-1].stride[2]) - (self.layers[-1].kernel_size[2] - 1)
+                else:
+                    self.height = int((self.height + 2 * self.layers[-1].padding) /
+                                      self.layers[-1].stride) - (self.height % self.layers[-1].kernel_size)
+                    self.width = int((self.width + 2 * self.layers[-1].padding) /
+                                     self.layers[-1].stride) - (self.width % self.layers[-1].kernel_size)
+                    self.depth = int((self.depth + 2 * self.layers[-1].padding) /
                                      self.layers[-1].stride) - (self.width % self.layers[-1].kernel_size)
 
             if isinstance(self.layers[-1], self.layer_activation):

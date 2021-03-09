@@ -14,6 +14,8 @@ from argparse import Namespace
 from typing import Union, Tuple
 from pathlib import Path
 
+from abc import ABC, abstractmethod
+
 from stfs_pytoolbox.ML_Utils import _modules_models
 from stfs_pytoolbox.ML_Utils import _logger
 from stfs_pytoolbox.ML_Utils import models
@@ -21,7 +23,7 @@ from stfs_pytoolbox.ML_Utils.loader import _utils
 from stfs_pytoolbox.ML_Utils.utils.option_class import OptionClass
 
 
-class DataLoaderBase:
+class DataLoaderBase(ABC):
     """
     DataLoader Base of the Toolbox, includes repeating functions and functionalities
 
@@ -58,6 +60,7 @@ class DataLoaderBase:
             self.lparams.y_scaler = y_min_max_scaler.fit(self.y_train)
 
     # training_data ###################################################################################################
+    @abstractmethod
     def add_train_data(self, *args, **kwargs) -> None:
         """
         Load training samples and separate them into input and target samples
@@ -65,6 +68,7 @@ class DataLoaderBase:
         pass
 
     # validation_data #################################################################################################
+    @abstractmethod
     def add_val_data(self, *args, **kwargs) -> None:
         """
         Load validation samples and separate them into input and target samples
@@ -87,6 +91,7 @@ class DataLoaderBase:
         _logger.debug('Validation set split performed!')
 
     # test_data #######################################################################################################
+    @abstractmethod
     def add_test_data(self, *args, **kwargs) -> None:
         """
         Load test samples and separate them into input and target samples

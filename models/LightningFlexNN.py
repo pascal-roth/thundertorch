@@ -65,7 +65,7 @@ class LightningFlexNN(LightningModelBase):
         self.height = self.hparams.height
         self.width = self.hparams.width
         self.layer_activation = (torch.nn.Conv1d, torch.nn.Conv2d, torch.nn.Conv3d, torch.nn.Linear,)
-        self.construct_nn(layer_list=self.hparams.layers)
+        self.construct_nn2d(layer_list=self.hparams.layers)
 
         if hasattr(self.hparams, 'MLP_layer'):
             self.layers.append(torch.nn.Flatten())

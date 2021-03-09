@@ -43,7 +43,7 @@ class TabularLoader(DataLoaderBase):
                  x_scaler: Optional[preprocessing.MinMaxScaler] = None,
                  y_scaler: Optional[preprocessing.MinMaxScaler] = None, batch: int = 64, num_workers: int = 10,
                  data_path: Optional[str] = None, val_split: Optional[dict] = None, val_path: Optional[dict] = None,
-                 test_split: Optional[dict] = None, test_path: Optional[dict] = None) -> None:
+                 test_split: Optional[dict] = None, test_path: Optional[dict] = None, fastLoader: bool = False) -> None:
         """
         Create TabularLoader object
 
@@ -72,6 +72,7 @@ class TabularLoader(DataLoaderBase):
         self.lparams.batch = batch
         self.lparams.num_workers = num_workers
         self.lparams.data_path = data_path
+        self.lparams.fast_loader = fastLoader
         self.__check_lparams()
 
         self.x_train = df_samples[features]
@@ -139,6 +140,38 @@ class TabularLoader(DataLoaderBase):
         self.x_test = samples_test[self.lparams.features]
         self.y_test = samples_test[self.lparams.labels]
         _logger.debug(f'Test samples added from file {path} with sep {sep}!')
+
+    # create pytorch dataloaders ######################################################################################
+    def get_dataloader(self, x_samples, y_samples, **kwargs) -> Union[torch.utils.data.DataLoader,
+                                                                      _utils.FastTensorDataLoader]:
+        if self.lparams.fast_loader:
+            return _utils.FastTensorDataLoader(torch.tensor(x_samples), torch.tensor(y_samples),
+                                               batch_size=self.lparams.batch, **kwargs)
+        else:
+            tensor = self.get_tensorDataset(x_samples, y_samples)
+            return torch.utils.data.DataLoader(tensor, batch_size=self.lparams.batch, num_workers=self.lparams.num_workers,
+                                               **kwargs)
+
+    def train_dataloader(self, **kwargs) -> Union[torch.utils.data.DataLoader, _utils.FastTensorDataLoader]:
+        """
+        Generate PyTorch DataLoader for the training data (all kwargs of the PyTorch DataLoader can be used)
+        """
+        x_samples, y_samples = self.data_normalization(self.x_train, self.y_train)
+        return self.get_dataloader(x_samples, y_samples, **kwargs)
+
+    def val_dataloader(self, **kwargs) -> Union[torch.utils.data.DataLoader, _utils.FastTensorDataLoader]:
+        """
+        Generate PyTorch DataLoader for the validation data (all kwargs of the PyTorch DataLoader can be used)
+        """
+        x_samples, y_samples = self.data_normalization(self.x_val, self.y_val)
+        return self.get_dataloader(x_samples, y_samples, **kwargs)
+
+    def test_dataloader(self, **kwargs) -> Union[torch.utils.data.DataLoader, _utils.FastTensorDataLoader]:
+        """
+        Generate PyTorch DataLoader for the test data (all kwargs of the PyTorch DataLoader can be used)
+        """
+        x_samples, y_samples = self.data_normalization(self.x_test, self.y_test)
+        return self.get_dataloader(x_samples, y_samples, **kwargs)
 
     # classmethods ####################################################################################################
     @classmethod
@@ -304,6 +337,7 @@ class TabularLoader(DataLoaderBase):
         options['create_dataloader'].add_key('validation_data', dtype=dict)
         options['create_dataloader'].add_key('test_data', dtype=dict)
         options['create_dataloader'].add_key('save_loader', dtype=dict)
+        options['create_dataloader'].add_key('fast_loader', dtype=bool)
 
         options['validation_data'] = OptionClass(template=TabularLoader.yaml_template(['DataLoader', 'create_DataLoader',
                                                                                        'validation_data']))
@@ -351,7 +385,8 @@ class TabularLoader(DataLoaderBase):
                                                                             'sep': 'separator (default: ","'},
                                                               'split_data': {'method': 'random/ percentage/ explicit',
                                                                              'params': 'split_params'}},
-                                                         'save_Loader': {'path': 'name.pkl'}}}}
+                                                         'save_Loader': {'path': 'name.pkl'},
+                                                         'fast_loader': 'bool (default: False)'}}}
 
         for i, key in enumerate(key_list):
             template = template.get(key)
