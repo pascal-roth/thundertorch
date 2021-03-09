@@ -67,10 +67,10 @@ class LightningFlexNN(LightningModelBase):
         self.layer_activation = (torch.nn.Conv1d, torch.nn.Conv2d, torch.nn.Conv3d, torch.nn.Linear,)
         self.construct_nn2d(layer_list=self.hparams.layers)
 
-        if hasattr(self.hparams, 'MLP_layer'):
+        if hasattr(self.hparams, 'mlp_layer'):
             self.layers.append(torch.nn.Flatten())
             in_dim = self.final_channel * self.height * self.width
-            self.construct_mlp(in_dim, self.hparams.MLP_layer['hidden_layer'], self.hparams.MLP_layer['n_out'])
+            self.construct_mlp(in_dim, self.hparams.mlp_layer['hidden_layer'], self.hparams.mlp_layer['n_out'])
 
         if hasattr(self.hparams, 'output_activation'):
             self.layers.append(getattr(torch.nn, self.hparams.output_activation)())
@@ -95,7 +95,7 @@ class LightningFlexNN(LightningModelBase):
         options['hparams'].add_key('width', dtype=int, required=True)
         options['hparams'].add_key('height', dtype=int, required=True)
         options['hparams'].add_key('layers', dtype=list, required=True)
-        options['hparams'].add_key('MLP_layer', dtype=dict, required=True)
+        options['hparams'].add_key('mlp_layer', dtype=dict, required=True)
         options['hparams'].add_key('output_activation', dtype=str, attr_of=_modules_activation)
         options['hparams'].add_key('activation', dtype=str, attr_of=_modules_activation)
         options['hparams'].add_key('loss', dtype=str, attr_of=_modules_loss)
@@ -133,7 +133,7 @@ class LightningFlexNN(LightningModelBase):
                                                'layers': [{'type': 'torch.nn module', 'params': {'module_param_1': 'value', 'module_param_2': 'value'}},
                                                           {'type': 'e. g. Conv2d', 'params': {'kernel_size': 3, 'channels': 20}},
                                                           {'type': 'e. g. MaxPool2d', 'params': {'kernel_size': 2}}],
-                                               'MLP_layer': {'n_out': 'int', 'hidden_layer': ['int', 'int', '...']},
+                                               'mlp_layer': {'n_out': 'int', 'hidden_layer': ['int', 'int', '...']},
                                                'output_activation': 'str (default: None)', 'activation': 'str (default: ReLU)'},
                               'params': {'loss': 'str (default:MSELoss)', 'optimizer': {'type': 'str (default: Adam)',
                                                                                          'params': {'lr': 'float (default: 1.e-3'}},
