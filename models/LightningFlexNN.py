@@ -109,7 +109,7 @@ class LightningFlexNN(LightningModelBase):
         options['layers'].add_key('type', dtype=str, required=True, attr_of='torch.nn')
         options['layers'].add_key('params', dtype=dict, param_dict=True)
 
-        options['mlp_layer'] = OptionClass(template=LightningFlexNN.yaml_template(['Model', 'create_model', 'MLP_layer']))
+        options['mlp_layer'] = OptionClass(template=LightningFlexNN.yaml_template(['Model', 'create_model', 'mlp_layer']))
         options['mlp_layer'].add_key('n_out', dtype=int, required=True)
         options['mlp_layer'].add_key('hidden_layer', dtype=list, required=True)
 
