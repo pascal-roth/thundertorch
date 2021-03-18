@@ -27,9 +27,6 @@ def parseArguments():
 def main():
     args = parseArguments()
 
-    # get model class, default: LightningFlexMLP
-    model_class = getattr(stfs_pytoolbox.ML_Utils.models, args.type)
-
     # create list to save scalar information
     ymin = []
     ymax = []
