@@ -46,6 +46,7 @@ extensions = [
     'sphinx.ext.githubpages',
     'sphinx_pyreverse',
     'sphinx.ext.graphviz',
+    "sphinx_rtd_theme"    
 ]
 
 # Napoleon settings
