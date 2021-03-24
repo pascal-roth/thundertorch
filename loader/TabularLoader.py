@@ -20,6 +20,7 @@ from stfs_pytoolbox.ML_Utils import models
 from stfs_pytoolbox.ML_Utils.loader import _utils
 from stfs_pytoolbox.ML_Utils.loader.DataLoaderBase import DataLoaderBase
 from stfs_pytoolbox.ML_Utils.utils.option_class import OptionClass
+from stfs_pytoolbox.ML_Utils.utils.general import load_model_from_checkpoint
 
 
 class TabularLoader(DataLoaderBase):
@@ -264,7 +265,7 @@ class TabularLoader(DataLoaderBase):
         return Loader
 
     @classmethod
-    def read_from_checkpoint(cls, ckpt_file: str, model: str = 'LightningFlexMLP') -> object:
+    def read_from_checkpoint(cls, ckpt_file: str) -> object:
         """
         Create cls TabluarLoader from pytorch lightning checkpoint
         !! Hparams of the checkpoint had to be updated with lparams of the Loader in order to reconstruct the Loader!!
@@ -277,18 +278,7 @@ class TabularLoader(DataLoaderBase):
         -------
         object          - TabularLoader object
         """
-        model_cls = None
-        for m in _modules_models:
-            try:
-                model_cls = getattr(importlib.import_module(m), model)
-                _logger.debug(f'Model Class of type {model} has been loaded from {m}')
-                break
-            except AttributeError or ModuleNotFoundError:
-                _logger.debug(f'Model Class of type {model} has NOT been loaded from {m}')
-
-        assert model_cls is not None, f'Model {model} not found in {_modules_models}'
-
-        pl_model = model_cls.load_from_checkpoint(ckpt_file)
+        pl_model = load_model_from_checkpoint(ckpt_file)
         lparams = pl_model.hparams.lparams
 
         assert hasattr(lparams, 'data_path'), 'Data cannot be reloaded because the pass is missing'
@@ -299,22 +289,22 @@ class TabularLoader(DataLoaderBase):
         else:
             assert all(hasattr(lparams, elem) for elem in ['features', 'labels', 'batch', 'num_workers',
                                                            'x_scaler', 'y_scaler']), 'Parameters missing!'
-            Loader = TabularLoader.read_from_file(lparams.data_path, features=lparams.features,
-                                                  labels=lparams.labels, batch=lparams.batch,
-                                                  num_workers=lparams.num_workers,
-                                                  x_scaler=lparams.x_scaler, y_scaler=lparams.y_scaler)
+        Loader = TabularLoader.read_from_file(lparams.data_path, features=lparams.features,
+                                              labels=lparams.labels, batch=lparams.batch,
+                                              num_workers=lparams.num_workers,
+                                              x_scaler=lparams.x_scaler, y_scaler=lparams.y_scaler)
 
         if 'path' in lparams.val:
             Loader.add_val_data(lparams.val.path, lparams.val.sep)
         elif all(elem in lparams.val for elem in ['method', 'params']):
-            Loader.val_split(method=lparams.val['method'], params=lparams.val['params'])
+            Loader.val(method=lparams.val_split['method'], params=lparams.val['params'])
         else:
             _logger.debug('NO validation data included!')
 
         if 'path' in lparams.test:
             Loader.add_test_data(lparams.test.path, lparams.test.sep)
         elif all(elem in lparams.test for elem in ['method', 'params']):
-            Loader.test_split(method=lparams.test['method'], params=lparams.test['params'])
+            Loader.test(method=lparams.test['method'], params=lparams.test['params'])
         else:
             _logger.debug('NO test data included!')
 
