@@ -22,10 +22,16 @@ class AssemblyModel(torch.nn.Module):
         super().__init__()
 
         self.models = torch.nn.ModuleList(models)
-        self.X_max = x_max if isinstance(x_max, torch.Tensor) else torch.tensor(x_max, dtype=torch.float64)
-        self.X_min = x_min if isinstance(x_min, torch.Tensor) else torch.tensor(x_min, dtype=torch.float64)
-        self.Y_max = y_max if isinstance(y_max, torch.Tensor) else torch.tensor(y_max, dtype=torch.float64)
-        self.Y_min = y_min if isinstance(y_min, torch.Tensor) else torch.tensor(y_min, dtype=torch.float64)
+        X_max = x_max if isinstance(x_max, torch.Tensor) else torch.tensor(x_max, dtype=torch.float64)
+        X_min = x_min if isinstance(x_min, torch.Tensor) else torch.tensor(x_min, dtype=torch.float64)
+        Y_max = y_max if isinstance(y_max, torch.Tensor) else torch.tensor(y_max, dtype=torch.float64)
+        Y_min = y_min if isinstance(y_min, torch.Tensor) else torch.tensor(y_min, dtype=torch.float64)
+
+        # register scaling parameters as buffers that their device will also be changed then calling .to .cuda or .cpu
+        self.register_buffer("X_max", X_max)
+        self.register_buffer("X_min", X_min)
+        self.register_buffer("Y_max", Y_max)
+        self.register_buffer("Y_min", Y_min)
         self.limit_scale = limit_scale
 
         # Save features and labels as attributes of the torch script, emtpy list must be typed for the tracing
