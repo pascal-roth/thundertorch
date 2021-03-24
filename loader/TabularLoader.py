@@ -297,7 +297,7 @@ class TabularLoader(DataLoaderBase):
         if 'path' in lparams.val:
             Loader.add_val_data(lparams.val.path, lparams.val.sep)
         elif all(elem in lparams.val for elem in ['method', 'params']):
-            Loader.val(method=lparams.val_split['method'], params=lparams.val['params'])
+            Loader.val(method=lparams.val['method'], params=lparams.val['params'])
         else:
             _logger.debug('NO validation data included!')
 
