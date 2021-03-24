@@ -289,7 +289,7 @@ class TabularLoader(DataLoaderBase):
         else:
             assert all(hasattr(lparams, elem) for elem in ['features', 'labels', 'batch', 'num_workers',
                                                            'x_scaler', 'y_scaler']), 'Parameters missing!'
-        Loader = TabularLoader.read_from_file(lparams.data_path, features=lparams.features,
+        Loader = cls.read_from_file(lparams.data_path, features=lparams.features,
                                               labels=lparams.labels, batch=lparams.batch,
                                               num_workers=lparams.num_workers,
                                               x_scaler=lparams.x_scaler, y_scaler=lparams.y_scaler)
@@ -297,14 +297,14 @@ class TabularLoader(DataLoaderBase):
         if 'path' in lparams.val:
             Loader.add_val_data(lparams.val.path, lparams.val.sep)
         elif all(elem in lparams.val for elem in ['method', 'params']):
-            Loader.val(method=lparams.val['method'], params=lparams.val['params'])
+            Loader.val_split(method=lparams.val['method'], params=lparams.val['params'])
         else:
             _logger.debug('NO validation data included!')
 
         if 'path' in lparams.test:
             Loader.add_test_data(lparams.test.path, lparams.test.sep)
         elif all(elem in lparams.test for elem in ['method', 'params']):
-            Loader.test(method=lparams.test['method'], params=lparams.test['params'])
+            Loader.test_split(method=lparams.test['method'], params=lparams.test['params'])
         else:
             _logger.debug('NO test data included!')
 
