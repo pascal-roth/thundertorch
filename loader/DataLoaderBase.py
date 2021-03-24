@@ -84,7 +84,7 @@ class DataLoaderBase(ABC):
         method:             - method to split training data
         params:             - parameters of the split
         """
-        self.lparams.val = {'method': method, 'params': params}
+        self.lparams.val_split = {'method': method, 'params': params}
 
         self.x_train, self.x_val, self.y_train, self.y_val = getattr(_utils, 'data_split_' + self.lparams.val['method']) \
             (self.x_train, self.y_train, self.lparams.val['params'])
@@ -112,7 +112,7 @@ class DataLoaderBase(ABC):
         method:           - method to split training data
         params:           - parameters of the split
         """
-        self.lparams.test = {'method': method, 'params': params}
+        self.lparams.test_split = {'method': method, 'params': params}
 
         self.x_train, self.x_test, self.y_train, self.y_test = getattr(_utils, 'data_split_' + self.lparams.test['method']) \
             (self.x_train, self.y_train, self.lparams.test['params'])
