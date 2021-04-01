@@ -163,7 +163,7 @@ def run_model(data: pd.DataFrame, checkpoint: Union[str, LightningModule], batch
     featureScaler = m.hparams.lparams.x_scaler
     labelScaler = m.hparams.lparams.y_scaler
 
-    df = data[features].copy()
+    df = data[features+labels].copy()
     index_chunks = chunked(df.index, batch)
 
     for ii in tqdm(index_chunks):
