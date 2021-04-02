@@ -1,8 +1,7 @@
 import pytest
-import yaml
 from pathlib import Path
 
-from thunder_torch.flexNN_yaml_multi import *
+from thunder_torch.scripts.trainFlexNNmulti import *
 from thunder_torch.utils import parse_yaml
 
 @pytest.fixture(scope='module')
