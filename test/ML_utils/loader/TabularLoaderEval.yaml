@@ -1,0 +1,22 @@
+DataLoader:
+  type: TabularLoader
+  load_DataLoader:
+    path: TabularLoader_example.pkl
+  create_DataLoader:
+    raw_data_path: example_samples.csv
+    features: [T_0, P_0]
+    labels: [wH2O, yCO2]
+    validation_data:
+      load_data:
+        path: None
+      split_data:
+        method: random
+        params: 0.25
+    test_data:
+      load_data:
+        path: None
+      split_data:
+        method: random
+        params: 0.25
+    save_Loader:
+      path: TabularLoader_example.pkl

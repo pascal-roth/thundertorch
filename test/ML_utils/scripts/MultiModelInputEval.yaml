@@ -1,0 +1,71 @@
+####################################################################################################
+# Define multiple networks and train them parallel/ in sequence
+####################################################################################################
+
+config:
+  model_run:
+    - Model001
+    - Model002
+
+Model001:
+  Template: SingleModelInputEval.yaml
+  DataLoader:
+    create_DataLoader:
+      raw_data_path: example_samples.csv
+      features: [T_0]
+      labels: [yCO2, wH2O]
+  Model:
+    create_model:
+      n_inp: 1
+      n_out: 2
+      hidden_layer: [16]
+  Trainer:
+    params:
+      max_epochs: 3
+      fast_dev_run: True
+      profiler: True
+    callbacks:
+      - type: EarlyStopping
+        params:
+          monitor: val_loss
+          patience: 12
+          mode: min
+#     - type: lr_logger
+      - type: Checkpointing
+        params:
+          filepath: None
+          save_top_k: 1
+
+Model002:
+  Template: input_LightningFlexMLP_single.yaml
+  DataLoader:
+    create_DataLoader:
+      raw_data_path: example_samples.csv
+      features: [T_0, P_0]
+      labels: [yCO2, wH2O]
+  Model:
+    create_model:
+      n_inp: 2
+      n_out: 2
+      hidden_layer: [8]
+    params:
+      optimizer:
+        type: SGD
+        params:
+          lr: 1.e-3
+  Trainer:
+    params:
+      max_epochs: 3
+      fast_dev_run: True
+      profiler: True
+    callbacks:
+      - type: EarlyStopping
+        params:
+          monitor: val_loss
+          patience: 12
+          mode: min
+#     - type: lr_logger
+      - type: Checkpointing
+        params:
+          filepath: None
+          save_top_k: 1

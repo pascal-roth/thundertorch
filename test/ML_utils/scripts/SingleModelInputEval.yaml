@@ -1,0 +1,64 @@
+####################################################################################################
+# Arguments for training of single flexMLP network
+####################################################################################################
+# basic contruction of Loader, LightningFlexMLP and pl.Trainer cannot be changed
+
+# Generate class including train, val and test data
+DataLoader:
+  type: TabularLoader
+  create_DataLoader:
+    raw_data_path: example_samples.csv
+    features: [T_0, P_0]
+    labels: [yCO2, wH2O]
+    validation_data:
+      split_data:
+        method: random
+        params: 0.25
+    test_data:
+      split_data:
+        method: random
+        params: 0.25
+
+# hparams for model
+Model:
+  type: LightningFlexMLP
+  create_model:
+    n_inp: 2
+    n_out: 2
+    hidden_layer: [64, 128, 64]
+    # output_activation: LogSigmoid  # optional
+    activation: ReLU  # optional
+  params:  # all have defaults
+    loss: MSELoss
+    optimizer:
+      type: Adam
+      params:
+        lr: 1.e-3
+    scheduler:
+      execute: True
+      type: ReduceLROnPlateau
+      params:
+        cooldown: 2
+        patience: 3
+        min_lr: 1.e-8
+    num_workers: 5
+    batch: 64
+
+# training parameters of flexMLP
+Trainer:
+  params:
+    profiler: True
+    fast_dev_run: True
+    checkpoint_callback: False
+  callbacks:
+    - type: EarlyStopping
+      params:
+        monitor: val_loss
+        patience: 12
+        mode: min
+#    - type: lr_logger
+    - type: Checkpointing
+      params:
+        filepath: None
+        save_top_k: 1  # other params in documentation
+#   logger: tensorboard

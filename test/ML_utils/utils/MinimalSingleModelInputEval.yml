@@ -1,0 +1,36 @@
+####################################################################################################
+# Arguments for training of single flexMLP network
+####################################################################################################
+# basic contruction of Loader, LightningFlexMLP and pl.Trainer cannot be changed
+
+config:
+  source_files: imported.py
+
+# Generate class including train, val and test data
+DataLoader:
+  type: TabularLoader
+  create_DataLoader:
+    raw_data_path: example_samples.csv
+    features: [T_0, P_0]
+    labels: [yCO2, wH2O]
+    validation_data:
+      split_data:
+        method: random
+        params: 0.25
+    test_data:
+      split_data:
+        method: random
+        params: 0.25
+
+# hparams for model
+Model:
+  type: LightningFlexMLP
+  create_model:
+    n_inp: 2
+    n_out: 2
+    hidden_layer: [64, 64]
+
+# training parameters of flexMLP
+Trainer:
+  params:
+    fast_dev_run: True
