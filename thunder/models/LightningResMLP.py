@@ -1,0 +1,110 @@
+import torch.nn as nn
+import torch
+import yaml
+from argparse import Namespace
+
+from stfs_pytoolbox.ML_Utils.models.ModelBase import LightningModelBase
+from stfs_pytoolbox.ML_Utils.utils.option_class import OptionClass
+from stfs_pytoolbox.ML_Utils import _modules_activation, _modules_loss, _modules_lr_scheduler, _modules_optim
+
+
+class ResNetDNNBlock(nn.Module):
+    def __init__(self, n_neurons, activation=torch.nn.ReLU()):
+        super().__init__()
+
+        self.activation = activation
+        self.layer1 = nn.Linear(n_neurons, n_neurons)
+        self.layer2 = nn.Linear(n_neurons, n_neurons)
+
+    def forward(self, x):
+        out = self.layer1(x)
+        out = self.activation(out)
+        out = self.layer2(out)
+        out = self.activation(out)
+
+        return out + x
+
+
+class LightningResMLP(LightningModelBase):
+    def __init__(self, hparams: Namespace) -> None:
+        """
+        Initializes a LightningResMLP model based on the provided parameters
+
+        Parameters
+        ----------
+        hparams         - Namespace object including hyperparameters
+        """
+        super(LightningResMLP, self).__init__()
+
+        self.loss_fn = None
+        self.activation_fn = None
+
+        self.hparams = hparams
+        self.check_hparams()
+        self.get_default()
+        self.get_functions()
+        self.min_val_loss = None
+
+        # Construct MLP with a variable number of hidden layers
+        self.layers = []
+        self.layers.append(nn.Linear(hparams.n_inp, hparams.hidden_blocks[0]))  # first layer
+        # construct hidden residual blocks
+        for block in hparams.hidden_blocks:
+            self.layers.append(ResNetDNNBlock(block, self.activation_fn))
+        self.layers.append(nn.Linear(self.hparams.hidden_blocks[-1], self.hparams.n_out))   # last layer
+        if hasattr(self.hparams, 'output_activation'):
+            self.layers.append(getattr(torch.nn, self.hparams.output_activation)())
+
+        self.layers = torch.nn.Sequential(*self.layers)
+
+    @staticmethod
+    def get_OptionClass():
+        options = {'hparams': OptionClass(template=LightningResMLP.yaml_template(['Model', 'params']))}
+        options['hparams'].add_key('n_inp', dtype=int, required=True)
+        options['hparams'].add_key('n_out', dtype=int, required=True)
+        options['hparams'].add_key('hidden_blocks', dtype=list, required=True)
+        options['hparams'].add_key('output_activation', dtype=str, attr_of=_modules_activation)
+        options['hparams'].add_key('activation', dtype=str, attr_of=_modules_activation)
+        options['hparams'].add_key('loss', dtype=str, attr_of=_modules_loss)
+        options['hparams'].add_key('optimizer', dtype=dict)
+        options['hparams'].add_key('scheduler', dtype=dict)
+        options['hparams'].add_key('num_workers', dtype=int)
+        options['hparams'].add_key('batch', dtype=int)
+        options['hparams'].add_key('lparams', dtype=Namespace)
+        options['hparams'].add_key('lr', dtype=float)
+
+        options['optimizer'] = OptionClass(
+            template=LightningResMLP.yaml_template(['Model', 'params', 'optimizer']))
+        options['optimizer'].add_key('type', dtype=str, attr_of=_modules_optim)
+        options['optimizer'].add_key('params', dtype=dict, param_dict=True)
+
+        options['scheduler'] = OptionClass(
+            template=LightningResMLP.yaml_template(['Model', 'params', 'scheduler']))
+        options['scheduler'].add_key('execute', dtype=bool)
+        options['scheduler'].add_key('type', dtype=str, attr_of=_modules_lr_scheduler)
+        options['scheduler'].add_key('params', dtype=dict, param_dict=True)
+
+        return options
+
+    @staticmethod
+    def yaml_template(key_list):
+        """
+        Yaml template for LightningResMLP
+        """
+        template = {'Model': {'type': 'LightningFlexMLP',
+                              'load_model': {'path': 'name.ckpt'},
+                              'create_model': {'n_inp': 'int', 'n_out': 'int', 'hidden_blocks': '[int, int, int]',
+                                               'output_activation': 'str (default: None)', 'activation':
+                                                   'str (default: ReLU)'},
+                              'params': {'loss': 'str (default:MSELoss)',
+                                         'optimizer': {'type': 'str (default: Adam)',
+                                                       'params': {'lr': 'float (default: 1.e-3'}},
+                                         'scheduler': {'execute': ' bool (default: False)', 'type': 'name',
+                                                       'params': {'cooldown': 'int', 'patience': 'int',
+                                                                  'min_lr': 'float'}},
+                                         'num_workers': 'int (default: 10)', 'batch': 'int (default: 64)'}}}
+
+        for i, key in enumerate(key_list):
+            template = template.get(key)
+
+        return yaml.dump(template, sort_keys=False)
