@@ -1,16 +1,19 @@
+<div align="center">
+
 # ThunderTorch
 
-**ThunderTorch** is a python framework for usefull functions needed for data 
-analysis and postProcessing.
-Some functions are based on cantera.
-The main data type used in functions are dictionaries of nupy arrays.
+</div>
 
-The main features of **thunder_torch** are:
+**ThunderTorch** is a wrapper build on top of PyTorch and PyTorch Lightning. It provides 
+a set of pre-build models, data-loaders and other functionalities in order to speed up Machine 
+Learning Development tasks. 
 
-* functions based on cantera
-* postProcessing functions
-* create high quality figures
+The wrapper can be installed 
 
-**You find the documentation here:**
+```bash
+sh InstallThunderTorch.sh
+```
+
+A detailed documentation of **thunder_torch** is available at:
 
 **https://proth.pages.rwth-aachen.de/pythonToolBox/index.html**
