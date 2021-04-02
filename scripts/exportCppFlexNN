@@ -16,9 +16,7 @@ def parse_args():
     return parser.parse_args()
 
 
-if __name__ == '__main__':
-    args = parse_args()
-
+def export_model(args):
     model = getattr(models, args.model_type).load_from_checkpoint(args.model)
     n_inp = model.hparams.n_inp  # TODO: how for all models?
     example = torch.rand(n_inp)
@@ -27,4 +25,9 @@ if __name__ == '__main__':
     traced_script_module = torch.jit.trace(model, example)
 
     traced_script_module.save("traced_model.pt")
+
+if __name__ == '__main__':
+    args = parse_args()
+    export_model(args)
+
 

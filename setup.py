@@ -31,8 +31,8 @@ setup(
         'scripts/assemblyFlexNN',
         'scripts/ml_init',
         'scripts/trainFlexNN',
-        'scripts/trainFlexNNargs',
-        'scripts/trainFlexNNmulti'
+        'scripts/trainFlexNNmulti',
+        'scripts/exportCppFlexNN'
         ],
     install_requires=[
         'numpy==1.16.4',

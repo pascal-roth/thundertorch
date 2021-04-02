@@ -238,8 +238,8 @@ def train_logger(argsTrainer: dict) -> list:
         if argsTrainer['logger'][i]['type'] == 'comet-ml':
             from pytorch_lightning.loggers.comet import CometLogger
             logger_fn = CometLogger(**argsTrainer['logger'][i]['params'])
-        elif argsTrainer['logger'][i]['type'] == 'tensorboard':
-            logger_fn = logger.TensorBoardLoggerAdjusted(**argsTrainer['logger'][i]['params'])
+        elif argsTrainer['logger'][i]['type'] == 'TensorBoardLogger':
+            logger_fn = pl.loggers.TensorBoardLogger(**argsTrainer['logger'][i]['params'])
         else:
             raise ValueError('Selected logger not implemented!')
 

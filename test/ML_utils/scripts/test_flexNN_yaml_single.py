@@ -6,7 +6,7 @@
 from pathlib import Path
 import pytest
 
-from thunder_torch.flexNN_yaml_single import *
+from thunder_torch.scripts.trainFlexNN import *
 from thunder_torch.utils import parse_yaml
 
 @pytest.fixture(scope='module')
