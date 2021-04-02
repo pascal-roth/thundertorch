@@ -1,4 +1,5 @@
-"""stfs_pytoolbox setup."""
+"""ThunderTorch setup."""
+
 import subprocess
 import sys
 from setuptools import find_packages, setup
@@ -8,11 +9,6 @@ import versioneer
 def install_with_pip(package):
         subprocess.call([sys.executable, "-m", "pip", "install", package])
 
-def install_cantera_with_conda():
-        os.popen("conda install -c cantera cantera==2.4").read()
-
-install_cantera_with_conda()
-
 with open("README.md", "r") as fh:
     long_description = fh.read()
 
@@ -20,23 +16,23 @@ packages = find_packages()
 packages_dir = {pack: pack for pack in packages}
 
 setup(
-    name="stfs_pytoolbox",
+    name="thunder_torch",
     version=versioneer.get_version(),
     cmdclass=versioneer.get_cmdclass(),
-    description="a Toolbox with usefull functions for data analysis and postProcessing",
+    description="PyTorch and PyTorch Lightning wrapper for high-level AI research",
     long_description=long_description,
     long_description_content_type="text/markdown",
-    author='Hannes Böttler',
-    author_email='boettler@stfs.tu-darmstadt.de',
+    author='Pascal Roth',
+    author_email='roth.pascal@outlook.de',
     packages=packages,
     packages_dir=packages_dir,
     scripts=[
-        'scripts/ML_Utils/assembleLightningModels',
-        'scripts/ML_Utils/assemblyFlexNN',
-        'scripts/ML_Utils/ml_init',
-        'scripts/ML_Utils/trainFlexNN',
-        'scripts/ML_Utils/trainFlexNNargs',
-        'scripts/ML_Utils/trainFlexNNmulti'
+        'scripts/assembleLightningModels',
+        'scripts/assemblyFlexNN',
+        'scripts/ml_init',
+        'scripts/trainFlexNN',
+        'scripts/trainFlexNNargs',
+        'scripts/trainFlexNNmulti'
         ],
     install_requires=[
         'numpy==1.16.4',

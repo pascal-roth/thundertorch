@@ -10,7 +10,7 @@ Welcome to pythonToolBox's documentation!
     :glob:
     :maxdepth: 1
 
-    stfs_pytoolbox
+    thunder_torch
 
 
 ML_utils module overview
@@ -20,16 +20,7 @@ ML_utils module overview
     :glob:
     :maxdepth: 1
 
-    ML_utils/Toolbox_concept
-
-Mollier_hX Diagram Generator
-============================
-
-.. toctree::
-    :glob:
-    :maxdepth: 1
-
-    mollier/mollier_hx_start
+    thunder_torch/Toolbox_concept
         
 Indices and tables
 ==================

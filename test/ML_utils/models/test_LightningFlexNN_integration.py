@@ -5,7 +5,7 @@ import numpy as np
 import pytorch_lightning as pl
 from torchvision import datasets, transforms
 
-from stfs_pytoolbox.ML_Utils.models import LightningFlexNN
+from thunder_torch.models import LightningFlexNN
 
 
 def test_LightningFlexNN_integration(tmp_path):

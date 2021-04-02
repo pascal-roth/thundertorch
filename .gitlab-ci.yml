@@ -9,7 +9,7 @@ Clear conda environment:
     script:
         - echo "Removing preexisting environment"
         - source ~/miniconda3/etc/profile.d/conda.sh
-        - conda remove --name stfs_pytoolbox --all
+        - conda remove --name thunder_torch --all
 
 
 Test Code:
@@ -18,15 +18,15 @@ Test Code:
         - echo "Load Conda Environment"
         - source ~/miniconda3/etc/profile.d/conda.sh
         - source ~/miniconda3/bin/activate
-        - conda activate stfs_pytoolbox
-        - pytest test  --ignore=test/ML_utils/models/test_LightningFlexNN_integration.py
+        - conda activate thunder_torch
+        - pytest test  --ignore=test/thunder_torch/models/test_LightningFlexNN_integration.py
     only:
         - devel
 
 Build Code:
    stage: build
    script:
-     - ./Install_stfs_pytoolbox.sh -a; echo $?
+     - ./InstallThunderTorch.sh -a; echo $?
    only:
      - devel
 
@@ -36,7 +36,7 @@ pages:
         - echo "Load Conda Environment"
         - source ~/miniconda3/etc/profile.d/conda.sh
         - source ~/miniconda3/bin/activate
-        - conda activate stfs_pytoolbox
+        - conda activate thunder_torch
         - echo "Build the documentation"
         - cd doc/
         - make clean; make html;
@@ -46,7 +46,7 @@ pages:
   after_script:
         - echo "Removing environment"
         - source ~/miniconda3/etc/profile.d/conda.sh
-        - conda remove --name stfs_pytoolbox --all
+        - conda remove --name thunder_torch --all
   artifacts:
     paths:
         - public

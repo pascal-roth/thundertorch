@@ -20,9 +20,9 @@ sys.path.insert(0, os.path.abspath('../../'))
 
 # -- Project information -----------------------------------------------------
 
-project = 'pythonToolBox'
-copyright = '2020, Hannes Böttler & Matthias Steinhausen'
-author = 'Hannes Böttler & Matthias Steinhausen'
+project = 'ThunderTorch'
+copyright = '2020, Pascal Roth'
+author = 'Pascal Roth'
 
 
 # The short X.Y version.
@@ -97,4 +97,4 @@ html_logo = 'stfs_logo.png'
 html_static_path = ['_static']
 
 # Output file base name for HTML help builder.
-htmlhelp_basename = 'pyToolboxDoc'
+htmlhelp_basename = 'ThunderTorchDoc'

@@ -2,8 +2,8 @@ import pytest
 import yaml
 from pathlib import Path
 
-from stfs_pytoolbox.ML_Utils.flexNN_yaml_multi import *
-from stfs_pytoolbox.ML_Utils.utils import parse_yaml
+from thunder_torch.flexNN_yaml_multi import *
+from thunder_torch.utils import parse_yaml
 
 @pytest.fixture(scope='module')
 def path():

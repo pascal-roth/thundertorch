@@ -17,6 +17,6 @@ help:
 # Catch-all target: route all unknown targets to Sphinx using the new
 # "make mode" option.  $(O) is meant as a shortcut for $(SPHINXOPTS).
 %: Makefile
-	sphinx-apidoc -M -f -d 1 -e -o $(SOURCEDIR) ../stfs_pytoolbox/
+	sphinx-apidoc -M -f -d 1 -e -o $(SOURCEDIR) ../thunder_torch/
 	rm source/modules.rst
 	@$(SPHINXBUILD) -M $@ "$(SOURCEDIR)" "$(BUILDDIR)" $(SPHINXOPTS) $(O)

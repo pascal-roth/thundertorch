@@ -1,6 +1,6 @@
 import pytest
 
-from stfs_pytoolbox.ML_Utils.utils.option_class import OptionClass
+from thunder_torch.utils.option_class import OptionClass
 
 
 @pytest.fixture(scope='module')
@@ -11,20 +11,20 @@ def create_OptionsObject():
     options.add_key('hidden_layer', dtype=list, required=True)
     options.add_key('output_relu', dtype=bool, mutually_exclusive=['activation'])
     options.add_key('activation', dtype=str, mutually_exclusive=['output_relu'])
-    options.add_key('add_key', dtype=str, attr_of='stfs_pytoolbox.ML_Utils.utils')
+    options.add_key('add_key', dtype=str, attr_of='thunder_torch.utils')
     return options
 
 
 def test_add_key():
     options = OptionClass()
     options.add_key('some_key', dtype=str, required=True, mutually_exclusive=['other key'],
-                    attr_of='stfs_pytoolbox.ML_Utils.utils', param_dict=True)
+                    attr_of='thunder_torch.utils', param_dict=True)
 
     assert options.keylist['some_key']['dtype'] == str
     assert 'some_key' in options.required_keys
     assert options.keylist['some_key']['mutually_exclusive'] == ['other key']
     assert 'some_key' in options.param_dicts
-    assert options.keylist['some_key']['attr_of'] == 'stfs_pytoolbox.ML_Utils.utils'
+    assert options.keylist['some_key']['attr_of'] == 'thunder_torch.utils'
 
 
 def test_check_required_keys(create_OptionsObject):
@@ -65,6 +65,6 @@ def test_check_attr_of(create_OptionsObject):
 
     with pytest.raises(AttributeError):
         input_dict = {'some_key': 'some_attr'}
-        create_OptionsObject.add_key('some_key', dtype=str, attr_of='stfs_pytoolbox.ML_Utils.utils')
+        create_OptionsObject.add_key('some_key', dtype=str, attr_of='thunder_torch.utils')
         for key, item in input_dict.items():
             create_OptionsObject.check_attr_of(key, item)

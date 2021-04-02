@@ -2,7 +2,7 @@ import pytest
 import os
 import argparse
 
-from stfs_pytoolbox.ML_Utils.models import LightningModelBase, LightningFlexMLP
+from thunder_torch.models import LightningModelBase, LightningFlexMLP
 
 
 def test_hparams_save(tmp_path):

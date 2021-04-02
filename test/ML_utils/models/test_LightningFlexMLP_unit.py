@@ -4,7 +4,7 @@ import os
 
 import pytorch_lightning as pl
 
-from stfs_pytoolbox.ML_Utils.models import LightningFlexMLP
+from thunder_torch.models import LightningFlexMLP
 
 
 @pytest.mark.dependency()

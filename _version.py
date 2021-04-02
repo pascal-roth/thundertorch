@@ -42,7 +42,7 @@ def get_config():
     cfg.VCS = "git"
     cfg.style = "pep440"
     cfg.tag_prefix = ""
-    cfg.parentdir_prefix = "stfs_pytoolbox"
+    cfg.parentdir_prefix = "thunder_torch"
     cfg.versionfile_source = "_version.py"
     cfg.verbose = False
     return cfg

@@ -6,9 +6,9 @@ import pandas as pd
 from pathlib import Path
 import pytorch_lightning as pl
 
-from stfs_pytoolbox.ML_Utils.loader import TabularLoader
-from stfs_pytoolbox.ML_Utils.callbacks import Checkpointing
-from stfs_pytoolbox.ML_Utils.utils import parse_yaml
+from thunder_torch.loader import TabularLoader
+from thunder_torch.callbacks import Checkpointing
+from thunder_torch.utils import parse_yaml
 
 
 @pytest.fixture(scope='module')

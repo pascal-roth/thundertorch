@@ -14,8 +14,8 @@ import multiprocessing as mp
 import itertools
 import pytest
 
-from stfs_pytoolbox.ML_Utils.models import LightningFlexMLP
-from stfs_pytoolbox.ML_Utils.loader import TabularLoader
+from thunder_torch.models import LightningFlexMLP
+from thunder_torch.loader import TabularLoader
 
 ct.suppress_thermo_warnings()
 gas_multi = {}

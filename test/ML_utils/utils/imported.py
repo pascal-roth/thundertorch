@@ -1,6 +1,6 @@
 import torch
 from argparse import Namespace
-from stfs_pytoolbox.ML_Utils.models.ModelBase import LightningModelBase
+from thunder_torch.models.ModelBase import LightningModelBase
 
 class LightningFlexMLPImported(LightningModelBase):
     """

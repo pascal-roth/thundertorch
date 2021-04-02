@@ -1,5 +1,5 @@
 import pytest
-from stfs_pytoolbox.ML_Utils.loader._utils import *
+from thunder_torch.loader._utils import *
 
 
 @pytest.fixture(scope='module')

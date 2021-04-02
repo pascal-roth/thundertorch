@@ -8,12 +8,12 @@ import pytest
 import argparse
 import pytorch_lightning as pl
 
-from stfs_pytoolbox.ML_Utils.utils.training import *
-from stfs_pytoolbox.ML_Utils.loader import TabularLoader
-from stfs_pytoolbox.ML_Utils.models import LightningFlexMLP, LightningModelBase
-from stfs_pytoolbox.ML_Utils.utils import parse_yaml
-from stfs_pytoolbox.ML_Utils import callbacks
-from stfs_pytoolbox.ML_Utils import logger
+from thunder_torch.utils.training import *
+from thunder_torch.loader import TabularLoader
+from thunder_torch.models import LightningFlexMLP, LightningModelBase
+from thunder_torch.utils import parse_yaml
+from thunder_torch import callbacks
+from thunder_torch import logger
 
 from .MinimalLightningModel import MinimalLightningModule
 

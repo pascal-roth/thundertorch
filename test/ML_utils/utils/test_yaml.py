@@ -7,9 +7,9 @@ from pathlib import Path
 import pytest
 import os
 
-from stfs_pytoolbox.ML_Utils.utils.yaml import *
-from stfs_pytoolbox.ML_Utils.models import LightningModelTemplate
-from stfs_pytoolbox.ML_Utils.loader import DataLoaderTemplate
+from thunder_torch.utils.yaml import *
+from thunder_torch.models import LightningModelTemplate
+from thunder_torch.loader import DataLoaderTemplate
 
 
 @pytest.fixture(scope='module')

@@ -7,8 +7,8 @@ import pytest
 import argparse
 import shutil
 
-from stfs_pytoolbox.ML_Utils.models import *
-from stfs_pytoolbox.ML_Utils.loader import *
+from thunder_torch.models import *
+from thunder_torch.loader import *
 
 
 def pytest_configure(config):
