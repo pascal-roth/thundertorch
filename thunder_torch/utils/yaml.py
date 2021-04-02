@@ -501,7 +501,7 @@ def replace_expression(argsModel: dict, ModelName: str, expression: str = '<mode
 def header(name_model: str, name_loader: str) -> tuple:
     # construct single yaml header
     header_single = f"#  +-----------------------------+\n" \
-                    f"#  |  Machine Learning ToolBox   |\n" \
+                    f"#  |  ThunderTorch Wrapper       |\n" \
                     f"#  +-----------------------------+\n \n" \
                     f"#  YAML for Single Model Training\n" \
                     f"#  ------------------------------\n \n" \
@@ -516,7 +516,7 @@ def header(name_model: str, name_loader: str) -> tuple:
 
     # construct single yaml header
     header_multi = "#  +-----------------------------+\n" \
-                   "#  |  Machine Learning ToolBox   |\n" \
+                   "#  |  ThunderTorch Wrapper       |\n" \
                    "#  +-----------------------------+\n \n" \
                    "#  YAML for Multi Model Training \n" \
                    "#  ------------------------------\n \n" \
