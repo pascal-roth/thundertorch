@@ -1,0 +1,170 @@
+
+from stfs_pytoolbox.ML_Utils import *
+import pandas as pd
+
+import argparse
+import os
+import sys
+
+
+def parseArguments():
+
+    parser = argparse.ArgumentParser()
+
+    # Add mutually_exclusive_group to either load a FlexMLP model or create on based on input
+
+    group = parser.add_argument_group("Mutally exclusive group to load or create FlexMLP model")
+    group.add_argument('--model', '-m', dest='model',
+                        help='PyTorch model to load from .pt file')
+    group.add_argument('-f', '--features', nargs='+',
+                       help="Provide list of features extracted from training data")
+    group.add_argument('-l', '--labels', nargs='+',
+                       help="Provide list of labels extracted from training data")
+    group.add_argument('-hl', '--hidden-layer', type=int, nargs='+',
+                       help="Provide list of hidden layer neurons")
+
+    parser.add_argument('-d', '--training-data', type=str, dest='train_data', required=True,
+                        help='File to load for training data. Valid extensions are .txt, .csv, .ulf, .h5'
+                             ' Delimiter must be spaces"')
+    parser.add_argument('-v', '--validation-data', type=str, dest='val_data',
+                        help='File to load for validation data. Valid extensions are .txt, .csv, .ulf, .h5'
+                             ' Delimiter must be spaces')
+    parser.add_argument('-e', '--epochs', type=int, dest='epochs', default=10,
+                        help='Number of epochs to train')
+    parser.add_argument('-b', '--batch', type=int, dest='batch', default=16,
+                        help='Batch size during training')
+    parser.add_argument('-lr', '--learning-rate', type=float, dest='lr', default=1e-3,
+                        help='Learning rate for optimizer')
+    parser.add_argument('--output', '-o', dest='output', required=False, default='TorchModel.pt',
+                        help='file name of best model that is saved')
+    parser.add_argument('-p', '--plot', action='store_true', dest='plot',
+                        help='Enables plotting of losses during training')
+    parser.add_argument('-r', '--output-relu', action='store_true',
+                        help="Adds a relu activation function to output layer")
+    parser.add_argument('-a', '--activation', choices=['relu', 'tanh', 'softplus'], default='relu',
+                        help="Defines activation function for each layer")
+    parser.add_argument('-w', '--init-weights', dest='weight', type=float, default=0.1,
+                        help='initializes weights of last layer with given number')
+    parser.add_argument('-lo', '--loss', choices=['MSE', 'RelativeMSE'], default='MSE',
+                        help="Defines loss function for training")
+    parser.add_argument('-s', '--scheduler', action='store_true', default=False,
+                        help="Flag if learning rate scheduler should be used")
+    parser.add_argument('-g', '--gpu', type=int, default=0,
+                        help="Use GPU of given ID, default=0")
+
+    args = parser.parse_args()
+
+    # Make model and model definition mutually_exclusive, there is not way to do it in with argparse
+    if args.model:
+        if args.features or args.labels or args.hidden_layer:
+            parser.error("The following arguments are mutally exclusive:"
+                         " [-m/--model] or [-f/--features, -l/--labels, -hl/--hidden-layer]")
+    else:
+        if not(args.features and args.labels and args.hidden_layer):
+            parser.error("The following arguments are required together: "
+                         "[-f/--features, -l/--labels, -hl/--hidden-layer]")
+
+    return args
+
+
+def main():
+    args = parseArguments()
+
+    # Handle arguments
+    # training data
+    file = args.train_data
+    _, file_exention = os.path.splitext(file)
+
+    print("Loading training data:")
+    if file_exention == ".h5":
+        store = pd.HDFStore(file)
+        keys = store.keys()
+        assert len(keys) == 1, "There must be only one key stored in pandas.HDFStore in '{}'!".format(file)
+        df_train = store.get(keys[0])
+        store.close()
+    else:
+        df_train = pd.read_csv(file, sep=" ")
+    print("Done!")
+    # validation data
+    if args.val_data is not None:
+        print("Loading validation data:")
+        file = args.val_data
+        _, file_exention = os.path.splitext(file)
+        if file_exention == ".h5":
+            store = pd.HDFStore(file)
+            keys = store.keys()
+            assert len(keys) == 1, "There must be only one key stored in pandas.HDFStore in '{}'!".format(file)
+            df_val = store.get(keys[0])
+            store.close()
+        else:
+            df_val = pd.read_csv(file, sep=" ")
+        print("Done!")
+    else:
+        # run validation with training data
+        df_val = df_train
+
+    print("Loading FlexMLP model:")
+    # load or create model
+    if args.model:
+        model, features, labels, _, scalers = loadFlexMLPCheckpoint(args.model)
+        # check if features and labels are not empy
+        if not features and not labels:
+            print("No features or labels where provided in model: '{}'".format(args.model))
+            sys.exit(1)
+    else:
+        features = args.features
+        labels = args.labels
+        output_activation = None
+        scalers=None
+        if args.output_relu:
+            output_activation = F.relu
+        # get activation function via string given by argparse arguments
+        activation_fn=getattr(F, args.activation)
+        model = FlexMLP(len(features), len(labels), args.hidden_layer,
+                        activation_fn=activation_fn, output_activation=output_activation).double()
+        # init weights of last layer
+        if args.weight:
+            model.layers[-1].weight.data.fill_(args.weight)
+
+    print("Done!")
+
+    # Check if features and labels are in data
+    for feature in features:
+        if feature not in df_train.columns:
+            print("Error: feature '{}' is not in training data: {}".format(feature, df_train.columns))
+            sys.exit(1)
+        if feature not in df_val.columns:
+            print("Error: feature '{}' is not in validation data: {}".format(feature, df_val.columns))
+            sys.exit(1)
+    # Check if features and labels are in data
+    for label in labels:
+        if label not in df_train.columns:
+            print("Error: feature '{}' is not in training data: {}".format(label, df_train.columns))
+            sys.exit(1)
+        if label not in df_val.columns:
+            print("Error: feature '{}' is not in validation data: {}".format(label, df_val.columns))
+            sys.exit(1)
+
+    # get loss function
+    if args.loss == 'MSE':
+        loss_fn = torch.nn.MSELoss()
+    elif args.loss == 'RelativeMSE':
+        loss_fn = RelativeMSELoss()
+
+
+    # Continue with training
+
+    epochs = args.epochs
+    batch = args.batch
+    outputFile = args.output
+
+    # run training
+    model, loss, _ = trainFlexMLP(model, outputFile, features, labels, df_train,
+                                  loss_fn=loss_fn, epochs=epochs, batch=batch, plot=args.plot, lr=args.lr,
+                                  scalers=scalers, use_scheduler=args.scheduler, gpuID=args.gpu)
+
+
+if __name__ == "__main__":
+    main()
+
+
