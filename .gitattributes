@@ -1,0 +1,6 @@
+_version.py export-subst
+stfs-pytoolbox/_version.py export-subst
+stfs_pytoolbox/_version.py export-subst
+
+*.ipynb filter=nbstripout
+*.ipynb diff=ipynb

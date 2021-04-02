@@ -1,0 +1,66 @@
+stages:
+  - build
+  - test
+  - deploy
+#   - merge
+
+Clear conda environment:
+    stage: .pre
+    script:
+        - echo "Removing preexisting environment"
+        - source ~/miniconda3/etc/profile.d/conda.sh
+        - conda remove --name stfs_pytoolbox --all
+
+
+Test Code:
+    stage: test
+    script:
+        - echo "Load Conda Environment"
+        - source ~/miniconda3/etc/profile.d/conda.sh
+        - source ~/miniconda3/bin/activate
+        - conda activate stfs_pytoolbox
+        - pytest test  --ignore=test/ML_utils/models/test_LightningFlexNN_integration.py
+    only:
+        - devel
+
+Build Code:
+   stage: build
+   script:
+     - ./Install_stfs_pytoolbox.sh -a; echo $?
+   only:
+     - devel
+
+pages:
+  stage: deploy
+  script:
+        - echo "Load Conda Environment"
+        - source ~/miniconda3/etc/profile.d/conda.sh
+        - source ~/miniconda3/bin/activate
+        - conda activate stfs_pytoolbox
+        - echo "Build the documentation"
+        - cd doc/
+        - make clean; make html;
+        - cd ../
+        - mkdir public
+        - cp -r doc/build/html/* public/
+  after_script:
+        - echo "Removing environment"
+        - source ~/miniconda3/etc/profile.d/conda.sh
+        - conda remove --name stfs_pytoolbox --all
+  artifacts:
+    paths:
+        - public
+  only:
+    - devel
+
+#Merge Code:
+#    stage: merge
+#    script:
+#        - git fetch origin master
+#        - git checkout master
+#        - git pull
+#        - git merge origin/develop -m "automatic merge of devel into master after sucessfull test"
+#        - git status
+#        - git push git@git.rwth-aachen.de:stfs/boettler/pythonToolBox.git master
+#    only:
+#        - devel
