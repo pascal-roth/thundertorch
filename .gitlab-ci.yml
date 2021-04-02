@@ -20,15 +20,15 @@ Test Code:
         - source ~/miniconda3/bin/activate
         - conda activate thunder_torch
         - pytest test  --ignore=test/thunder_torch/models/test_LightningFlexNN_integration.py
-    only:
-        - devel
+#    only:
+#        - devel
 
 Build Code:
    stage: build
    script:
      - ./InstallThunderTorch.sh -a; echo $?
-   only:
-     - devel
+#   only:
+#     - devel
 
 pages:
   stage: deploy
@@ -50,8 +50,8 @@ pages:
   artifacts:
     paths:
         - public
-  only:
-    - devel
+#  only:
+#    - devel
 
 #Merge Code:
 #    stage: merge
@@ -61,6 +61,6 @@ pages:
 #        - git pull
 #        - git merge origin/develop -m "automatic merge of devel into master after sucessfull test"
 #        - git status
-#        - git push git@git.rwth-aachen.de:stfs/boettler/pythonToolBox.git master
+#        - git push git@git.rwth-aachen.de:stfs/proth/pythonToolBox.git master
 #    only:
 #        - devel

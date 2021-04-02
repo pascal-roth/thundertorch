@@ -13,4 +13,4 @@ The main features of **thunder_torch** are:
 
 **You find the documentation here:**
 
-**https://boettler.pages.rwth-aachen.de/pythonToolBox/index.html**
+**https://proth.pages.rwth-aachen.de/pythonToolBox/index.html**
