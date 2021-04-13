@@ -510,7 +510,7 @@ def header(name_model: str, name_loader: str) -> tuple:
                     f"#     Model:         {name_model}\n" \
                     f"#     DataLoader:    {name_loader}\n" \
                     f"#  After adjusting the YAML run the script 'trainFlexNN' to execute the ML task.\n" \
-                    f"#  For the documentation see: https://proth.pages.rwth-aachen.de/pythonToolBox/ML_utils" \
+                    f"#  For the documentation see: https://p-roth.gitlab.io/thundertorch/" \
                     f"/working_examples/working_example_yaml.html \n" \
                     f"#  ------------------------------ \n"
 
@@ -526,7 +526,7 @@ def header(name_model: str, name_loader: str) -> tuple:
                    "single-model yaml as template. \n" \
                    "#   In the following the keys of the single-yaml can be adjusted.\n" \
                    "#  After adjusting the YAML run the script 'trainFlexNNmulti' to execute the ML task. \n" \
-                   "#  For the documentation see: https://proth.pages.rwth-aachen.de/pythonToolBox/ML_utils" \
+                   "#  For the documentation see: https://p-roth.gitlab.io/thundertorch/" \
                    "/getting_started/MultiModelTraining.html \n" \
                    "#  -----------------------------\n"
 
