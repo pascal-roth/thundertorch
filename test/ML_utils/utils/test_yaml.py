@@ -222,8 +222,6 @@ def test_get_argsDict(path):
         argsModels, argsConfig = get_argsModel(argsMulti)
         get_argsDict(argsModels)
 
-
-
 @pytest.mark.dependency(depends=['test_get_argsModels'])
 def test_get_num_processes(path):
     # without definition of cpu_per_model and gpu_per_model
