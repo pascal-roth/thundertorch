@@ -63,7 +63,7 @@ def test_get_custom_model(path):
     """
     yaml_file = parse_yaml(path / 'MinimalSingleModelInputEval.yml')
     config = yaml_file.pop('config')
-    config["source_files"] = "test/ML_Utils/utils/imported.py"
+    config["source_files"] = "test/ML_utils/utils/imported.py"
     trainer_args = yaml_file["trainer"]["params"]
     train_config(config, trainer_args)
 
@@ -131,12 +131,12 @@ def test_train_logger():  # control of comet logger fails even if it is working
     #                           {'type': 'tensorboard',
     #                            'params': {'save_dir': 'logs/'}}]}
     argsTrainer = {'params': {'max_epochs': 3},
-                   'logger': [{'type': 'tensorboard',
+                   'logger': [{'type': 'TensorBoardLogger',
                                'params': {'save_dir': 'logs/'}}]}
     argsTrainer['params']['logger'] = train_logger(argsTrainer)
 
     # assert isinstance(argsTrainer['params']['logger'][0], pl.loggers.comet.CometLogger), 'Comit init fails'
-    assert isinstance(argsTrainer['params']['logger'][0], logger.TensorBoardLoggerAdjusted), 'Tensorboard init fails'
+    assert isinstance(argsTrainer['params']['logger'][0], pl.loggers.TensorBoardLogger), 'Tensorboard init fails'
 
     with pytest.raises(AssertionError):  # Logger misses params
         argsTrainer = {'params': {'max_epochs': 3},
