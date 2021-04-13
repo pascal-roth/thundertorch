@@ -13,7 +13,6 @@ from thunder_torch.loader import TabularLoader
 from thunder_torch.models import LightningFlexMLP, LightningModelBase
 from thunder_torch.utils import parse_yaml
 from thunder_torch import callbacks
-from thunder_torch import logger
 
 from .MinimalLightningModel import MinimalLightningModule
 
