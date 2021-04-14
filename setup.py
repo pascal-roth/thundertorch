@@ -6,8 +6,10 @@ from setuptools import find_packages, setup
 import os
 import versioneer
 
-def install_with_pip(package):
-        subprocess.call([sys.executable, "-m", "pip", "install", package])
+
+def install_with_pip(package) -> None:
+    subprocess.call([sys.executable, "-m", "pip", "install", package])
+
 
 with open("README.md", "r") as fh:
     long_description = fh.read()
