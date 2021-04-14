@@ -6,22 +6,24 @@ before_script:
   # - pip install -r requirements.txt
 
 stages:
-#  - Static Analysis
+  - Static Analysis
 #  - Formatting
 #  - Security
   - Test
   - deploy
 
-#mypy:
-#  stage: Static Analysis
-#  script:
-#  - python -m mypy thunder_torch/*.py
+mypy:
+  stage: Static Analysis
+  allow_failure: true
+  script:
+  - mypy thunder_torch/*.py
 
-#flake8:
-#  stage: Static Analysis
-#  script:
-#  - flake8 --max-line-length=120 --max-complexity 8 bild/*.py
-#
+flake8:
+  stage: Static Analysis
+  script:
+    - pip install flake8
+    - flake8 --max-line-length=120 --max-complexity 8 bild/*.py
+
 #pylint:
 #  stage: Static Analysis
 #  script:
@@ -40,17 +42,17 @@ stages:
 pytest:
   stage: Test
   script:
-    - pwd
-    - ls -l
     - export PYTHONPATH="$PYTHONPATH:."
-    - python -c "import sys;print(sys.path)"
+    # - python -c "import sys;print(sys.path)"
     - pytest test --ignore=test/ML_utils/models/test_LightningFlexMLP_integration.py --ignore=test/ML_utils/models/test_LightningFlexNN_integration.py
 
 coverage:
   stage: Test
   allow_failure: true
   script:
-  - pytest --cov-report term-missing --cov=thunder_torch
+    - pip install coverage
+    - pytest --cov=thunder_torch # --cov-report term-missing
+    - bash <(curl -s https://codecov.io/bash) -t '590691ac-7f2a-49a2-bfaf-ca7ed19edfe2'
 
 
 
