@@ -1,6 +1,7 @@
 import torch
 import argparse
 from thunder_torch import models
+from thunder_torch import _logger
 
 
 def parse_args():
@@ -13,16 +14,20 @@ def parse_args():
     parser.add_argument('-r', '--output_relu', action='store_true',
                         help="Adds a relu activation function to output layer")
 
+    _logger.debug('Arguments parsed')
     return parser.parse_args()
 
 
 def export_model(args):
-    model = getattr(models, args.model_type).load_from_checkpoint(args.model)
+    model = getattr(models, args.model_type).load_from_checkpoint(args.model_path)
+    _logger.debug(f'Model loaded of type {type(model)}')
+
     n_inp = model.hparams.n_inp  # TODO: how for all models?
     example = torch.rand(n_inp)
 
     # Use torch.jit.trace to generate a torch.jit.ScriptModule via tracing.
-    traced_script_module = torch.jit.trace(model, example)
+    with torch.no_grad():
+        traced_script_module = torch.jit.trace(model, example)
 
     traced_script_module.save("traced_model.pt")
 

@@ -2,7 +2,7 @@
 # Load arguments of input_LightningFlexMLP_single.yaml and execute LightningFlexMLP.py
 #######################################################################################################################
 from thunder_torch.utils import *
-
+from thunder_torch import _logger
 
 def main(args_yaml: dict) -> None:
     """
@@ -12,11 +12,11 @@ def main(args_yaml: dict) -> None:
     ----------
     args_yaml       - Dict with all input arguments
     """
+    _logger.debug('Single Process started')
     check_yaml_version(args_yaml)
     check_yaml_structure(args_yaml)
 
     if 'config' in args_yaml:
-        check_argsConfig_single(args_yaml['config'])
         args_yaml['trainer'] = train_config(args_yaml['config'], args_yaml['trainer'])
 
     check_args(args_yaml)
