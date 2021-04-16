@@ -1,52 +1,110 @@
+image: "python:3.6"
+
+before_script:
+  - python --version
+  - sh ./InstallThunderTorch.sh -a; echo $?
+  # - pip install -r requirements.txt
+
 stages:
-  - build
-  - test
+  - Static Analysis
+#  - Formatting
+#  - Security
+  - Test
   - deploy
-#   - merge
 
-Clear conda environment:
-    stage: .pre
-    script:
-        - echo "Removing preexisting environment"
-        - source ~/miniconda3/etc/profile.d/conda.sh
-        - conda remove --name thunder_torch --all
+mypy:
+  stage: Static Analysis
+  allow_failure: true
+  script:
+  - mypy thunder_torch/*.py
+
+flake8:
+  stage: Static Analysis
+  script:
+    - pip install flake8
+    - flake8 --max-line-length=120 --max-complexity 8 bild/*.py
+
+#pylint:
+#  stage: Static Analysis
+#  script:
+#  - pylint -d C0301 -d R0902 bild/*.py
+
+#isort:
+#  stage: Formatting
+#  script:
+#  - isort .
+
+#safety:
+#  stage: Security
+#  script:
+#  - safety check
+
+pytest:
+  stage: Test
+  script:
+    - export PYTHONPATH="$PYTHONPATH:."
+    # - python -c "import sys;print(sys.path)"
+    - pytest test --ignore=test/ML_utils/models/test_LightningFlexMLP_integration.py --ignore=test/ML_utils/models/test_LightningFlexNN_integration.py
+
+coverage:
+  stage: Test
+  allow_failure: true
+  script:
+    - pip install coverage
+    - pytest --cov=thunder_torch # --cov-report term-missing
+    - bash <(curl -s https://codecov.io/bash) -t '590691ac-7f2a-49a2-bfaf-ca7ed19edfe2'
 
 
-Test Code:
-    stage: test
-    script:
-        - echo "Load Conda Environment"
-        - source ~/miniconda3/etc/profile.d/conda.sh
-        - source ~/miniconda3/bin/activate
-        - conda activate thunder_torch
-        - pytest test  --ignore=test/thunder_torch/models/test_LightningFlexNN_integration.py
-#    only:
-#        - devel
 
-Build Code:
-   stage: build
-   script:
-     - ./InstallThunderTorch.sh -a; echo $?
-#   only:
-#     - devel
-
+#stages:
+#  - build
+#  - test
+#  - deploy
+##   - merge
+#
+#Clear conda environment:
+#    stage: .pre
+#    script:
+#        - echo "Removing preexisting environment"
+#        - source ~/miniconda3/etc/profile.d/conda.sh
+#        - conda remove --name thunder_torch --all
+#
+#
+#Test Code:
+#    stage: test
+#    script:
+#        - echo "Load Conda Environment"
+#        - source ~/miniconda3/etc/profile.d/conda.sh
+#        - source ~/miniconda3/bin/activate
+#        - conda activate thunder_torch
+#        - pytest test  --ignore=test/thunder_torch/models/test_LightningFlexNN_integration.py
+##    only:
+##        - devel
+#
+#Build Code:
+#   stage: build
+#   script:
+#     - ./InstallThunderTorch.sh -a; echo $?
+##   only:
+##     - devel
+#
 pages:
   stage: deploy
   script:
-        - echo "Load Conda Environment"
-        - source ~/miniconda3/etc/profile.d/conda.sh
-        - source ~/miniconda3/bin/activate
-        - conda activate thunder_torch
+#        - echo "Load Conda Environment"
+#        - source ~/miniconda3/etc/profile.d/conda.sh
+#        - source ~/miniconda3/bin/activate
+#        - conda activate thunder_torch
         - echo "Build the documentation"
         - cd doc/
         - make clean; make html;
         - cd ../
         - mkdir public
         - cp -r doc/build/html/* public/
-  after_script:
-        - echo "Removing environment"
-        - source ~/miniconda3/etc/profile.d/conda.sh
-        - conda remove --name thunder_torch --all
+#  after_script:
+#        - echo "Removing environment"
+#        - source ~/miniconda3/etc/profile.d/conda.sh
+#        - conda remove --name thunder_torch --all
   artifacts:
     paths:
         - public

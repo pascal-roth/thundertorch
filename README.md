@@ -6,12 +6,11 @@
 
 ---
 <p align="center">
-  <a href="https://proth.pages.rwth-aachen.de/pythonToolBox/index.html">Documentation</a>
+  <a href="https://p-roth.gitlab.io/thundertorch/">Documentation</a>
 </p>
 
-<!-- DO NOT ADD CONDA DOWNLOADS... README CHANGES MUST BE APPROVED BY EDEN OR WILL -->
 [![codecov](https://codecov.io/gh/PyTorchLightning/pytorch-lightning/branch/master/graph/badge.svg)](https://codecov.io/gh/PyTorchLightning/pytorch-lightning)
-[![ReadTheDocs](https://readthedocs.org/projects/pytorch-lightning/badge/?version=stable)](https://proth.pages.rwth-aachen.de/pythonToolBox/index.html)
+[![ReadTheDocs](https://readthedocs.org/projects/pytorch-lightning/badge/?version=stable)](https://p-roth.gitlab.io/thundertorch/)
 [![license](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://github.com/PytorchLightning/pytorch-lightning/blob/master/LICENSE)
 
 </div>

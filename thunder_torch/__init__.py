@@ -1,12 +1,12 @@
 """
- ML_Utils - a collection of useful routines for machine learning applications
+ Thunder Torch - a collection of useful routines for machine learning applications
 
- author: Pascal Roth, Julian Bissantz
- email:  roth.pascal@outlook.de, bissantz@stfs.tu-darmstadt.de
+ author: Pascal Roth
+ email:  roth.pascal@outlook.de
 
 """
 
-# Initialize logger for ML_utlits
+# Initialize logger for Thunder Torch
 import logging as python_logging
 import sys
 

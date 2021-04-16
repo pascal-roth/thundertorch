@@ -9,8 +9,7 @@ import os
 import pytorch_lightning as pl
 import torch
 
-from thunder_torch import _logger
-from thunder_torch import logger  # Logger that are defined in __all__ in the __init__ file
+from thunder_torch import _logger  # Logger that are defined in __all__ in the __init__ file
 from thunder_torch import callbacks  # Callbacks that are defined in __all__ in the __init__ file
 from thunder_torch import _modules_models, _modules_loader, _modules_callbacks, _modules_loss, \
     _modules_optim, _modules_activation, _modules_lr_scheduler

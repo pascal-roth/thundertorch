@@ -222,8 +222,6 @@ def test_get_argsDict(path):
         argsModels, argsConfig = get_argsModel(argsMulti)
         get_argsDict(argsModels)
 
-
-
 @pytest.mark.dependency(depends=['test_get_argsModels'])
 def test_get_num_processes(path):
     # without definition of cpu_per_model and gpu_per_model
@@ -245,15 +243,15 @@ def test_get_num_processes(path):
     # with defintion of cpu_per_model
     argsMulti = parse_yaml(path / 'scripts/MultiModelInputEval.yaml', low_key=False)
     argsModels, argsConfig = get_argsModel(argsMulti)
-    argsConfig['cpu_per_model'] = int(os.cpu_count() / 2)
+    argsConfig['cpu_per_model'] = max(int(os.cpu_count() / 2), 1)
     nbr_processes, list_gpu = get_num_processes(argsConfig, argsModels)
-    assert nbr_processes == 2, f'nbr_processes "{nbr_processes}" intended to be 2'
+    assert nbr_processes == 1, f'nbr_processes "{nbr_processes}" intended to be 2'
 
     argsMulti = parse_yaml(path / 'scripts/MultiModelInputEval.yaml', low_key=False)
     argsModels, argsConfig = get_argsModel(argsMulti)
-    argsConfig['cpu_per_model'] = int(os.cpu_count() / 4)
+    argsConfig['cpu_per_model'] = max(int(os.cpu_count() / 4), 1)
     nbr_processes, list_gpu = get_num_processes(argsConfig, argsModels)
-    assert nbr_processes == 2, f'nbr_processes "{nbr_processes}" has to be downgraded to 2 since only two models are ' \
+    assert nbr_processes == 1, f'nbr_processes "{nbr_processes}" has to be downgraded to 2 since only two models are ' \
                                f'available'
 
     with pytest.raises(AssertionError):  # nbr of cpu_per_model exceeds available cpu's
@@ -265,7 +263,7 @@ def test_get_num_processes(path):
     # with definition of nbr_processes
     argsMulti = parse_yaml(path / 'scripts/MultiModelInputEval.yaml', low_key=False)
     argsModels, argsConfig = get_argsModel(argsMulti)
-    argsConfig['cpu_per_model'] = int(os.cpu_count() / 2)
+    argsConfig['cpu_per_model'] = max(int(os.cpu_count() / 2), 1)
     argsConfig['nbr_processes'] = 1
     nbr_processes, list_gpu = get_num_processes(argsConfig, argsModels)
     assert nbr_processes == 1, f'nbr_processes "{nbr_processes}" has to be downgraded to 1 since the defined nbr of ' \
