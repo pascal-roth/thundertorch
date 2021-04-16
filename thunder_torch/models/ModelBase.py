@@ -117,6 +117,7 @@ class LightningModelBase(pl.LightningModule):
         hidden_layer        - dimensions of the hidden layers
         out_dim             - output dimensions
         """
+        # TODO: think about adding a bias flag in case a linear function should be learned
         # Construct all MLP layers
         self.layers.append(torch.nn.Linear(in_dim, hidden_layer[0]))
         self.layers.append(self.activation_fn)
@@ -238,7 +239,7 @@ class LightningModelBase(pl.LightningModule):
         y_hat = self(x)
         try:
             loss = self.loss_fn(y_hat, y)
-        except RuntimeError:
+        except RuntimeError: #TODO: makes target to int, really useful ?
             loss = self.loss_fn(y_hat, y.long())
         log = {'train_loss': loss}
         hiddens = {'inputs': x.detach(), 'preds': y_hat.detach(), 'targets': y.detach()}
