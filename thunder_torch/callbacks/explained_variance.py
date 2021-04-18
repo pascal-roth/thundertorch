@@ -13,7 +13,7 @@ class Explained_Variance(Callback):
 
     def on_batch_end(self, trainer: pl.Trainer, pl_module: pl.LightningModule) -> None:
         if hasattr(trainer, 'hiddens'):
-            inputs = trainer.hiddens["inputs"]
+            # inputs = trainer.hiddens["inputs"]
             preds = trainer.hiddens["preds"]
             targets = trainer.hiddens["targets"]
             self.explained_variance_train(preds, targets)

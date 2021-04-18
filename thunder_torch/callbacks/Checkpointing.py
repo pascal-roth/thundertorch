@@ -186,5 +186,3 @@ class Checkpointing(Callback):
         for cur_path in del_list:
             if cur_path != filepath:
                 self._del_model(cur_path)
-
-

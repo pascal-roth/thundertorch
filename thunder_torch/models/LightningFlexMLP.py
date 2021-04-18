@@ -31,7 +31,8 @@ class LightningFlexMLP(LightningModelBase):
     - loss:                 str         loss fkt that is included in torch.nn (default: MSELoss)
     - optimizer:            dict        dict including optimizer fkt type and possible parameters, optimizer has to be
                                         included in torch.optim (default: {'type': Adam, 'params': {'lr': 1e-3}})
-    - scheduler:            dict        dict including execute flag, scheduler fkt type and possible parameters, scheduler
+    - scheduler:            dict        dict including execute flag, scheduler fkt type and possible parameters,
+                                        scheduler
                                         has to be included in torch.optim.lr_scheduler (default: {'execute': False})
     - num_workers:          int         number of workers in DataLoaders (default: 10)
     - batch:                int         batch size of DataLoaders (default: 64)
@@ -143,14 +144,15 @@ class LightningFlexMLP(LightningModelBase):
                               'create_model': {'n_inp': 'int',  'n_out': 'int', 'hidden_layer': '[int, int, int]',
                                                'output_activation': 'str (default: None)', 'activation':
                                                    'str (default: ReLU)'},
-                              'params': {'loss': 'str (default:MSELoss)', 'optimizer': {'type': 'str (default: Adam)',
-                                                                                         'params': {'lr': 'float (default: 1.e-3'}},
+                              'params': {'loss': 'str (default:MSELoss)',
+                                         'optimizer': {'type': 'str (default: Adam)',
+                                                       'params': {'lr': 'float (default: 1.e-3'}},
                                          'scheduler': {'execute': ' bool (default: False)', 'type': 'name',
-                                                       'params': {'cooldown': 'int', 'patience': 'int', 'min_lr': 'float'}},
+                                                       'params': {'cooldown': 'int', 'patience': 'int',
+                                                                  'min_lr': 'float'}},
                                          'num_workers': 'int (default: 10)', 'batch': 'int (default: 64)'}}}
 
         for i, key in enumerate(key_list):
             template = template.get(key)
 
         return yaml.dump(template, sort_keys=False)
-

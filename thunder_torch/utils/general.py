@@ -1,6 +1,5 @@
 # import packages
 import argparse
-from git import HEAD
 import torch
 import importlib
 from thunder_torch import _logger
@@ -59,7 +58,7 @@ def load_model_from_checkpoint(checkpoint_path: str) -> LightningModule:
     """
 
     c = torch.load(checkpoint_path, torch.device("cpu"))
-    if not "model_type" in c["hparams"].keys():
+    if "model_type" not in c["hparams"].keys():
         exit("ERROR in load_model_from_checkpoint: "
              "Cannot use this function since there is no 'model_type' key available in hparams.")
 

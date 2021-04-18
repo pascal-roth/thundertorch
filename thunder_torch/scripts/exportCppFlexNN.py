@@ -17,6 +17,7 @@ def parse_args() -> argparse.Namespace:
     _logger.debug('Arguments parsed')
     return parser.parse_args()
 
+
 def export_model(args: argparse.Namespace) -> None:
     model = getattr(models, args.model_type).load_from_checkpoint(args.model)
     _logger.debug(f'Model loaded of type {type(model)}')
@@ -30,8 +31,7 @@ def export_model(args: argparse.Namespace) -> None:
 
     traced_script_module.save("traced_model.pt")
 
+
 if __name__ == '__main__':
     args = parse_args()
     export_model(args)
-
-

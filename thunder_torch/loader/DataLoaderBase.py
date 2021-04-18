@@ -3,11 +3,8 @@
 #######################################################################################################################
 
 # import packages
-import os
 import torch
 import pickle
-import yaml
-import importlib
 import pandas as pd
 from sklearn import preprocessing
 from argparse import Namespace
@@ -16,11 +13,8 @@ from pathlib import Path
 
 from abc import ABC, abstractmethod
 
-from thunder_torch import _modules_models
 from thunder_torch import _logger
-from thunder_torch import models
 from thunder_torch.loader import _utils
-from thunder_torch.utils.option_class import OptionClass
 
 
 class DataLoaderBase(ABC):
@@ -86,8 +80,8 @@ class DataLoaderBase(ABC):
         """
         self.lparams.val = {'method': method, 'params': params}
 
-        self.x_train, self.x_val, self.y_train, self.y_val = getattr(_utils, 'data_split_' + self.lparams.val['method']) \
-            (self.x_train, self.y_train, self.lparams.val['params'])
+        self.x_train, self.x_val, self.y_train, self.y_val = getattr(
+            _utils, 'data_split_' + self.lparams.val['method'])(self.x_train, self.y_train, self.lparams.val['params'])
         _logger.debug('Validation set split performed!')
 
     # test_data #######################################################################################################
@@ -114,13 +108,16 @@ class DataLoaderBase(ABC):
         """
         self.lparams.test = {'method': method, 'params': params}
 
-        self.x_train, self.x_test, self.y_train, self.y_test = getattr(_utils, 'data_split_' + self.lparams.test['method']) \
-            (self.x_train, self.y_train, self.lparams.test['params'])
+        self.x_train, self.x_test, self.y_train, self.y_test = getattr(
+            _utils, 'data_split_' + self.lparams.test['method'])(self.x_train, self.y_train,
+                                                                 self.lparams.test['params'])
         _logger.debug('Test set split performed!')
 
     # create pytorch dataloaders ######################################################################################
     def data_normalization(self, x_samples: pd.DataFrame, y_samples: pd.DataFrame) -> Tuple[pd.DataFrame, pd.DataFrame]:
-        if not self.lparams.x_scaler and not self.lparams.y_scaler: self.get_scaler()
+        if not self.lparams.x_scaler and not self.lparams.y_scaler:
+            self.get_scaler()
+
         x_samples = self.lparams.x_scaler.transform(x_samples)
         y_samples = self.lparams.y_scaler.transform(y_samples)
         return x_samples, y_samples

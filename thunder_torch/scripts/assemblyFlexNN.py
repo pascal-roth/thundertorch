@@ -11,8 +11,10 @@ def parseArguments() -> argparse.Namespace:
 
     # Add mutually_exclusive_group to either load a FlexMLP model or create on based on input
     parser.add_argument('-m', '--models', type=str, nargs='+', default=['./checkpoints/cpMean_64_64_softplus.ckpt',
-                        './checkpoints/lambda_64_64_softplus.ckpt', './checkpoints/hMean_64_64_softplus.ckpt',
-                        './checkpoints/rho_64_64_softplus.ckpt'], help='models that will be assembled into one model')
+                                                                        './checkpoints/lambda_64_64_softplus.ckpt',
+                                                                        './checkpoints/hMean_64_64_softplus.ckpt',
+                                                                        './checkpoints/rho_64_64_softplus.ckpt'],
+                        help='models that will be assembled into one model')
     parser.add_argument('-t', '--type', type=str, default='LightningFlexMLP',
                         help='type of the models that should be assembled')
     parser.add_argument('--output', '-o', dest='output', required=False, default='AssemblyModel.pt',

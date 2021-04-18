@@ -7,16 +7,13 @@ import torch
 import importlib
 import pytorch_lightning as pl
 from argparse import Namespace
-from typing import List, Union, Tuple, Optional
+from typing import List, Union, Tuple
 from pathlib import Path
 from collections.abc import Callable
-
-from torch.nn import Sequential
 
 from thunder_torch import _logger
 from thunder_torch.utils.option_class import OptionClass
 from thunder_torch import _modules_activation, _modules_loss, _modules_optim, _modules_lr_scheduler
-from thunder_torch import metrics
 
 
 # flexible MLP class
@@ -226,8 +223,8 @@ class LightningModelBase(pl.LightningModule):
         if self.hparams.scheduler['execute']:
             for m in _modules_lr_scheduler:
                 try:
-                    scheduler = getattr(importlib.import_module(m), self.hparams.scheduler['type'])\
-                        (optimizer, **self.hparams.scheduler['params'])
+                    scheduler = getattr(importlib.import_module(m), self.hparams.scheduler['type'])(
+                        optimizer, **self.hparams.scheduler['params'])
                     break
                 except AttributeError or ModuleNotFoundError:
                     _logger.debug('LR Scheduler of type {} not found in {}'.format(self.hparams.scheduler['type'], m))
@@ -244,7 +241,7 @@ class LightningModelBase(pl.LightningModule):
         y_hat = self(x)
         try:
             loss = self.loss_fn(y_hat, y)
-        except RuntimeError: #TODO: makes target to int, really useful ?
+        except RuntimeError:  # TODO: makes target to int, really useful ?
             loss = self.loss_fn(y_hat, y.long())
         log = {'train_loss': loss}
         hiddens = {'inputs': x.detach(), 'preds': y_hat.detach(), 'targets': y.detach()}
@@ -270,7 +267,8 @@ class LightningModelBase(pl.LightningModule):
         Actions performed at the end of validation epoch (incl. calculating the val_loss)
         """
         val_loss = torch.stack([x['val_loss'] for x in outputs]).mean()
-        if self.min_val_loss is None: self.min_val_loss = val_loss
+        if self.min_val_loss is None:
+            self.min_val_loss = val_loss
         if val_loss < self.min_val_loss:
             self.min_val_loss = val_loss
         log = {'avg_val_loss': val_loss}

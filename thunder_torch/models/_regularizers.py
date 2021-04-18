@@ -1,5 +1,4 @@
 import torch
-import pytorch_lightning as pl
 
 
 class Regularizer(object):
@@ -37,7 +36,7 @@ class L2Regularizer(Regularizer):
         self.value = 0.
 
     def __call__(self, module, input=None, output=None):
-        value = torch.sum(torch.pow(module.weight,2)) * self.scale
+        value = torch.sum(torch.pow(module.weight, 2)) * self.scale
         self.value += value
 
 
@@ -105,7 +104,7 @@ class MaxNormRegularizer(Regularizer):
 
     def __call__(self, module, input=None, output=None):
         w = module.weight
-        norm_diff = torch.norm(w,2,self.axis).sub(self.value)
+        norm_diff = torch.norm(w, 2, self.axis).sub(self.value)
         value = self.scale * torch.sum(norm_diff.gt(0).float().mul(norm_diff))
         self.value += value
 
@@ -131,4 +130,3 @@ class NonNegRegularizer(Regularizer):
         w = module.weight
         value = -1 * self.scale * torch.sum(w.gt(0).float().mul(w))
         self.value += value
-

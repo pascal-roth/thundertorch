@@ -95,7 +95,7 @@ def get_model(argsModel: Union[dict, argparse.Namespace]) -> pl.LightningModule:
         try:
             print(m)
             _, model_cls = dynamic_imp(m, argsModel.type)
-            #model_cls = getattr(importlib.import_module(m), argsModel.type)
+            # model_cls = getattr(importlib.import_module(m), argsModel.type)
             _logger.debug(f'Model Class of type {argsModel.type} has been loaded from {m}')
             break
         except AttributeError or ModuleNotFoundError:
@@ -108,7 +108,7 @@ def get_model(argsModel: Union[dict, argparse.Namespace]) -> pl.LightningModule:
 
     elif hasattr(argsModel, 'create_model'):
         model = model_cls(argparse.Namespace(**argsModel.create_model))
-        _logger.debug(f'Model successfully created')
+        _logger.debug('Model successfully created')
     else:
         raise KeyError('Model not generated! Either include load_model or create_model dict!')
 
@@ -178,7 +178,8 @@ def train_model(model: pl.LightningModule, dataLoader: Any, argsTrainer: dict) -
         argsTrainer['params']['logger'] = False
         _logger.debug('No logger selected')
 
-    if 'resume_from_checkpoint' in argsTrainer['params'] and argsTrainer['params']['resume_from_checkpoint'] is not None:
+    if 'resume_from_checkpoint' in argsTrainer['params'] and \
+            argsTrainer['params']['resume_from_checkpoint'] is not None:
         argsTrainer['params']['resume_from_checkpoint'] = get_ckpt_path(argsTrainer['params']['resume_from_checkpoint'])
 
     # define trainer and start training, testing

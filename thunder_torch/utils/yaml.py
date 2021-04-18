@@ -104,8 +104,10 @@ def check_argsLoader(argsLoader: dict) -> None:
     """
     options = {'DataLoader': OptionClass(template=loader.DataLoaderTemplate.yaml_template(['DataLoader']))}
     options['DataLoader'].add_key('type', dtype=str, required=True, attr_of=_modules_loader)
-    options['DataLoader'].add_key('load_dataloader', dtype=dict, mutually_exclusive=['create_dataloader'], param_dict=True)
-    options['DataLoader'].add_key('create_dataloader', dtype=dict, mutually_exclusive=['load_dataloader'], param_dict=True)
+    options['DataLoader'].add_key('load_dataloader', dtype=dict, mutually_exclusive=['create_dataloader'],
+                                  param_dict=True)
+    options['DataLoader'].add_key('create_dataloader', dtype=dict, mutually_exclusive=['load_dataloader'],
+                                  param_dict=True)
 
     OptionClass.checker(input_dict={'DataLoader': argsLoader}, option_classes=options)
 
@@ -254,7 +256,8 @@ def multimodel_training_yml_template(key_list: list, template: str = 'path.yaml 
                              'DataLoader': {'create_DataLoader': {'raw_data_path': 'different_path.csv',
                                                                   'features': ['feature_1', 'feature_2'],
                                                                   'labels': ['label_1', 'label_2']}},
-                             'Model': {'create_model': {'n_inp': 'int', 'n_out': 'int', 'hidden_layer': ['int', 'int']}},
+                             'Model': {'create_model': {'n_inp': 'int', 'n_out': 'int',
+                                                        'hidden_layer': ['int', 'int']}},
                              'Trainer': {'params': {'max_epochs': 'int'},
                                          'callbacks': [{'type': 'Checkpointing', 'params': {'filepath': 'path'}}]}},
                 'Model002': {'Template': template,
@@ -292,10 +295,14 @@ def get_argsModel(argsMulti: dict) -> tuple:
             argsConfig = argsMulti.pop('config')
         except KeyError:
             argsConfig = argsMulti.pop('Config')
+
         argsConfig = lower_keys(argsConfig)
         check_argsConfig_multi(argsConfig)
         _logger.debug('Config file included and controlled')
-        if not argsConfig: _logger.warning('Defined config tree is empty!')
+
+        if not argsConfig:
+            _logger.warning('Defined config tree is empty!')
+
     else:
         _logger.debug('No Config file included in MultiModel Training yaml!')
         argsConfig = []
@@ -304,7 +311,8 @@ def get_argsModel(argsMulti: dict) -> tuple:
     if 'model_run' in argsConfig:
         model_run_list = argsConfig.pop('model_run')
 
-        if isinstance(model_run_list, str): model_run_list = [model_run_list]
+        if isinstance(model_run_list, str):
+            model_run_list = [model_run_list]
 
         assert all(elem in argsMulti for elem in model_run_list), f'Model name included in "model_run": ' \
                                                                   f'{model_run_list} not found!'
@@ -354,7 +362,7 @@ def get_num_processes(argsConfig: dict, argsModels: dict) -> tuple:
 
         nbr_processes = int((nbr_gpu - (nbr_gpu % gpu_per_process)) / gpu_per_process)
         assert nbr_processes != 0, f'Not enough GPUs! Model should be trained with {gpu_per_process} GPU(s), but' \
-                                 f'available are only {nbr_gpu} GPU(s)'
+                                   f'available are only {nbr_gpu} GPU(s)'
 
         _logger.debug(f'{nbr_processes} processes can be executed with {gpu_per_process} GPU(s) per process')
 
@@ -363,7 +371,7 @@ def get_num_processes(argsConfig: dict, argsModels: dict) -> tuple:
 
         nbr_processes = int((nbr_cpu - (nbr_cpu % cpu_per_process)) / cpu_per_process)
         assert nbr_processes != 0, f'Not enough CPUs! Model should be trained with {cpu_per_process} CPU(s), but' \
-                                 f'available are only {nbr_cpu} CPU(s)'
+                                   f'available are only {nbr_cpu} CPU(s)'
 
         _logger.debug(f'{nbr_processes} processes can be executed with {cpu_per_process} CPU(s) per process')
 

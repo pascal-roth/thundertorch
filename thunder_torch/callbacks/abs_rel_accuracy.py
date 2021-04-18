@@ -1,4 +1,3 @@
-import torch
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks import Callback
 from typing import Optional, Any
@@ -65,7 +64,8 @@ class AbsRelAccuracy(Callback):
 
     def on_test_end(self, trainer: pl.Trainer, pl_module: pl.LightningModule) -> None:
         abs_acc, rel_acc, abs_rel_acc = self.abs_rel_acc_test.compute()
-        acc_dict = {'test_abs_acc': abs_acc.item(), 'test_rel_acc': rel_acc.item(), 'test_abs_rel_acc': abs_rel_acc.item()}
+        acc_dict = {'test_abs_acc': abs_acc.item(), 'test_rel_acc': rel_acc.item(),
+                    'test_abs_rel_acc': abs_rel_acc.item()}
         if trainer.logger:
             trainer.logger.log_metrics(acc_dict, step=trainer.global_step)
         print(acc_dict)

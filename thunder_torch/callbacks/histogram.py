@@ -9,7 +9,6 @@ import pytorch_lightning as pl
 from pytorch_lightning.callbacks import Callback
 from pytorch_lightning.utilities import rank_zero_warn, rank_zero_only
 
-#from thunder_torch import metrics
 from thunder_torch import _logger
 
 
@@ -52,7 +51,7 @@ class Histogram(Callback):
         self.errors_val = None
         self.errors_test = None
 
-        _logger.info(f'Histogram creation activated')
+        _logger.info('Histogram creation activated')
 
     # Utility functions ###############################################################################################
     def check_monitor(self, current):
@@ -163,5 +162,3 @@ class Histogram(Callback):
 
     def on_test_end(self, trainer: pl.Trainer, pl_module: pl.LightningModule):
         self._plot_histogram(self.errors_test.numpy(), 'test_histogram', 'Test Data')
-
-

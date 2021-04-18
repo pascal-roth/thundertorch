@@ -46,10 +46,14 @@ class OptionClass:
             attr_of: str, list                  - key value has to be an attr of one of the given classes/ module
         """
         self.keylist[key] = {'dtype': dtype}
-        if kwargs.pop('required', False): self.required_keys.append(key)
-        if kwargs.get('mutually_exclusive'): self.keylist[key]['mutually_exclusive'] = kwargs.pop('mutually_exclusive')
-        if kwargs.pop('param_dict', False): self.param_dicts.append(key)
-        if kwargs.get('attr_of'): self.keylist[key]['attr_of'] = kwargs.pop('attr_of')
+        if kwargs.pop('required', False):
+            self.required_keys.append(key)
+        if kwargs.get('mutually_exclusive'):
+            self.keylist[key]['mutually_exclusive'] = kwargs.pop('mutually_exclusive')
+        if kwargs.pop('param_dict', False):
+            self.param_dicts.append(key)
+        if kwargs.get('attr_of'):
+            self.keylist[key]['attr_of'] = kwargs.pop('attr_of')
 
         if len(kwargs) != 0:
             _logger.warning('Additional/ unexpected kwargs are given!')
@@ -82,8 +86,10 @@ class OptionClass:
 
         for key, item in input_dict.items():
             self.check_dtype(key, item)
-            if 'mutually_exclusive' in self.keylist[key]: self.check_mutually_exclusive(key, input_dict.keys())
-            if 'attr_of' in self.keylist[key]: self.check_attr_of(key, item)
+            if 'mutually_exclusive' in self.keylist[key]:
+                self.check_mutually_exclusive(key, input_dict.keys())
+            if 'attr_of' in self.keylist[key]:
+                self.check_attr_of(key, item)
 
         return self.param_dicts
 
@@ -100,7 +106,8 @@ class OptionClass:
         """
         Control the datatype of the given key
         """
-        if not isinstance(self.keylist[key]['dtype'], list): self.keylist[key]['dtype'] = [self.keylist[key]['dtype']]
+        if not isinstance(self.keylist[key]['dtype'], list):
+            self.keylist[key]['dtype'] = [self.keylist[key]['dtype']]
         assert type(item) in self.keylist[key]['dtype'], 'Key "{}" is expected to have dtype(s) "{}", but "{}" was ' \
                                                          'given!'.format(key, self.keylist[key]['dtype'], type(item))
 
