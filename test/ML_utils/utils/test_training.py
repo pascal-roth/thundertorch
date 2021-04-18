@@ -3,7 +3,9 @@
 #######################################################################################################################
 
 # import packages
-from pathlib import Path
+from pathlib import Path, PosixPath
+
+import pandas as pd
 import pytest
 import argparse
 import pytorch_lightning as pl
@@ -18,18 +20,18 @@ from .MinimalLightningModel import MinimalLightningModule
 
 
 @pytest.fixture(scope='module')
-def path():
+def path() -> Path:
     path = Path(__file__).resolve()
     return path.parents[0]
 
 
-def test_config_source_files(tmp_path):
+def test_config_source_files(tmp_path: PosixPath) -> None:
     with pytest.raises(FileNotFoundError):
         argsConfig = {'source_files': str(tmp_path)}
         train_config(argsConfig, argsTrainer={})
 
 
-def test_config_deterministic(create_TabularLoader, create_LightningFlexMLP):
+def test_config_deterministic(create_TabularLoader: TabularLoader, create_LightningFlexMLP: LightningFlexMLP) -> None:
     argsConfig = {'deterministic': True}
     argsTrainer = {'params': {'max_epochs': 2, 'logger': False}}
     argsTrainer = train_config(argsConfig, argsTrainer)
@@ -47,7 +49,7 @@ def test_config_deterministic(create_TabularLoader, create_LightningFlexMLP):
     assert trainer_1.tng_tqdm_dic['loss'] == trainer_2.tng_tqdm_dic['loss'], 'deterministic failed'
 
 
-def test_get_model(path):
+def test_get_model(path: Path) -> None:
     yaml_file = parse_yaml(path / 'MinimalSingleModelInputEval.yml')
     yaml_file = yaml_file.pop('model')
     model = get_model(yaml_file)
@@ -55,7 +57,7 @@ def test_get_model(path):
     assert model.dtype == torch.float64
 
 
-def test_get_custom_model(path):
+def test_get_custom_model(path: Path) -> None:
     """
     This tests imports a minimal model from the imported.py
 
@@ -75,7 +77,8 @@ def test_get_custom_model(path):
     assert model.dtype == torch.float64
 
 
-def test_get_dataloader(path, create_LightningFlexMLP, tmp_path, create_random_df):
+def test_get_dataloader(path: Path, create_LightningFlexMLP: LightningFlexMLP, tmp_path: PosixPath,
+                        create_random_df: pd.DataFrame) -> None:
     yaml_file = parse_yaml(path / 'MinimalSingleModelInputEval.yml')
     create_random_df.to_csv(tmp_path / 'example_samples.csv')
     yaml_file['dataloader']['create_dataloader']['raw_data_path'] = str(tmp_path / 'example_samples.csv')
@@ -85,7 +88,7 @@ def test_get_dataloader(path, create_LightningFlexMLP, tmp_path, create_random_d
 
 
 @pytest.mark.dependency()
-def test_train_callbacks():
+def test_train_callbacks() -> None:
     # check handling of EarlyStopping and Checkpointing callback since they have their own trainer flags
     argsTrainer = {'callbacks': [{'type': 'EarlyStopping',
                                   'params': {'monitor': 'val_loss', 'patience': 12, 'mode': 'min'}},
@@ -122,7 +125,7 @@ def test_train_callbacks():
 
 
 @pytest.mark.dependency()
-def test_train_logger():  # control of comet logger fails even if it is working
+def test_train_logger() -> None:  # control of comet logger fails even if it is working
     # argsTrainer = {'params': {'max_epochs': 3},
     #                'logger': [{'type': 'comet-ml',
     #                            'params': {'api_key': 'ENlkidpOntcgkoGGs5nkyhFv5', 'project_name': 'general',
@@ -150,7 +153,8 @@ def test_train_logger():  # control of comet logger fails even if it is working
 
 
 @pytest.mark.dependency()
-def test_execute_training(create_TabularLoader, create_LightningFlexMLP, create_random_df):
+def test_execute_training(create_TabularLoader: TabularLoader, create_LightningFlexMLP: LightningFlexMLP,
+                          create_random_df: pd.DataFrame) -> None:
     # modal has val_step and dataloader includes a validation set
     trainer_a = pl.Trainer(fast_dev_run=True)
     execute_training(create_LightningFlexMLP, create_TabularLoader, trainer_a)
@@ -171,7 +175,8 @@ def test_execute_training(create_TabularLoader, create_LightningFlexMLP, create_
 
 
 @pytest.mark.dependency()
-def test_execute_testing(create_TabularLoader, create_LightningFlexMLP, create_random_df):
+def test_execute_testing(create_TabularLoader: TabularLoader, create_LightningFlexMLP: LightningFlexMLP,
+                         create_random_df: pd.DataFrame) -> None:
     # modal has test_step and dataloader includes a test set
     trainer_a = pl.Trainer(fast_dev_run=True, callbacks=[])
     execute_testing(create_LightningFlexMLP, create_TabularLoader, trainer_a)
@@ -193,7 +198,8 @@ def test_execute_testing(create_TabularLoader, create_LightningFlexMLP, create_r
 
 @pytest.mark.dependency(depends=['test_train_callbacks', 'test_train_logger', 'test_execute_training',
                                  'test_execute_testing'])
-def test_train_model(path, create_LightningFlexMLP, create_TabularLoader):
+def test_train_model(path: Path, create_LightningFlexMLP: LightningFlexMLP,
+                     create_TabularLoader: TabularLoader) -> None:
     yaml_file = parse_yaml(path / 'MinimalSingleModelInputEval.yml')
     argsTrainer = yaml_file.pop('trainer')
     train_model(create_LightningFlexMLP, create_TabularLoader, argsTrainer)

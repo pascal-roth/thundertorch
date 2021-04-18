@@ -3,12 +3,13 @@ import argparse
 import torch
 import numpy as np
 import pytorch_lightning as pl
+from pathlib import PosixPath
 from torchvision import datasets, transforms
 
 from thunder_torch.models import LightningFlexNN
 
 
-def test_LightningFlexNN_integration(tmp_path):
+def test_LightningFlexNN_integration(tmp_path: PosixPath) -> None:
     transform = transforms.Compose([transforms.ToTensor(), transforms.Normalize((0.1307,), (0.3081,))])
 
     mnist_train = datasets.MNIST(tmp_path, train=True, download=True, transform=transform)

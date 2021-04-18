@@ -7,6 +7,11 @@ import torch
 import importlib
 import pytorch_lightning as pl
 from argparse import Namespace
+from typing import List, Union, Tuple, Optional
+from pathlib import Path
+from collections.abc import Callable
+
+from torch.nn import Sequential
 
 from thunder_torch import _logger
 from thunder_torch.utils.option_class import OptionClass
@@ -20,7 +25,7 @@ class LightningModelBase(pl.LightningModule):
     Model Base of the Toolbox, includes repeating functions and functionalities to build network layers
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         """
         Initializes a flexMLP model based on the provided parameters
 
@@ -30,18 +35,18 @@ class LightningModelBase(pl.LightningModule):
         """
         super().__init__()
 
-        self.loss_fn = None
-        self.activation_fn = None
-        self.min_val_loss = None
-        self.final_channel = None
+        self.loss_fn:       Callable[..., torch.Tensor]
+        self.activation_fn: Callable[..., torch.Tensor]
+        self.min_val_loss:  float
+        self.final_channel: int
 
-        self.layers = []
-        self.height = None
-        self.width = None
-        self.depth = None
+        self.layers:        List = []
+        self.height:        int
+        self.width:         int
+        self.depth:         int
         self.layer_activation = (torch.nn.Conv1d, torch.nn.Conv2d, torch.nn.Conv3d, torch.nn.Linear,)
 
-    def construct_nn2d(self, layer_list) -> None:
+    def construct_nn2d(self, layer_list: dict) -> None:
         """
         Functionality to build any kind of torch.nn 2d layer (convolutional, pooling, padding, normalization, recurrent,
         dropout, linear ...)
@@ -72,7 +77,7 @@ class LightningModelBase(pl.LightningModule):
             if isinstance(self.layers[-1], self.layer_activation):
                 self.layers.append(self.activation_fn)
 
-    def construct_nn3d(self, layer_list) -> None:
+    def construct_nn3d(self, layer_list: dict) -> None:
         """
         Functionality to build any kind of torch.nn 3d layer (convolutional, pooling, padding, normalization, recurrent,
         dropout, linear ...)
@@ -107,7 +112,7 @@ class LightningModelBase(pl.LightningModule):
             if isinstance(self.layers[-1], self.layer_activation):
                 self.layers.append(self.activation_fn)
 
-    def construct_mlp(self, in_dim, hidden_layer, out_dim) -> None:
+    def construct_mlp(self, in_dim: int, hidden_layer: List[int], out_dim: int) -> None:
         """
         Quick functionality to built a MLP network
 
@@ -180,7 +185,7 @@ class LightningModelBase(pl.LightningModule):
                 _logger.debug(f'{self.hparams.activation} fct not found in {m}')
         assert self.loss_fn is not None, f'{self.hparams.loss} could not be found in {_modules_loss}'
 
-    def forward(self, x):
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
         """
         forward pass through the network
 
@@ -196,7 +201,7 @@ class LightningModelBase(pl.LightningModule):
 
         return x
 
-    def configure_optimizers(self):
+    def configure_optimizers(self) -> Union[object, tuple]:
         """
         optimizer and lr scheduler
 
@@ -229,7 +234,7 @@ class LightningModelBase(pl.LightningModule):
         else:
             return optimizer
 
-    def training_step(self, batch, batch_idx) -> dict:
+    def training_step(self, batch: Tuple[torch.Tensor, torch.Tensor], batch_idx: int) -> dict:
         """
         Training step of the network
         the "hiddens" dicts saves parameters which can be used in callback
@@ -245,7 +250,7 @@ class LightningModelBase(pl.LightningModule):
         results = {'loss': loss, 'log': log, 'hiddens': hiddens}
         return results
 
-    def validation_step(self, batch, batch_idx) -> dict:
+    def validation_step(self, batch: Tuple[torch.Tensor, torch.Tensor], batch_idx: int) -> dict:
         """
         Validation step of the network
         the "hiddens" dicts saves parameters which can be used in callback
@@ -259,7 +264,7 @@ class LightningModelBase(pl.LightningModule):
         hiddens = {'inputs': x.detach(), 'preds': y_hat.detach(), 'targets': y.detach()}
         return {'val_loss': loss, 'hiddens': hiddens}
 
-    def validation_epoch_end(self, outputs) -> dict:
+    def validation_epoch_end(self, outputs: dict) -> dict:
         """
         Actions performed at the end of validation epoch (incl. calculating the val_loss)
         """
@@ -272,7 +277,7 @@ class LightningModelBase(pl.LightningModule):
         results = {'log': log, 'val_loss': val_loss, 'progress_bar': pbar}
         return results
 
-    def test_step(self, batch, batch_idx) -> dict:
+    def test_step(self, batch: Tuple[torch.Tensor, torch.Tensor], batch_idx: int) -> dict:
         """
         Test step of the network
         the "hiddens" dicts saves parameters which can be used in callback
@@ -286,7 +291,7 @@ class LightningModelBase(pl.LightningModule):
         hiddens = {'inputs': x.detach(), 'preds': y_hat.detach(), 'targets': y.detach()}
         return {'test_loss': loss, 'hiddens': hiddens}
 
-    def test_epoch_end(self, outputs) -> dict:
+    def test_epoch_end(self, outputs: dict) -> dict:
         """
         Actions performed at the end of test epoch (incl. calculating the test_loss)
         """
@@ -295,7 +300,7 @@ class LightningModelBase(pl.LightningModule):
         results = {'log': log, 'test_loss': test_loss}
         return results
 
-    def hparams_save(self, path) -> None:
+    def hparams_save(self, path: Union[str, Path]) -> None:
         """
         Save hyparams dict to yaml file
 
@@ -306,7 +311,7 @@ class LightningModelBase(pl.LightningModule):
         from pytorch_lightning.core.saving import save_hparams_to_yaml
         save_hparams_to_yaml(path, self.hparams)
 
-    def hparams_update(self, update_dict) -> None:
+    def hparams_update(self, update_dict: Union[dict, Namespace]) -> None:
         """
         Update hyparams dict
 
@@ -325,9 +330,9 @@ class LightningModelBase(pl.LightningModule):
         self.get_functions()
 
     @staticmethod
-    def get_OptionClass():
+    def get_OptionClass() -> dict:
         pass
 
     @staticmethod
-    def yaml_template():
+    def yaml_template() -> str:
         pass

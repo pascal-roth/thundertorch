@@ -1,9 +1,10 @@
 import torch
+import pytorch_lightning as pl
 
 
 class Regularizer(object):
 
-    def reset(self):
+    def reset(self) -> None:
         raise NotImplementedError('subclass must implement this method')
 
     def __call__(self, module, input=None, output=None):
@@ -12,7 +13,7 @@ class Regularizer(object):
 
 class L1Regularizer(Regularizer):
 
-    def __init__(self, scale=1e-3, module_filter='*'):
+    def __init__(self, scale: float = 1e-3, module_filter='*'):
         self.scale = float(scale)
         self.module_filter = module_filter
         self.value = 0.

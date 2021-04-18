@@ -4,8 +4,9 @@
 import torch
 import os
 import numpy as np
-from typing import Optional
+from typing import Optional, Union
 
+import pytorch_lightning as pl
 from pytorch_lightning.callbacks.base import Callback
 from pytorch_lightning.utilities import rank_zero_warn, rank_zero_only
 from pytorch_lightning import _logger as log
@@ -38,7 +39,7 @@ class Checkpointing(Callback):
         self.save_weights_only = save_weights_only
         self.period = period
         self.epoch_last_check = None
-        self.best_k_models = {}
+        self.best_k_models = dict({})
         # {filename: monitor}
         self.kth_best_model = ''
         self.best = 0
@@ -59,11 +60,11 @@ class Checkpointing(Callback):
 
         self.kth_value, self.mode = mode_dict[mode]
 
-    def _del_model(self, filepath):
+    def _del_model(self, filepath: str) -> None:
         if os.path.isfile(filepath):
             os.remove(filepath)
 
-    def _save_model(self, filepath):
+    def _save_model(self, filepath: str) -> None:
         # make paths
         os.makedirs(os.path.dirname(filepath), exist_ok=True)
 
@@ -73,7 +74,7 @@ class Checkpointing(Callback):
         else:
             raise ValueError(".save_function() not set")
 
-    def check_monitor_top_k(self, current):
+    def check_monitor_top_k(self, current: torch.Tensor) -> Union[bool, torch.Tensor]:
         less_than_k_models = len(self.best_k_models) < self.save_top_k
         if less_than_k_models:
             return True
@@ -92,7 +93,7 @@ class Checkpointing(Callback):
 
         return monitor_op(current, self.best_k_models[self.kth_best_model])
 
-    def format_checkpoint_name(self, epoch, ver=None):
+    def format_checkpoint_name(self, epoch: int, ver: int = None) -> str:
         """
         Generate a filename according to the defined template.
         """
@@ -108,7 +109,7 @@ class Checkpointing(Callback):
         return filepath
 
     @rank_zero_only
-    def on_validation_end(self, trainer, pl_module):
+    def on_validation_end(self, trainer: pl.Trainer, pl_module: pl.LightningModule) -> None:
         # only run on main process
         if trainer.proc_rank != 0:
             return
@@ -154,7 +155,7 @@ class Checkpointing(Callback):
                 log.info(f'\nEpoch {epoch:05d}: saving model to {filepath}')
             self._save_model(filepath)
 
-    def _do_check_save(self, filepath, current, epoch):
+    def _do_check_save(self, filepath: str, current: torch.tensor, epoch: int) -> None:
         # remove kth
 
         del_list = []

@@ -8,6 +8,8 @@ import glob
 import inspect
 import os
 from functools import reduce
+from typing import Union
+from pathlib import PosixPath, Path
 import operator
 import torch
 from thunder_torch import _logger
@@ -17,7 +19,7 @@ from thunder_torch.utils.option_class import OptionClass
 from thunder_torch import _modules_models, _modules_callbacks, _modules_loader
 
 
-def parse_yaml(yaml_path: str, low_key: bool = True) -> dict:
+def parse_yaml(yaml_path: Union[str, Path, PosixPath], low_key: bool = True) -> dict:
     """
     Parse yaml file and lower case all keys
     """
@@ -30,7 +32,7 @@ def parse_yaml(yaml_path: str, low_key: bool = True) -> dict:
 
 def lower_keys(dict_file: dict) -> dict:
 
-    def recursion(dict_file_rec: dict):
+    def recursion(dict_file_rec: dict) -> dict:
         dict_file_rec = dict((k.lower(), v) for k, v in dict_file_rec.items())
 
         for key, value in dict_file_rec.items():
@@ -84,7 +86,7 @@ def check_argsModel(argsModel: dict) -> None:
     # warn if no model params defined
     if 'params' not in argsModel:
         _logger.warning('Parameter dict not defined! Default values will be taken. Structure of the params dict is as '
-                        'follows: \n{}'.format(getattr(models, argsModel.type).yaml_template(['Model', 'params'])))
+                        'follows: \n{}'.format(getattr(models, argsModel['type']).yaml_template(['Model', 'params'])))
 
     # check model source
     if 'load_model' not in argsModel and 'create_model' not in argsModel:

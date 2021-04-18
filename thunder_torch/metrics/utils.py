@@ -7,19 +7,19 @@ from typing import Any, Callable, Optional, Union
 METRIC_EPS = 1e-6
 
 
-def dim_zero_cat(x):
+def dim_zero_cat(x: torch.Tensor) -> torch.Tensor:
     return torch.cat(x, dim=0)
 
 
-def dim_zero_sum(x):
+def dim_zero_sum(x: torch.Tensor) -> torch.Tensor:
     return torch.sum(x, dim=0)
 
 
-def dim_zero_mean(x):
+def dim_zero_mean(x: torch.Tensor) -> torch.Tensor:
     return torch.mean(x, dim=0)
 
 
-def _flatten(x):
+def _flatten(x: list) -> list:
     return [item for sublist in x for item in sublist]
 
 
@@ -48,13 +48,14 @@ def to_onehot(
     return tensor_onehot.scatter_(1, index, 1.0)
 
 
-def _check_same_shape(pred: torch.Tensor, target: torch.Tensor):
+def _check_same_shape(pred: torch.Tensor, target: torch.Tensor) -> None:
     """ Check that predictions and target have the same shape, else raise error """
     if pred.shape != target.shape:
         raise RuntimeError('Predictions and targets are expected to have the same shape')
 
 
-def apply_to_collection(data: Any, dtype: Union[type, tuple], function: Callable, *args, **kwargs) -> Any:
+def apply_to_collection(data: Any, dtype: Union[type, tuple], function: Callable, *args: Optional[Any],
+                        **kwargs: Optional[Any]) -> Any:
     """
     Recursively applies a function to all elements of a certain dtype.
     Args:
@@ -85,7 +86,7 @@ def apply_to_collection(data: Any, dtype: Union[type, tuple], function: Callable
     return data
 
 
-def gather_all_tensors_if_available(result: Union[torch.Tensor], group: Optional[Any] = None):
+def gather_all_tensors_if_available(result: Union[torch.Tensor], group: Optional[Any] = None) -> torch.tensor:
     """
     Function to gather all tensors from several ddp processes onto a list that
     is broadcasted to all processes

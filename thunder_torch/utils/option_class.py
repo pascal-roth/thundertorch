@@ -1,3 +1,5 @@
+from typing import Optional, Any
+
 from thunder_torch import _logger
 from thunder_torch.utils.general import dynamic_imp
 
@@ -10,7 +12,7 @@ class OptionClass:
     structures are possible, however, for every dict that should be controlled an own OptionClass object is necessary.
     Thus the nested structure inside the dict is rebuild as a nested structure of OptionClass objects.
     """
-    def __init__(self, **kwargs):
+    def __init__(self, **kwargs: Optional[Any]) -> None:
         """
         Create OptionClass Object
 
@@ -28,7 +30,7 @@ class OptionClass:
         else:
             self.template = ''
 
-    def add_key(self, key: str, dtype, **kwargs) -> None:
+    def add_key(self, key: str, dtype: Any, **kwargs: Optional[Any]) -> None:
         """
         Add key to object
 
@@ -52,7 +54,7 @@ class OptionClass:
         if len(kwargs) != 0:
             _logger.warning('Additional/ unexpected kwargs are given!')
 
-    def check_dict(self, input_dict: dict, **kwargs) -> list:
+    def check_dict(self, input_dict: dict, **kwargs: Optional[Any]) -> list:
         """
         Check given parameter dict
 
@@ -94,7 +96,7 @@ class OptionClass:
             'Not all required keys are included in dict! Required keys are: {}.{}'.format(self.required_keys,
                                                                                           self.template)
 
-    def check_dtype(self, key: str, item) -> None:
+    def check_dtype(self, key: str, item: Any) -> None:
         """
         Control the datatype of the given key
         """
@@ -115,7 +117,7 @@ class OptionClass:
             assert exclusive_key not in key_list, '"{}" and "{}" are mutually exclusive! {}'.\
                 format(exclusive_key, key, self.template)
 
-    def check_attr_of(self, key: str, item) -> None:
+    def check_attr_of(self, key: str, item: Any) -> None:
         """
         Check if the key value is an attr of the defined class/ module
         """

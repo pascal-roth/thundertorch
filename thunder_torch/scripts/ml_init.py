@@ -10,7 +10,7 @@ from thunder_torch import models
 from thunder_torch import utils
 
 
-def initializer():
+def initializer() -> None:
     # select DataLoader
     msg_Loader = 'Select DataLoader! Implemented Loader are: \n{}\n'.format(loader.__all__)
     name_loader = input(msg_Loader)

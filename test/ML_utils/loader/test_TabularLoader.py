@@ -3,27 +3,28 @@ import torch
 import yaml
 import argparse
 import pandas as pd
-from pathlib import Path
+from pathlib import Path, PosixPath
 import pytorch_lightning as pl
 
+import thunder_torch
 from thunder_torch.loader import TabularLoader
 from thunder_torch.callbacks import Checkpointing
 from thunder_torch.utils import parse_yaml
 
 
 @pytest.fixture(scope='module')
-def create_example_TabularLoader(create_random_df):
+def create_example_TabularLoader(create_random_df: pd.DataFrame) -> TabularLoader:
     return TabularLoader(create_random_df, features=['T_0', 'P_0'], labels=['yCO2', 'wH2O'])
 
 
 @pytest.fixture(scope='module')
-def path():
+def path() -> Path:
     path = Path(__file__).resolve()
     return path.parents[0]
 
 
 @pytest.mark.dependency()
-def test_init(create_random_df):
+def test_init(create_random_df: pd.DataFrame) -> None:
     example_df = create_random_df
 
     Loader = TabularLoader(example_df, features=['T_0', 'P_0'], labels=['yCO2', 'wH2O'])
@@ -43,8 +44,9 @@ def test_init(create_random_df):
         TabularLoader(example_df, features=['T_0', 'some other str'], labels=['yCO2', 'wH2O'])
 
 
-@pytest.mark.dependency(depends=['test_init'])
-def test_add_val_data(create_random_df, create_example_TabularLoader, tmp_path):
+#@pytest.mark.dependency(depends=['test_init'])
+def test_add_val_data(create_random_df: pd.DataFrame, create_example_TabularLoader: TabularLoader,
+                      tmp_path: PosixPath) -> None:
     # check if validation set is loaded correctly
     create_random_df.to_csv(tmp_path / 'example.csv')
     create_example_TabularLoader.add_val_data(tmp_path / 'example.csv')
@@ -53,7 +55,7 @@ def test_add_val_data(create_random_df, create_example_TabularLoader, tmp_path):
 
 
 @pytest.mark.dependency(depends=['test_init'])
-def test_val_split(create_example_TabularLoader):
+def test_val_split(create_example_TabularLoader: TabularLoader) -> None:
     # test validation split method (general functionality and key sensitivity)
     Loader = create_example_TabularLoader
 
@@ -73,7 +75,8 @@ def test_val_split(create_example_TabularLoader):
 
 
 @pytest.mark.dependency(depends=['test_init'])
-def test_add_test_data(create_random_df, create_example_TabularLoader, tmp_path):
+def test_add_test_data(create_random_df: pd.DataFrame, create_example_TabularLoader: TabularLoader,
+                       tmp_path: PosixPath) -> None:
     # check if test set is loaded correctly
     create_random_df.to_csv(tmp_path / 'example.csv')
     create_example_TabularLoader.add_test_data(tmp_path / 'example.csv')
@@ -82,7 +85,7 @@ def test_add_test_data(create_random_df, create_example_TabularLoader, tmp_path)
 
 
 @pytest.mark.dependency(depends=['test_init'])
-def test_test_split(create_example_TabularLoader):
+def test_test_split(create_example_TabularLoader: TabularLoader) -> None:
     # test "test split" method (general functionality and key sensitivity)
     Loader = create_example_TabularLoader
 
@@ -102,7 +105,7 @@ def test_test_split(create_example_TabularLoader):
 
 
 @pytest.mark.dependency(depends=['test_init'])
-def test_train_dataloader(create_example_TabularLoader):
+def test_train_dataloader(create_example_TabularLoader: TabularLoader) -> None:
     # test "train dataloader" creation
     Loader = create_example_TabularLoader
     train_dataloader = Loader.train_dataloader()
@@ -110,7 +113,7 @@ def test_train_dataloader(create_example_TabularLoader):
 
 
 @pytest.mark.dependency(depends=['test_init'])
-def test_val_dataloader(create_example_TabularLoader):
+def test_val_dataloader(create_example_TabularLoader: TabularLoader) -> None:
     # test "validation dataloader" creation
     Loader = create_example_TabularLoader
     Loader.val_split(method='random', params=0.25)
@@ -119,7 +122,7 @@ def test_val_dataloader(create_example_TabularLoader):
 
 
 @pytest.mark.dependency(depends=['test_init'])
-def test_test_dataloader(create_random_df):
+def test_test_dataloader(create_random_df: pd.DataFrame) -> None:
     # test "test dataloader" creation
     Loader = TabularLoader(create_random_df, features=['T_0', 'P_0'], labels=['yCO2', 'wH2O'])
     Loader.test_split(method='random', params=0.33)
@@ -128,7 +131,7 @@ def test_test_dataloader(create_random_df):
 
 
 @pytest.mark.dependency(depends=['test_init'])
-def test_save_load(create_example_TabularLoader, tmp_path):
+def test_save_load(create_example_TabularLoader: TabularLoader, tmp_path: PosixPath) -> None:
     # Save and load DataLoader if the name has the file extension .pkl
     Loader = create_example_TabularLoader
     Loader.save(tmp_path / 'exampleLoader.pkg')
@@ -142,7 +145,7 @@ def test_save_load(create_example_TabularLoader, tmp_path):
 
 
 @pytest.mark.dependency(depends=['test_init'])
-def test_read_from_file(tmp_path, create_random_df):
+def test_read_from_file(tmp_path: PosixPath, create_random_df: pd.DataFrame) -> None:
     # test "read_from_file" functionality regarding if kwargs passed correctly and features/labels copied
     features = create_random_df.columns[:2]
     labels = create_random_df.columns[2:]
@@ -161,7 +164,7 @@ def test_read_from_file(tmp_path, create_random_df):
 
 
 @pytest.mark.dependency(depends=['test_init'])
-def test_option_class(path, tmp_path):
+def test_option_class(path: PosixPath, tmp_path: PosixPath) -> None:
     # test mutually exclusive of load_dataloader and create_dataloader and necessity to include one
     with pytest.raises(AssertionError):
         yaml_file = parse_yaml(path / 'TabularLoaderEval.yaml')
@@ -237,7 +240,7 @@ def test_option_class(path, tmp_path):
 
 
 @pytest.mark.dependency(depends=['test_init', 'test_save_load'])
-def test_read_from_yaml_load(path, tmp_path, create_example_TabularLoader):
+def test_read_from_yaml_load(path: PosixPath, tmp_path: PosixPath, create_example_TabularLoader) -> None:
     # test load functionality
     create_example_TabularLoader.save(tmp_path / 'exampleTabularLoader.pkl')
     yaml_file = parse_yaml(path / 'TabularLoaderEval.yaml')
@@ -250,7 +253,7 @@ def test_read_from_yaml_load(path, tmp_path, create_example_TabularLoader):
 
 @pytest.mark.dependency(depends=['test_init', 'test_read_from_file', 'test_add_val_data',
                                  'test_val_split', 'test_add_test_data', 'test_test_split'])
-def test_read_from_yaml_create(path, tmp_path, create_random_df):
+def test_read_from_yaml_create(path: PosixPath, tmp_path: PosixPath, create_random_df: pd.DataFrame) -> None:
     # test create functionality
     create_random_df.to_csv(tmp_path / 'example_samples.csv')
     yaml_file = parse_yaml(path / 'TabularLoaderEval.yaml')
@@ -285,7 +288,9 @@ def test_read_from_yaml_create(path, tmp_path, create_random_df):
 
 
 @pytest.mark.dependency(depends=['test_init', 'test_read_from_yaml_create'])
-def test_read_from_checkpoint(tmp_path, create_TabularLoader, create_LightningFlexMLP, create_random_df):
+def test_read_from_checkpoint(tmp_path: PosixPath, create_TabularLoader: TabularLoader,
+                              create_LightningFlexMLP: thunder_torch.LightningFlexMLP,
+                              create_random_df: pd.DataFrame) -> None:
     # dataLoader
     dataLoader = create_TabularLoader
     dataLoader.lparams.data_path = tmp_path / 'example_samples.csv'

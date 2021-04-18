@@ -8,6 +8,7 @@ import importlib
 import os
 import pytorch_lightning as pl
 import torch
+from typing import Union, Any
 
 from thunder_torch import _logger  # Logger that are defined in __all__ in the __init__ file
 from thunder_torch import callbacks  # Callbacks that are defined in __all__ in the __init__ file
@@ -75,7 +76,7 @@ def get_ckpt_path(path: str) -> str:
     return ckpt_path
 
 
-def get_model(argsModel) -> pl.LightningModule:
+def get_model(argsModel: Union[dict, argparse.Namespace]) -> pl.LightningModule:
     """
     Load/ create the model given the model arguments
 
@@ -117,7 +118,7 @@ def get_model(argsModel) -> pl.LightningModule:
     return model.double()
 
 
-def get_dataLoader(argsLoader: dict, model: pl.LightningModule = None):
+def get_dataLoader(argsLoader: dict, model: pl.LightningModule = None) -> Any:
     """
     Load/ create DataLoader object
 
@@ -152,7 +153,7 @@ def get_dataLoader(argsLoader: dict, model: pl.LightningModule = None):
     return dataLoader
 
 
-def train_model(model: pl.LightningModule, dataLoader, argsTrainer: dict) -> None:
+def train_model(model: pl.LightningModule, dataLoader: Any, argsTrainer: dict) -> None:
     """
     Train a given model with the data included in the DataLoader object
 
@@ -247,7 +248,7 @@ def train_logger(argsTrainer: dict) -> list:
     return loggers
 
 
-def execute_training(model: pl.LightningModule, dataLoader, trainer: pl.Trainer) -> None:
+def execute_training(model: pl.LightningModule, dataLoader: Any, trainer: pl.Trainer) -> None:
     # check if validation_step fct in original LightningModule has been overwritten in model
     is_overwritten = model.validation_step.__code__ is not pl.LightningModule.validation_step.__code__
 
@@ -271,7 +272,7 @@ def execute_training(model: pl.LightningModule, dataLoader, trainer: pl.Trainer)
         trainer.fit(model, train_dataloader=dataLoader.train_dataloader(), val_dataloaders=val_dataloader)
 
 
-def execute_testing(model: pl.LightningModule, dataLoader, trainer: pl.Trainer) -> None:
+def execute_testing(model: pl.LightningModule, dataLoader: Any, trainer: pl.Trainer) -> None:
     # check if test_step fct in original LightningModule has been overwritten in model
     is_overwritten = model.test_step.__code__ is not pl.LightningModule.test_step.__code__
 

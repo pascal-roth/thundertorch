@@ -77,7 +77,7 @@ class LightningFlexNN(LightningModelBase):
 
         self.layers = torch.nn.Sequential(*self.layers)
 
-    def set_channels(self):
+    def set_channels(self) -> None:
         in_channels = self.hparams.depth
         for i, layer_dict in enumerate(self.hparams.layers):
             if layer_dict['type'] == 'Conv2d' and all(
@@ -89,7 +89,7 @@ class LightningFlexNN(LightningModelBase):
         self.final_channel = in_channels
 
     @staticmethod
-    def get_OptionClass():
+    def get_OptionClass() -> dict:
         options = {'hparams': OptionClass(template=LightningFlexNN.yaml_template(['Model', 'params']))}
         options['hparams'].add_key('depth', dtype=int, required=True)
         options['hparams'].add_key('width', dtype=int, required=True)
@@ -125,7 +125,7 @@ class LightningFlexNN(LightningModelBase):
         return options
 
     @staticmethod
-    def yaml_template(key_list):
+    def yaml_template(key_list: list) -> str:
         template = {'Model': {'type': 'LightningFlexNN',
                               '###INFO###': 'load_model and create_model are mutually exclusive',
                               'load_model': {'path': 'name.ckpt'},

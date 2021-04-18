@@ -3,18 +3,20 @@
 #######################################################################################################################
 
 # import packages
+from typing import Any
 import time
 import torch.multiprocessing as mp
+import pytorch_lightning as pl
 
 from thunder_torch import _logger
 from thunder_torch.utils import *
 
 
-def execute_model(model, argsTrainer: dict, dataLoader) -> None:
+def execute_model(model: pl.LightningModule, argsTrainer: dict, dataLoader: [Any]) -> None:
     train_model(model, dataLoader, argsTrainer)
 
 
-def main(argsMulti):
+def main(argsMulti: dict) -> None:
     nbr_processes, list_gpu, model_dicts = config_multi(argsMulti)
 
     mp_fn = mp.get_context('forkserver')

@@ -4,7 +4,7 @@ import argparse
 from thunder_torch import models
 
 
-def parseArguments():
+def parseArguments() -> argparse.Namespace:
     parser = argparse.ArgumentParser("This scripts plot a contour comparison between a pyTorch model prediction"
                                      " and a the original data and their difference using the"
                                      " pyFLUT.flut.Flut.contourplot functionality.")
@@ -23,7 +23,7 @@ def parseArguments():
     return parser.parse_args()
 
 
-def main(args):
+def main(args: argparse.Namespace) -> None:
     # create list to save scalar information
     ymin = []
     ymax = []

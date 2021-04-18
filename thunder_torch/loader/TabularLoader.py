@@ -3,6 +3,7 @@
 #######################################################################################################################
 
 # import packages
+import numpy as np
 import os
 import torch
 import pickle
@@ -11,9 +12,10 @@ import importlib
 import pandas as pd
 from sklearn import preprocessing
 from argparse import Namespace
-from typing import Union, Optional, List
-from pathlib import Path
+from typing import Union, Optional, List, Any
+from pathlib import Path, PosixPath
 
+import thunder_torch
 from thunder_torch import _modules_models
 from thunder_torch import _logger
 from thunder_torch import models
@@ -43,8 +45,9 @@ class TabularLoader(DataLoaderBase):
     def __init__(self, df_samples: pd.DataFrame, features: List[str], labels: List[str],
                  x_scaler: Optional[preprocessing.MinMaxScaler] = None,
                  y_scaler: Optional[preprocessing.MinMaxScaler] = None, batch: int = 64, num_workers: int = 10,
-                 data_path: Optional[str] = None, val_split: Optional[dict] = None, val_path: Optional[dict] = None,
-                 test_split: Optional[dict] = None, test_path: Optional[dict] = None, fastLoader: bool = False) -> None:
+                 data_path: Optional[str, Path, PosixPath] = None, val_split: Optional[dict] = None,
+                 val_path: Optional[dict] = None, test_split: Optional[dict] = None, test_path: Optional[dict] = None,
+                 fastLoader: bool = False) -> None:
         """
         Create TabularLoader object
 
@@ -143,31 +146,31 @@ class TabularLoader(DataLoaderBase):
         _logger.debug(f'Test samples added from file {path} with sep {sep}!')
 
     # create pytorch dataloaders ######################################################################################
-    def get_dataloader(self, x_samples, y_samples, **kwargs) -> Union[torch.utils.data.DataLoader,
-                                                                      _utils.FastTensorDataLoader]:
+    def get_dataloader(self, x_samples: pd.DataFrame, y_samples: pd.DataFrame, **kwargs: Optional[Any]) -> \
+            Union[torch.utils.data.DataLoader, _utils.FastTensorDataLoader]:
         if self.lparams.fast_loader:
             return _utils.FastTensorDataLoader(torch.tensor(x_samples), torch.tensor(y_samples),
                                                batch_size=self.lparams.batch, **kwargs)
         else:
             tensor = self.get_tensorDataset(x_samples, y_samples)
-            return torch.utils.data.DataLoader(tensor, batch_size=self.lparams.batch, num_workers=self.lparams.num_workers,
-                                               **kwargs)
+            return torch.utils.data.DataLoader(tensor, batch_size=self.lparams.batch,
+                                               num_workers=self.lparams.num_workers, **kwargs)
 
-    def train_dataloader(self, **kwargs) -> Union[torch.utils.data.DataLoader, _utils.FastTensorDataLoader]:
+    def train_dataloader(self, **kwargs: Optional[Any]) -> Union[torch.utils.data.DataLoader, _utils.FastTensorDataLoader]:
         """
         Generate PyTorch DataLoader for the training data (all kwargs of the PyTorch DataLoader can be used)
         """
         x_samples, y_samples = self.data_normalization(self.x_train, self.y_train)
         return self.get_dataloader(x_samples, y_samples, **kwargs)
 
-    def val_dataloader(self, **kwargs) -> Union[torch.utils.data.DataLoader, _utils.FastTensorDataLoader]:
+    def val_dataloader(self, **kwargs: Optional[Any]) -> Union[torch.utils.data.DataLoader, _utils.FastTensorDataLoader]:
         """
         Generate PyTorch DataLoader for the validation data (all kwargs of the PyTorch DataLoader can be used)
         """
         x_samples, y_samples = self.data_normalization(self.x_val, self.y_val)
         return self.get_dataloader(x_samples, y_samples, **kwargs)
 
-    def test_dataloader(self, **kwargs) -> Union[torch.utils.data.DataLoader, _utils.FastTensorDataLoader]:
+    def test_dataloader(self, **kwargs: Optional[Any]) -> Union[torch.utils.data.DataLoader, _utils.FastTensorDataLoader]:
         """
         Generate PyTorch DataLoader for the test data (all kwargs of the PyTorch DataLoader can be used)
         """
@@ -176,7 +179,8 @@ class TabularLoader(DataLoaderBase):
 
     # classmethods ####################################################################################################
     @classmethod
-    def read_from_file(cls, file, features: list, labels: list, **kwargs) -> object:
+    def read_from_file(cls, file: Union[str, Path, PosixPath], features: List[str], labels: List[str],
+                       **kwargs: Optional[Any]) -> object:
         """
         Create TabularLoader object from file
 
@@ -197,7 +201,7 @@ class TabularLoader(DataLoaderBase):
         return cls(df_samples, features, labels, data_path=file, **kwargs)
 
     @classmethod
-    def read_from_yaml(cls, argsLoader: dict, **kwargs) -> object:
+    def read_from_yaml(cls, argsLoader: dict, **kwargs: Optional[Any]) -> object:
         """
         Create TabularLoader object from a dict similar to the one given under yml_template
 
@@ -289,10 +293,10 @@ class TabularLoader(DataLoaderBase):
         else:
             assert all(hasattr(lparams, elem) for elem in ['features', 'labels', 'batch', 'num_workers',
                                                            'x_scaler', 'y_scaler']), 'Parameters missing!'
-        Loader = cls.read_from_file(lparams.data_path, features=lparams.features,
-                                              labels=lparams.labels, batch=lparams.batch,
-                                              num_workers=lparams.num_workers,
-                                              x_scaler=lparams.x_scaler, y_scaler=lparams.y_scaler)
+            Loader = cls.read_from_file(lparams.data_path, features=lparams.features,
+                                                  labels=lparams.labels, batch=lparams.batch,
+                                                  num_workers=lparams.num_workers,
+                                                  x_scaler=lparams.x_scaler, y_scaler=lparams.y_scaler)
 
         if 'path' in lparams.val:
             Loader.add_val_data(lparams.val.path, lparams.val.sep)
@@ -318,10 +322,10 @@ class TabularLoader(DataLoaderBase):
         options['DataLoader'].add_key('create_dataloader', dtype=dict, mutually_exclusive=['load_dataloader'])
 
         options['load_dataloader'] = OptionClass(template=TabularLoader.yaml_template(['DataLoader', 'load_DataLoader']))
-        options['load_dataloader'].add_key('path', dtype=str, required=True)
+        options['load_dataloader'].add_key('path', dtype=[str, Path, PosixPath], required=True)
 
         options['create_dataloader'] = OptionClass(template=TabularLoader.yaml_template(['DataLoader', 'create_DataLoader']))
-        options['create_dataloader'].add_key('raw_data_path', dtype=str, required=True)
+        options['create_dataloader'].add_key('raw_data_path', dtype=[str, Path, PosixPath], required=True)
         options['create_dataloader'].add_key('features', dtype=list, required=True)
         options['create_dataloader'].add_key('labels', dtype=list, required=True)
         options['create_dataloader'].add_key('validation_data', dtype=dict)
@@ -338,7 +342,7 @@ class TabularLoader(DataLoaderBase):
 
         options['load_data'] = OptionClass(template=TabularLoader.yaml_template(['DataLoader', 'create_DataLoader',
                                                                                  'validation_data', 'load_data']))
-        options['load_data'].add_key('path', dtype=str, required=True)
+        options['load_data'].add_key('path', dtype=[str, Path, PosixPath], required=True)
         options['load_data'].add_key('sep', dtype=str)
 
         options['split_data'] = OptionClass(template=TabularLoader.yaml_template(['DataLoader', 'create_DataLoader',
@@ -348,7 +352,7 @@ class TabularLoader(DataLoaderBase):
 
         options['save_loader'] = OptionClass(template=TabularLoader.yaml_template(['DataLoader', 'create_DataLoader',
                                                                                    'save_Loader']))
-        options['save_loader'].add_key('path', dtype=str, required=True)
+        options['save_loader'].add_key('path', dtype=[str, Path, PosixPath], required=True)
 
         return options
 

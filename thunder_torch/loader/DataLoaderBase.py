@@ -11,7 +11,7 @@ import importlib
 import pandas as pd
 from sklearn import preprocessing
 from argparse import Namespace
-from typing import Union, Tuple
+from typing import Union, Tuple, Optional, Any
 from pathlib import Path
 
 from abc import ABC, abstractmethod
@@ -51,7 +51,7 @@ class DataLoaderBase(ABC):
         self.x_test = None
         self.y_test = None
 
-    def get_scaler(self):
+    def get_scaler(self) -> None:
         if self.lparams.x_scaler is None:
             x_min_max_scaler = preprocessing.MinMaxScaler()
             self.lparams.x_scaler = x_min_max_scaler.fit(self.x_train)
@@ -61,7 +61,7 @@ class DataLoaderBase(ABC):
 
     # training_data ###################################################################################################
     @abstractmethod
-    def add_train_data(self, *args, **kwargs) -> None:
+    def add_train_data(self, *args: Optional[Any], **kwargs: Optional[Any]) -> None:
         """
         Load training samples and separate them into input and target samples
         """
@@ -69,7 +69,7 @@ class DataLoaderBase(ABC):
 
     # validation_data #################################################################################################
     @abstractmethod
-    def add_val_data(self, *args, **kwargs) -> None:
+    def add_val_data(self, *args: Optional[Any], **kwargs: Optional[Any]) -> None:
         """
         Load validation samples and separate them into input and target samples
         """
@@ -92,7 +92,7 @@ class DataLoaderBase(ABC):
 
     # test_data #######################################################################################################
     @abstractmethod
-    def add_test_data(self, *args, **kwargs) -> None:
+    def add_test_data(self, *args: Optional[Any], **kwargs: Optional[Any]) -> None:
         """
         Load test samples and separate them into input and target samples
 
@@ -129,7 +129,7 @@ class DataLoaderBase(ABC):
     def get_tensorDataset(x_samples: pd.DataFrame, y_samples: pd.DataFrame) -> torch.utils.data.TensorDataset:
         return torch.utils.data.TensorDataset(torch.tensor(x_samples), torch.tensor(y_samples))
 
-    def train_dataloader(self, **kwargs) -> torch.utils.data.DataLoader:
+    def train_dataloader(self, **kwargs: Optional[Any]) -> torch.utils.data.DataLoader:
         """
         Generate PyTorch DataLoader for the training data (all kwargs of the PyTorch DataLoader can be used)
         """
@@ -138,7 +138,7 @@ class DataLoaderBase(ABC):
         return torch.utils.data.DataLoader(tensor, batch_size=self.lparams.batch, num_workers=self.lparams.num_workers,
                                            **kwargs)
 
-    def val_dataloader(self, **kwargs) -> torch.utils.data.DataLoader:
+    def val_dataloader(self, **kwargs: Optional[Any]) -> torch.utils.data.DataLoader:
         """
         Generate PyTorch DataLoader for the validation data (all kwargs of the PyTorch DataLoader can be used)
         """
@@ -147,7 +147,7 @@ class DataLoaderBase(ABC):
         return torch.utils.data.DataLoader(tensor, batch_size=self.lparams.batch, num_workers=self.lparams.num_workers,
                                            **kwargs)
 
-    def test_dataloader(self, **kwargs) -> torch.utils.data.DataLoader:
+    def test_dataloader(self, **kwargs: Optional[Any]) -> torch.utils.data.DataLoader:
         """
         Generate PyTorch DataLoader for the test data (all kwargs of the PyTorch DataLoader can be used)
         """
@@ -187,14 +187,14 @@ class DataLoaderBase(ABC):
 
     # classmethods ####################################################################################################
     @classmethod
-    def read_from_file(cls, *args, **kwargs) -> object:
+    def read_from_file(cls, *args: Optional[Any], **kwargs: Optional[Any]) -> object:
         """
         Create DataLoader object from file
         """
         pass
 
     @classmethod
-    def read_from_yaml(cls, argsLoader: dict, **kwargs) -> object:
+    def read_from_yaml(cls, argsLoader: dict, **kwargs: Optional[Any]) -> object:
         """
         Create TabularLoader object from a dict similar to the one given under yml_template
         """

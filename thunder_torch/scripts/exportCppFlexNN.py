@@ -3,7 +3,7 @@ import argparse
 from thunder_torch import models
 
 
-def parse_args():
+def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser()
 
     parser.add_argument('-mp', '--model_path', type=str,
@@ -16,7 +16,7 @@ def parse_args():
     return parser.parse_args()
 
 
-def export_model(args):
+def export_model(args: argparse.Namespace) -> None:
     model = getattr(models, args.model_type).load_from_checkpoint(args.model)
     n_inp = model.hparams.n_inp  # TODO: how for all models?
     example = torch.rand(n_inp)

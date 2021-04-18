@@ -52,7 +52,6 @@ class LightningFlexMLP(LightningModelBase):
         self.check_hparams()
         self.get_default()
         self.get_functions()
-        self.min_val_loss = None
 
         # Construct MLP with a variable number of hidden layers
         self.layers = []
@@ -107,7 +106,7 @@ class LightningFlexMLP(LightningModelBase):
     # #     return parser
 
     @staticmethod
-    def get_OptionClass():
+    def get_OptionClass() -> dict:
         options = {'hparams': OptionClass(template=LightningFlexMLP.yaml_template(['Model', 'params']))}
         options['hparams'].add_key('n_inp', dtype=int, required=True)
         options['hparams'].add_key('n_out', dtype=int, required=True)
@@ -134,7 +133,7 @@ class LightningFlexMLP(LightningModelBase):
         return options
 
     @staticmethod
-    def yaml_template(key_list):
+    def yaml_template(key_list: list) -> str:
         """
         Yaml template for LightningFlexMLP
         """
