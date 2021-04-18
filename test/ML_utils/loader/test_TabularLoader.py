@@ -10,6 +10,7 @@ import thunder_torch
 from thunder_torch.loader import TabularLoader
 from thunder_torch.callbacks import Checkpointing
 from thunder_torch.utils import parse_yaml
+from thunder_torch.models import LightningFlexMLP
 
 
 @pytest.fixture(scope='module')
@@ -292,7 +293,7 @@ def test_read_from_yaml_create(path: PosixPath, tmp_path: PosixPath, create_rand
 
 @pytest.mark.dependency(depends=['test_init', 'test_read_from_yaml_create'])
 def test_read_from_checkpoint(tmp_path: PosixPath, create_TabularLoader: TabularLoader,
-                              create_LightningFlexMLP: thunder_torch.LightningFlexMLP,
+                              create_LightningFlexMLP: LightningFlexMLP,
                               create_random_df: pd.DataFrame) -> None:
     # dataLoader
     dataLoader = create_TabularLoader

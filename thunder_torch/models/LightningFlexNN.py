@@ -59,6 +59,7 @@ class LightningFlexNN(LightningModelBase):
         self.get_default()
         self.get_functions()
         self.set_channels()
+        self.min_val_loss
 
         self.layers = []
 
