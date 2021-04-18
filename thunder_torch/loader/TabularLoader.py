@@ -45,7 +45,7 @@ class TabularLoader(DataLoaderBase):
     def __init__(self, df_samples: pd.DataFrame, features: List[str], labels: List[str],
                  x_scaler: Optional[preprocessing.MinMaxScaler] = None,
                  y_scaler: Optional[preprocessing.MinMaxScaler] = None, batch: int = 64, num_workers: int = 10,
-                 data_path: Optional[str, Path, PosixPath] = None, val_split: Optional[dict] = None,
+                 data_path: Optional[Union[str, Path, PosixPath]] = None, val_split: Optional[dict] = None,
                  val_path: Optional[dict] = None, test_split: Optional[dict] = None, test_path: Optional[dict] = None,
                  fastLoader: bool = False) -> None:
         """
@@ -94,7 +94,7 @@ class TabularLoader(DataLoaderBase):
         assert all(elem not in self.lparams.labels for elem in self.lparams.features), "Feature is included in labels"
 
     # training_data ###################################################################################################
-    def add_train_data(self, path: str, sep: str = ',') -> None:
+    def add_train_data(self, path: Union[Path, PosixPath, str], sep: str = ',') -> None:
         """
         Load training samples and separate them into input and target samples
 
@@ -112,7 +112,7 @@ class TabularLoader(DataLoaderBase):
         _logger.debug(f'Train samples added from file {path} with sep {sep}!')
 
     # validation_data #################################################################################################
-    def add_val_data(self, path: str, sep: str = ',') -> None:
+    def add_val_data(self, path: Union[Path, PosixPath, str], sep: str = ',') -> None:
         """
         Load validation samples and separate them into input and target samples
 
@@ -129,7 +129,7 @@ class TabularLoader(DataLoaderBase):
         _logger.debug(f'Validation samples added from file {path} with sep {sep}!')
 
     # test_data #######################################################################################################
-    def add_test_data(self, path: str, sep: str = ',') -> None:
+    def add_test_data(self, path: Union[Path, PosixPath, str], sep: str = ',') -> None:
         """
         Load test samples and separate them into input and target samples
 
@@ -146,7 +146,7 @@ class TabularLoader(DataLoaderBase):
         _logger.debug(f'Test samples added from file {path} with sep {sep}!')
 
     # create pytorch dataloaders ######################################################################################
-    def get_dataloader(self, x_samples: pd.DataFrame, y_samples: pd.DataFrame, **kwargs: Optional[Any]) -> \
+    def get_dataloader(self, x_samples: pd.DataFrame, y_samples: pd.DataFrame, **kwargs: Any) -> \
             Union[torch.utils.data.DataLoader, _utils.FastTensorDataLoader]:
         if self.lparams.fast_loader:
             return _utils.FastTensorDataLoader(torch.tensor(x_samples), torch.tensor(y_samples),
@@ -269,7 +269,7 @@ class TabularLoader(DataLoaderBase):
         return Loader
 
     @classmethod
-    def read_from_checkpoint(cls, ckpt_file: str) -> object:
+    def read_from_checkpoint(cls, ckpt_file: Union[str, Path, PosixPath]) -> object:
         """
         Create cls TabluarLoader from pytorch lightning checkpoint
         !! Hparams of the checkpoint had to be updated with lparams of the Loader in order to reconstruct the Loader!!

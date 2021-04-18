@@ -29,7 +29,7 @@ def test_LightningFlexNN_integration(tmp_path: PosixPath) -> None:
     model_dict = {'create_model': {'width': 28, 'height': 28, 'depth': 1,
                                    'layers': [{'type': 'Conv2d', 'params': {'kernel_size': 3, 'channels': 16, 'stride': 1}},
                                               {'type': 'MaxPool2d', 'params': {'kernel_size': 2}}],
-                                   'MLP_layer': {'n_out': 10, 'hidden_layer': [64]}},
+                                   'mlp_layer': {'n_out': 10, 'hidden_layer': [64]}},
                   'params': {'loss': 'CrossEntropyLoss'}}
 
     model = LightningFlexNN(argparse.Namespace(**model_dict['create_model']))

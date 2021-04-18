@@ -4,6 +4,7 @@
 import torch
 import os
 import numpy as np
+from pathlib import Path, PosixPath
 from typing import Optional, Union
 
 import pytorch_lightning as pl
@@ -14,8 +15,8 @@ from pytorch_lightning import _logger as log
 
 class Checkpointing(Callback):
 
-    def __init__(self, filepath: Optional[str] = None, monitor: str = 'val_loss', verbose: bool = False,
-                 save_top_k: int = 1, save_weights_only: bool = False,
+    def __init__(self, filepath: Optional[Union[str, Path, PosixPath]] = None, monitor: str = 'val_loss',
+                 verbose: bool = False, save_top_k: int = 1, save_weights_only: bool = False,
                  mode: str = 'auto', period: int = 1):
         super().__init__()
         if save_top_k > 0 and filepath is not None and os.path.isdir(filepath) and len(os.listdir(filepath)) > 0:

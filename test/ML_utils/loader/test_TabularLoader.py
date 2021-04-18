@@ -32,10 +32,10 @@ def test_init(create_random_df: pd.DataFrame) -> None:
 
     with pytest.raises(AssertionError):
         # Features must be of type str, other type has to result in an error
-        TabularLoader(example_df, features=['T_0', 69], labels=['yCO2', 'wH2O'])
+        TabularLoader(example_df, features=['T_0', 69], labels=['yCO2', 'wH2O'])  # type: ignore[list-item]
     with pytest.raises(AssertionError):
         # Labels must be of type str, other type has to result in an error
-        TabularLoader(example_df, features=['T_0', 'P_0'], labels=['yCO2', 69])
+        TabularLoader(example_df, features=['T_0', 'P_0'], labels=['yCO2', 69])  # type: ignore[list-item]
     with pytest.raises(AssertionError):
         # Column name cannot be feature and label at the same time (technically possible, but not smart)
         TabularLoader(example_df, features=['T_0', 'P_0'], labels=['T_0', 'wH2O'])
@@ -109,7 +109,8 @@ def test_train_dataloader(create_example_TabularLoader: TabularLoader) -> None:
     # test "train dataloader" creation
     Loader = create_example_TabularLoader
     train_dataloader = Loader.train_dataloader()
-    assert isinstance(train_dataloader, torch.utils.data.dataloader.DataLoader)
+    # ignore mypy attribute error in the following line, caused by missing torch.utils.data link
+    assert isinstance(train_dataloader, torch.utils.data.dataloader.DataLoader)  # type: ignore[attr-defined]
 
 
 @pytest.mark.dependency(depends=['test_init'])
@@ -118,7 +119,8 @@ def test_val_dataloader(create_example_TabularLoader: TabularLoader) -> None:
     Loader = create_example_TabularLoader
     Loader.val_split(method='random', params=0.25)
     val_dataloader = Loader.val_dataloader()
-    assert isinstance(val_dataloader, torch.utils.data.dataloader.DataLoader)
+    # ignore mypy attribute error in the following line, caused by missing torch.utils.data link
+    assert isinstance(val_dataloader, torch.utils.data.dataloader.DataLoader)  # type: ignore[attr-defined]
 
 
 @pytest.mark.dependency(depends=['test_init'])
@@ -127,7 +129,8 @@ def test_test_dataloader(create_random_df: pd.DataFrame) -> None:
     Loader = TabularLoader(create_random_df, features=['T_0', 'P_0'], labels=['yCO2', 'wH2O'])
     Loader.test_split(method='random', params=0.33)
     test_dataloader = Loader.test_dataloader()
-    assert isinstance(test_dataloader, torch.utils.data.dataloader.DataLoader)
+    # ignore mypy attribute error in the following line, caused by missing torch.utils.data link
+    assert isinstance(test_dataloader, torch.utils.data.dataloader.DataLoader)  # type: ignore[attr-defined]
 
 
 @pytest.mark.dependency(depends=['test_init'])
@@ -240,7 +243,7 @@ def test_option_class(path: PosixPath, tmp_path: PosixPath) -> None:
 
 
 @pytest.mark.dependency(depends=['test_init', 'test_save_load'])
-def test_read_from_yaml_load(path: PosixPath, tmp_path: PosixPath, create_example_TabularLoader) -> None:
+def test_read_from_yaml_load(path: PosixPath, tmp_path: PosixPath, create_example_TabularLoader: TabularLoader) -> None:
     # test load functionality
     create_example_TabularLoader.save(tmp_path / 'exampleTabularLoader.pkl')
     yaml_file = parse_yaml(path / 'TabularLoaderEval.yaml')

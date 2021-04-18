@@ -52,6 +52,7 @@ class LightningFlexMLP(LightningModelBase):
         self.check_hparams()
         self.get_default()
         self.get_functions()
+        self.min_val_loss: float = None
 
         # Construct MLP with a variable number of hidden layers
         self.layers = []
