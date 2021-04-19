@@ -4,15 +4,17 @@ import argparse
 from thunder_torch import models
 
 
-def parseArguments():
+def parseArguments() -> argparse.Namespace:
     parser = argparse.ArgumentParser("This scripts plot a contour comparison between a pyTorch model prediction"
                                      " and a the original data and their difference using the"
                                      " pyFLUT.flut.Flut.contourplot functionality.")
 
     # Add mutually_exclusive_group to either load a FlexMLP model or create on based on input
     parser.add_argument('-m', '--models', type=str, nargs='+', default=['./checkpoints/cpMean_64_64_softplus.ckpt',
-                        './checkpoints/lambda_64_64_softplus.ckpt', './checkpoints/hMean_64_64_softplus.ckpt',
-                        './checkpoints/rho_64_64_softplus.ckpt'], help='models that will be assembled into one model')
+                                                                        './checkpoints/lambda_64_64_softplus.ckpt',
+                                                                        './checkpoints/hMean_64_64_softplus.ckpt',
+                                                                        './checkpoints/rho_64_64_softplus.ckpt'],
+                        help='models that will be assembled into one model')
     parser.add_argument('-t', '--type', type=str, default='LightningFlexMLP',
                         help='type of the models that should be assembled')
     parser.add_argument('--output', '-o', dest='output', required=False, default='AssemblyModel.pt',
@@ -23,7 +25,7 @@ def parseArguments():
     return parser.parse_args()
 
 
-def main(args):
+def main(args: argparse.Namespace) -> None:
     # create list to save scalar information
     ymin = []
     ymax = []

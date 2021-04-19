@@ -8,6 +8,8 @@ import random
 import numpy as np
 import os
 import torch
+from typing import Union
+from pathlib import Path, PosixPath
 from sklearn.model_selection import train_test_split
 
 from thunder_torch import _logger
@@ -148,7 +150,7 @@ def data_split_explicit(x_samples: pd.DataFrame, y_samples: pd.DataFrame, split_
 
 
 # data loading ########################################################################################################
-def read_df_from_file(file_path: str, sep: str = ',') -> pd.DataFrame:
+def read_df_from_file(file_path: Union[Path, PosixPath, str], sep: str = ',') -> pd.DataFrame:
     """
     Load samples of different data types
 

@@ -4,14 +4,11 @@
 
 # import packages
 import os
-import torch
-import pickle
 import yaml
 from argparse import Namespace
 
 from thunder_torch import _logger
 from thunder_torch import models
-from thunder_torch.loader import _utils
 from thunder_torch.utils.option_class import OptionClass
 from thunder_torch.loader.DataLoaderBase import DataLoaderBase
 
@@ -72,7 +69,8 @@ class DataLoaderTemplate(DataLoaderBase):
         test_samples     - file path
         """
         self.lparams.data_path = path
-        if self.x_train is not None: _logger.warning('Train data overwritten')
+        if self.x_train is not None:
+            _logger.warning('Train data overwritten')
         self.x_train = self.y_train = None
 
     # validation_data #################################################################################################
@@ -85,7 +83,8 @@ class DataLoaderTemplate(DataLoaderBase):
         val_samples     - file path
         """
         self.lparams.val_path = path
-        if self.x_val is not None: _logger.warning('Validation data overwritten')
+        if self.x_val is not None:
+            _logger.warning('Validation data overwritten')
         self.x_val = self.y_val = None
 
     # test_data #######################################################################################################
@@ -98,7 +97,8 @@ class DataLoaderTemplate(DataLoaderBase):
         test_samples     - file path
         """
         self.lparams.test_path = path
-        if self.x_test is not None: _logger.warning('Test data overwritten')
+        if self.x_test is not None:
+            _logger.warning('Test data overwritten')
         self.x_test = None
         self.y_test = None
 
@@ -211,18 +211,20 @@ class DataLoaderTemplate(DataLoaderBase):
                                                          'further_param_1': 'some information',
                                                          'further_param_2': 'some_information',
                                                          'validation_data':
-                                                             {'###INFO###': 'load_data and split_data mutually exclusive',
+                                                             {'###INFO###': 'load_data & split_data mutually exclusive',
                                                               'load_data': {'path': 'samples_name.csv, .txt, .h5',
                                                                             'sep': 'separator (default: ","'},
                                                               'split_data': {'method': 'method name (pre implemented '
-                                                                                       'are random/percentage/explicit)',
+                                                                                       'are random/percentage/'
+                                                                                       'explicit)',
                                                                              'val_params': 'split_params'}},
                                                          'test_data':
-                                                             {'###INFO###': 'load_data and split_data mutually exclusive',
+                                                             {'###INFO###': 'load_data % split_data mutually exclusive',
                                                               'load_data': {'path': 'samples_name.csv, .txt, .h5',
                                                                             'sep': 'separator (default: ","'},
                                                               'split_data': {'method': 'method name (pre implemented '
-                                                                                       'are random/percentage/explicit)',
+                                                                                       'are random/percentage/'
+                                                                                       'explicit)',
                                                                              'val_params': 'split_params'}},
                                                          'save_Loader': {'execute': 'bool', 'path': 'name.pkl'}}}}
 

@@ -21,12 +21,12 @@ ct.suppress_thermo_warnings()
 gas_multi = {}
 
 
-def init_process():
+def init_process() -> None:
     gas_multi[0] = ct.Solution('gri30.xml')
     gas_multi[0].transport_model = 'Multi'
 
 
-def homogeneous_reactor(argsReactor):
+def homogeneous_reactor(argsReactor) -> None:
     """
     Constant-volume and fixed-mass homogeneous reactor model
 

@@ -3,18 +3,21 @@
 #######################################################################################################################
 
 # import packages
+from typing import Any
 import time
 import torch.multiprocessing as mp
+import pytorch_lightning as pl
 
 from thunder_torch import _logger
-from thunder_torch.utils import *
+from thunder_torch.utils import train_model, config_multi, check_yaml_structure, check_yaml_version, check_args, \
+    check_argsConfig_single, train_config, get_model, get_dataLoader, parse_yaml, parse_arguments, logger_level
 
 
-def execute_model(model, argsTrainer: dict, dataLoader) -> None:
+def execute_model(model: pl.LightningModule, argsTrainer: dict, dataLoader: [Any]) -> None:
     train_model(model, dataLoader, argsTrainer)
 
 
-def main(argsMulti):
+def main(argsMulti: dict) -> None:
     nbr_processes, list_gpu, model_dicts = config_multi(argsMulti)
 
     mp_fn = mp.get_context('fork')

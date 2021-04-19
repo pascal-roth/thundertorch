@@ -16,13 +16,13 @@ mypy:
   stage: Static Analysis
   allow_failure: true
   script:
-  - mypy thunder_torch/*.py
+  - mypy --config-file=setup.cfg
 
 flake8:
   stage: Static Analysis
   script:
     - pip install flake8
-    - flake8 --max-line-length=120 --max-complexity 8 bild/*.py
+    - flake8 --max-line-length=120 thunder_torch/
 
 #pylint:
 #  stage: Static Analysis

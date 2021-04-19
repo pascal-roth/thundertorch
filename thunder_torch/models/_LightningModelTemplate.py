@@ -48,11 +48,13 @@ class LightningModelTemplate(LightningModelBase):
         options['hparams'].add_key('lparams', dtype=Namespace)
         options['hparams'].add_key('lr', dtype=float)
 
-        options['optimizer'] = OptionClass(template=LightningModelTemplate.yaml_template(['Model', 'params', 'optimizer']))
+        options['optimizer'] = OptionClass(template=LightningModelTemplate.yaml_template(['Model', 'params',
+                                                                                          'optimizer']))
         options['optimizer'].add_key('type', dtype=str, attr_of=_modules_optim)
         options['optimizer'].add_key('params', dtype=dict, param_dict=True)
 
-        options['scheduler'] = OptionClass(template=LightningModelTemplate.yaml_template(['Model', 'params', 'scheduler']))
+        options['scheduler'] = OptionClass(template=LightningModelTemplate.yaml_template(['Model', 'params',
+                                                                                          'scheduler']))
         options['scheduler'].add_key('execute', dtype=bool)
         options['scheduler'].add_key('type', dtype=str, attr_of=_modules_lr_scheduler)
         options['scheduler'].add_key('params', dtype=dict, param_dict=True)

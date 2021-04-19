@@ -59,6 +59,7 @@ class LightningFlexNN(LightningModelBase):
         self.get_default()
         self.get_functions()
         self.set_channels()
+        self.min_val_loss
 
         self.layers = []
 
@@ -77,7 +78,7 @@ class LightningFlexNN(LightningModelBase):
 
         self.layers = torch.nn.Sequential(*self.layers)
 
-    def set_channels(self):
+    def set_channels(self) -> None:
         in_channels = self.hparams.depth
         for i, layer_dict in enumerate(self.hparams.layers):
             if layer_dict['type'] == 'Conv2d' and all(
@@ -89,7 +90,7 @@ class LightningFlexNN(LightningModelBase):
         self.final_channel = in_channels
 
     @staticmethod
-    def get_OptionClass():
+    def get_OptionClass() -> dict:
         options = {'hparams': OptionClass(template=LightningFlexNN.yaml_template(['Model', 'params']))}
         options['hparams'].add_key('depth', dtype=int, required=True)
         options['hparams'].add_key('width', dtype=int, required=True)
@@ -109,7 +110,8 @@ class LightningFlexNN(LightningModelBase):
         options['layers'].add_key('type', dtype=str, required=True, attr_of='torch.nn')
         options['layers'].add_key('params', dtype=dict, param_dict=True)
 
-        options['mlp_layer'] = OptionClass(template=LightningFlexNN.yaml_template(['Model', 'create_model', 'mlp_layer']))
+        options['mlp_layer'] = OptionClass(template=LightningFlexNN.yaml_template(['Model', 'create_model',
+                                                                                   'mlp_layer']))
         options['mlp_layer'].add_key('n_out', dtype=int, required=True)
         options['mlp_layer'].add_key('hidden_layer', dtype=list, required=True)
 
@@ -125,18 +127,23 @@ class LightningFlexNN(LightningModelBase):
         return options
 
     @staticmethod
-    def yaml_template(key_list):
+    def yaml_template(key_list: list) -> str:
         template = {'Model': {'type': 'LightningFlexNN',
                               '###INFO###': 'load_model and create_model are mutually exclusive',
                               'load_model': {'path': 'name.ckpt'},
                               'create_model': {'width': 'int', 'height': 'int', 'depth': 'int',
-                                               'layers': [{'type': 'torch.nn module', 'params': {'module_param_1': 'value', 'module_param_2': 'value'}},
-                                                          {'type': 'e. g. Conv2d', 'params': {'kernel_size': 3, 'channels': 20}},
+                                               'layers': [{'type': 'torch.nn module',
+                                                           'params': {'module_param_1': 'value',
+                                                                      'module_param_2': 'value'}},
+                                                          {'type': 'e. g. Conv2d',
+                                                           'params': {'kernel_size': 3, 'channels': 20}},
                                                           {'type': 'e. g. MaxPool2d', 'params': {'kernel_size': 2}}],
                                                'mlp_layer': {'n_out': 'int', 'hidden_layer': ['int', 'int', '...']},
-                                               'output_activation': 'str (default: None)', 'activation': 'str (default: ReLU)'},
-                              'params': {'loss': 'str (default:MSELoss)', 'optimizer': {'type': 'str (default: Adam)',
-                                                                                         'params': {'lr': 'float (default: 1.e-3'}},
+                                               'output_activation': 'str (default: None)',
+                                               'activation': 'str (default: ReLU)'},
+                              'params': {'loss': 'str (default:MSELoss)',
+                                         'optimizer': {'type': 'str (default: Adam)',
+                                                       'params': {'lr': 'float (default: 1.e-3'}},
                                          'scheduler': {'execute': ' bool (default: False)', 'type': 'name',
                                                        'params': {'cooldown': 'int', 'patience': 'int',
                                                                   'min_lr': 'float'}},

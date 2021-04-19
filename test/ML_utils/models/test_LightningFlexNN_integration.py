@@ -3,12 +3,13 @@ import argparse
 import torch
 import numpy as np
 import pytorch_lightning as pl
+from pathlib import PosixPath
 from torchvision import datasets, transforms
 
 from thunder_torch.models import LightningFlexNN
 
 
-def test_LightningFlexNN_integration(tmp_path):
+def test_LightningFlexNN_integration(tmp_path: PosixPath) -> None:
     transform = transforms.Compose([transforms.ToTensor(), transforms.Normalize((0.1307,), (0.3081,))])
 
     mnist_train = datasets.MNIST(tmp_path, train=True, download=True, transform=transform)
@@ -28,7 +29,7 @@ def test_LightningFlexNN_integration(tmp_path):
     model_dict = {'create_model': {'width': 28, 'height': 28, 'depth': 1,
                                    'layers': [{'type': 'Conv2d', 'params': {'kernel_size': 3, 'channels': 16, 'stride': 1}},
                                               {'type': 'MaxPool2d', 'params': {'kernel_size': 2}}],
-                                   'MLP_layer': {'n_out': 10, 'hidden_layer': [64]}},
+                                   'mlp_layer': {'n_out': 10, 'hidden_layer': [64]}},
                   'params': {'loss': 'CrossEntropyLoss'}}
 
     model = LightningFlexNN(argparse.Namespace(**model_dict['create_model']))

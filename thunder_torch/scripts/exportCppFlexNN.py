@@ -4,7 +4,7 @@ from thunder_torch import models
 from thunder_torch import _logger
 
 
-def parse_args():
+def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser()
 
     parser.add_argument('-mp', '--model_path', type=str,
@@ -18,8 +18,8 @@ def parse_args():
     return parser.parse_args()
 
 
-def export_model(args):
-    model = getattr(models, args.model_type).load_from_checkpoint(args.model_path)
+def export_model(args: argparse.Namespace) -> None:
+    model = getattr(models, args.model_type).load_from_checkpoint(args.model)
     _logger.debug(f'Model loaded of type {type(model)}')
 
     n_inp = model.hparams.n_inp  # TODO: how for all models?
@@ -31,8 +31,7 @@ def export_model(args):
 
     traced_script_module.save("traced_model.pt")
 
+
 if __name__ == '__main__':
     args = parse_args()
     export_model(args)
-
-

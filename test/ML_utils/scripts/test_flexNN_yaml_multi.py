@@ -1,17 +1,19 @@
 import pytest
-from pathlib import Path
+import pandas as pd
+from pathlib import Path, PosixPath
 
 from thunder_torch.scripts.trainFlexNNmulti import *
 from thunder_torch.utils import parse_yaml
 
+
 @pytest.fixture(scope='module')
-def path():
+def path() -> Path:
     path = Path(__file__).resolve()
     return path.parents[0]
 
 
 @pytest.mark.dependency()
-def test_main(path):
+def test_main(path: Path) -> None:
     with pytest.raises(AssertionError):  # wrong model selected
         yaml_file = parse_yaml(path / 'MultiModelInputEval.yaml')
         yaml_file['config']['model_run'] = ['Model001', 'Model01']
@@ -32,7 +34,7 @@ def test_main(path):
 
 
 @pytest.mark.dependency(depends=['test_main'])
-def test_complete_script(path, create_random_df, tmp_path):
+def test_complete_script(path: Path, create_random_df: pd.DataFrame, tmp_path: PosixPath) -> None:
     yaml_file = parse_yaml(path / 'MultiModelInputEval.yaml', low_key=False)
     yaml_file['Model001']['template'] = path / 'SingleModelInputEval.yaml'
     yaml_file['Model002']['template'] = path / 'SingleModelInputEval.yaml'

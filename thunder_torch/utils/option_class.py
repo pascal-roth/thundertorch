@@ -1,3 +1,5 @@
+from typing import Optional, Any
+
 from thunder_torch import _logger
 from thunder_torch.utils.general import dynamic_imp
 
@@ -10,7 +12,7 @@ class OptionClass:
     structures are possible, however, for every dict that should be controlled an own OptionClass object is necessary.
     Thus the nested structure inside the dict is rebuild as a nested structure of OptionClass objects.
     """
-    def __init__(self, **kwargs):
+    def __init__(self, **kwargs: Optional[Any]) -> None:
         """
         Create OptionClass Object
 
@@ -28,7 +30,7 @@ class OptionClass:
         else:
             self.template = ''
 
-    def add_key(self, key: str, dtype, **kwargs) -> None:
+    def add_key(self, key: str, dtype: Any, **kwargs: Optional[Any]) -> None:
         """
         Add key to object
 
@@ -44,15 +46,19 @@ class OptionClass:
             attr_of: str, list                  - key value has to be an attr of one of the given classes/ module
         """
         self.keylist[key] = {'dtype': dtype}
-        if kwargs.pop('required', False): self.required_keys.append(key)
-        if kwargs.get('mutually_exclusive'): self.keylist[key]['mutually_exclusive'] = kwargs.pop('mutually_exclusive')
-        if kwargs.pop('param_dict', False): self.param_dicts.append(key)
-        if kwargs.get('attr_of'): self.keylist[key]['attr_of'] = kwargs.pop('attr_of')
+        if kwargs.pop('required', False):
+            self.required_keys.append(key)
+        if kwargs.get('mutually_exclusive'):
+            self.keylist[key]['mutually_exclusive'] = kwargs.pop('mutually_exclusive')
+        if kwargs.pop('param_dict', False):
+            self.param_dicts.append(key)
+        if kwargs.get('attr_of'):
+            self.keylist[key]['attr_of'] = kwargs.pop('attr_of')
 
         if len(kwargs) != 0:
             _logger.warning('Additional/ unexpected kwargs are given!')
 
-    def check_dict(self, input_dict: dict, **kwargs) -> list:
+    def check_dict(self, input_dict: dict, **kwargs: Optional[Any]) -> list:
         """
         Check given parameter dict
 
@@ -80,8 +86,10 @@ class OptionClass:
 
         for key, item in input_dict.items():
             self.check_dtype(key, item)
-            if 'mutually_exclusive' in self.keylist[key]: self.check_mutually_exclusive(key, input_dict.keys())
-            if 'attr_of' in self.keylist[key]: self.check_attr_of(key, item)
+            if 'mutually_exclusive' in self.keylist[key]:
+                self.check_mutually_exclusive(key, input_dict.keys())
+            if 'attr_of' in self.keylist[key]:
+                self.check_attr_of(key, item)
 
         return self.param_dicts
 
@@ -94,11 +102,12 @@ class OptionClass:
             'Not all required keys are included in dict! Required keys are: {}.{}'.format(self.required_keys,
                                                                                           self.template)
 
-    def check_dtype(self, key: str, item) -> None:
+    def check_dtype(self, key: str, item: Any) -> None:
         """
         Control the datatype of the given key
         """
-        if not isinstance(self.keylist[key]['dtype'], list): self.keylist[key]['dtype'] = [self.keylist[key]['dtype']]
+        if not isinstance(self.keylist[key]['dtype'], list):
+            self.keylist[key]['dtype'] = [self.keylist[key]['dtype']]
         assert type(item) in self.keylist[key]['dtype'], 'Key "{}" is expected to have dtype(s) "{}", but "{}" was ' \
                                                          'given!'.format(key, self.keylist[key]['dtype'], type(item))
 
@@ -115,7 +124,7 @@ class OptionClass:
             assert exclusive_key not in key_list, '"{}" and "{}" are mutually exclusive! {}'.\
                 format(exclusive_key, key, self.template)
 
-    def check_attr_of(self, key: str, item) -> None:
+    def check_attr_of(self, key: str, item: Any) -> None:
         """
         Check if the key value is an attr of the defined class/ module
         """

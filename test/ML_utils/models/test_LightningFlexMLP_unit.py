@@ -4,11 +4,12 @@ import os
 
 import pytorch_lightning as pl
 
+from thunder_torch.loader import TabularLoader
 from thunder_torch.models import LightningFlexMLP
 
 
 @pytest.mark.dependency()
-def test_init(create_TabularLoader):
+def test_init(create_TabularLoader: TabularLoader) -> None:
     Loader = create_TabularLoader
     hparams = argparse.Namespace(**{'n_inp': 2, 'n_out': 2, 'hidden_layer': [16, 16]})
     model = LightningFlexMLP(hparams)
@@ -18,7 +19,7 @@ def test_init(create_TabularLoader):
 
 
 @pytest.mark.dependency(depends=['test_init'])
-def test_check_hparams():
+def test_check_hparams() -> None:
     # check of hparams without default
     with pytest.raises(AssertionError):  # 'n_inp' missing
         hparams = argparse.Namespace(**{'n_out': 3, 'hidden_layer': [16, 16]})
@@ -78,10 +79,11 @@ def test_check_hparams():
 
 
 @pytest.mark.dependency(depends=['test_init'])
-def test_default_adjustment():
+def test_default_adjustment() -> None:
     hparams = argparse.Namespace(**{'n_inp': 2, 'n_out': 2, 'hidden_layer': [16, 16], 'batch': 16, 'num_workers': 4,
                                     'output_activation': 'LogSigmoid'})
     model = LightningFlexMLP(hparams)
     assert model.hparams.batch == 16, 'Passed batch value has been overwritten by default!'
     assert model.hparams.num_workers == 4, 'Passed num_workers value has been overwritten by default!'
-    assert model.hparams.output_activation == 'LogSigmoid', 'Passed output_relu boolean has been overwritten by default!'
+    assert model.hparams.output_activation == 'LogSigmoid', 'Passed output_relu boolean has been overwritten by ' \
+                                                            'default!'

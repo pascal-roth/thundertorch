@@ -1,6 +1,5 @@
 # import packages
 import argparse
-from git import HEAD
 import torch
 import importlib
 from thunder_torch import _logger
@@ -11,6 +10,7 @@ from more_itertools import chunked
 import numpy as np
 from tqdm import tqdm
 import pandas as pd
+from sklearn.preprocessing import MinMaxScaler
 from pytorch_lightning import LightningModule
 
 
@@ -40,7 +40,7 @@ def logger_level(argument: argparse.Namespace) -> None:
         _logger.setLevel(logging.DEBUG)
 
 
-def load_model_from_checkpoint(checkpoint_path: str):
+def load_model_from_checkpoint(checkpoint_path: str) -> LightningModule:
     """
     Loads a model from a given checkpoint path even if the model class is not known prior by the code
     Unfortunately, this cannot be implemented in the ModelBase class without a lot of effort and therefore
@@ -58,11 +58,13 @@ def load_model_from_checkpoint(checkpoint_path: str):
     """
 
     c = torch.load(checkpoint_path, torch.device("cpu"))
-    if not "model_type" in c["hparams"].keys():
+    if "model_type" not in c["hparams"].keys():
         exit("ERROR in load_model_from_checkpoint: "
              "Cannot use this function since there is no 'model_type' key available in hparams.")
 
     model_type = c["hparams"]["model_type"]
+    model_class: object
+
     for m in _modules_models:
         try:
             _, model_class = dynamic_imp(m, model_type)
@@ -76,7 +78,7 @@ def load_model_from_checkpoint(checkpoint_path: str):
     return model_class.load_from_checkpoint(checkpoint_path)
 
 
-def dynamic_imp(module_path: str, class_name: Optional[str] = None):
+def dynamic_imp(module_path: str, class_name: Optional[str] = None) -> tuple:
     """
 
     Helper function to dynamically import class from custom modules.
@@ -143,26 +145,28 @@ def run_model(data: pd.DataFrame, checkpoint: Union[str, LightningModule], batch
     prediction: DataFrame with inference result
 
     """
-    def to_tensor(data):
+    def to_tensor(data: np.ndarray) -> torch.Tensor:
         return torch.from_numpy(data.astype(np.float64))
 
-    def to_numpy(tensor):
+    def to_numpy(tensor: torch.Tensor) -> np.ndarray:
         return tensor.detach().cpu().numpy() if tensor.requires_grad else tensor.cpu().numpy()
 
-    def scale_input(X, featureScaler):
+    def scale_input(X: np.ndarray, featureScaler: MinMaxScaler) -> np.ndarray:
         return featureScaler.transform(X)
 
-    def scale_output(Y, labelScaler):
+    def scale_output(Y: np.ndarray, labelScaler: MinMaxScaler) -> np.ndarray:
         return labelScaler.inverse_transform(Y)
 
-    m = checkpoint
+    model: LightningModule
     if isinstance(checkpoint, str):
-        m = load_model_from_checkpoint(checkpoint)
+        model = load_model_from_checkpoint(checkpoint)
+    else:
+        model = checkpoint
 
-    features = m.hparams.lparams.features
-    labels = m.hparams.lparams.labels
-    featureScaler = m.hparams.lparams.x_scaler
-    labelScaler = m.hparams.lparams.y_scaler
+    features = model.hparams.lparams.features
+    labels = model.hparams.lparams.labels
+    featureScaler = model.hparams.lparams.x_scaler
+    labelScaler = model.hparams.lparams.y_scaler
 
     df = data[features+labels].copy()
     index_chunks = chunked(df.index, batch)
@@ -177,6 +181,6 @@ def run_model(data: pd.DataFrame, checkpoint: Union[str, LightningModule], batch
             df.loc[ii, "noise"] = noise
 
         x = to_tensor(x)
-        y = m(x)
+        y = model(x)
         df.loc[ii, labels] = scale_output(to_numpy(y), labelScaler)
     return df

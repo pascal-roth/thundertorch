@@ -1,6 +1,6 @@
 import torch
 import os
-from typing import List, Optional
+from typing import List
 
 
 class AssemblyModel(torch.nn.Module):
@@ -101,7 +101,6 @@ class AssemblyModel(torch.nn.Module):
         outputs = [torch.jit._wait(fut) for fut in futures]
         return torch.cat(outputs, 1)
 
-
     def toTorchScript(self, path: str) -> None:
         """
         saves assembly model as torch-script for application in C++ Code
@@ -112,10 +111,10 @@ class AssemblyModel(torch.nn.Module):
         """
         n_inp = self.models[0].hparams.n_inp
         sample_input = torch.ones([8, n_inp], dtype=torch.float64)
-        b = self.forward(sample_input)
+        # b = self.forward(sample_input)
         with torch.no_grad():
             # we have to use the trace_module function here to trace multiple functions besides forward
-            torch_script = torch.jit.trace_module(self, {"forward" :sample_input, "forward_parallel": sample_input})
+            torch_script = torch.jit.trace_module(self, {"forward": sample_input, "forward_parallel": sample_input})
 
         # Saving the model
         if os.path.exists(path):

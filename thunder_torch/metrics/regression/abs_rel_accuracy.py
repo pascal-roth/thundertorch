@@ -1,4 +1,4 @@
-from typing import Any, Callable, Optional
+from typing import Any, Callable, Optional, Tuple
 
 import torch
 
@@ -25,7 +25,7 @@ class AbsRelAccuracy(Metric):
         self.abs_threshold = abs_threshold
         self.rel_threshold = rel_threshold
 
-    def update(self, preds: torch.Tensor, target: torch.Tensor):
+    def update(self, preds: torch.Tensor, target: torch.Tensor) -> None:
         """
         Update state with predictions and targets.
 
@@ -46,7 +46,7 @@ class AbsRelAccuracy(Metric):
         self.correct_abs_rel += torch.sum(abs_rel_acc)
         self.total += target.numel()
 
-    def compute(self):
+    def compute(self) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
         """
         Computes accuracy over state.
         """

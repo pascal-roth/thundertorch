@@ -1,4 +1,3 @@
-import torch
 import os
 import numpy as np
 import matplotlib.pyplot as plt
@@ -30,7 +29,7 @@ class RelIntervals(Callback):
         _logger.info(f'RelInterval Metrics initialized with rel_threshold: {rel_threshold}')
 
     def on_batch_end(self, trainer: pl.Trainer, pl_module: pl.LightningModule) -> None:
-        if (trainer.max_epochs-1 == trainer.current_epoch) and hasattr(trainer, 'hiddens'):
+        if (trainer.max_epochs - 1 == trainer.current_epoch) and hasattr(trainer, 'hiddens'):
             targets = trainer.hiddens["targets"]
             preds = trainer.hiddens["preds"]
 
@@ -51,7 +50,7 @@ class RelIntervals(Callback):
         self.plot_intervals(accuracies, 'train_intervals')
 
     def on_validation_batch_end(self, trainer: pl.Trainer, pl_module: pl.LightningModule) -> None:
-        if (trainer.max_epochs-1 == trainer.current_epoch) and hasattr(trainer, 'hiddens'):
+        if (trainer.max_epochs - 1 == trainer.current_epoch) and hasattr(trainer, 'hiddens'):
             targets = trainer.hiddens["targets"]
             preds = trainer.hiddens["preds"]
 
@@ -59,7 +58,7 @@ class RelIntervals(Callback):
                 self.intervals_rel_acc_val[i](preds, targets)
 
     def on_validation_end(self, trainer: pl.Trainer, pl_module: pl.LightningModule) -> None:
-        if trainer.max_epochs-1 == trainer.current_epoch:
+        if trainer.max_epochs - 1 == trainer.current_epoch:
             accuracies = np.zeros((len(self.intervals_rel_acc_val), 5))
 
             for i in range(len(self.intervals_rel_acc_val)):
@@ -98,18 +97,14 @@ class RelIntervals(Callback):
 
         ind = np.arange(len(accuracies))
 
-        p1 = ax.bar(ind, accuracies[:, 2] * 100, width=0.5, label="lower boundary")
-        p2 = ax.bar(ind, accuracies[:, 3] * 100, width=0.5, label="upper boundary", bottom=accuracies[:, 2] * 100)
+        ax.bar(ind, accuracies[:, 2] * 100, width=0.5, label="lower boundary")
+        ax.bar(ind, accuracies[:, 3] * 100, width=0.5, label="upper boundary", bottom=accuracies[:, 2] * 100)
 
         ax.set_ylabel('% of samples within tolerance range')
-        ax.set_xlabel('tolerance range ($\pm$) in %')
+        ax.set_xlabel(r'tolerance range ($\pm$) in %')
         ax.set_xticks(ind)
         ax.set_xticklabels(accuracies[:, 1] * 100)
         ax.legend()
-
-        # ax.bar_label(p1, label_type="center")
-        # ax.bar_label(p2, label_type="center")
-        # ax.bar_label(p2)
 
         plt.savefig(f'{os.getcwd()}/{self.path}/{name}.jpg')
         np.savetxt(f'{os.getcwd()}/{self.path}/{name}.csv', accuracies)

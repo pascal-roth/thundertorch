@@ -1,16 +1,14 @@
 import functools
 from abc import ABC, abstractmethod
 from typing import Any, Callable, Optional, Union
-from collections.abc import Mapping, Sequence
-from collections import namedtuple
 from copy import deepcopy
 from distutils.version import LooseVersion
 
-import os
 import torch
 from torch import nn
 
-from thunder_torch.metrics.utils import _flatten, dim_zero_cat, dim_zero_mean, dim_zero_sum, apply_to_collection, gather_all_tensors_if_available
+from thunder_torch.metrics.utils import _flatten, dim_zero_cat, dim_zero_mean, dim_zero_sum, apply_to_collection, \
+    gather_all_tensors_if_available
 
 
 class Metric(nn.Module, ABC):

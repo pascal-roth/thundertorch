@@ -1,9 +1,13 @@
 import pytest
+import pandas as pd
+from typing import Tuple
+from pathlib import PosixPath
+
 from thunder_torch.loader._utils import *
 
 
 @pytest.fixture(scope='module')
-def create_random_dataset():
+def create_random_dataset() -> Tuple[pd.DataFrame, pd.DataFrame]:
     example_df = pd.DataFrame(np.random.rand(4, 4))
     example_df.columns = ['T_0', 'P_0', 'yCO2', 'wH2O']
     x_samples = example_df[['T_0', 'P_0']]
@@ -11,7 +15,7 @@ def create_random_dataset():
     return x_samples, y_samples
 
 
-def test_read_df_from_file(create_random_df, tmp_path):
+def test_read_df_from_file(create_random_df: pd.DataFrame, tmp_path: PosixPath) -> None:
     # test format .csv
     create_random_df.to_csv(tmp_path / 'example.csv')
     df_samples = read_df_from_file(tmp_path / 'example.csv')
@@ -45,7 +49,7 @@ def test_read_df_from_file(create_random_df, tmp_path):
         read_df_from_file('some_file.other_type')
 
 
-def test_split_data_random(create_random_dataset):
+def test_split_data_random(create_random_dataset: Tuple[pd.DataFrame, pd.DataFrame]) -> None:
     x_samples, y_samples = create_random_dataset
 
     with pytest.raises(AssertionError):
@@ -61,7 +65,7 @@ def test_split_data_random(create_random_dataset):
     assert x_split.shape == (2, 2), 'Split failed'
 
 
-def test_split_data_percentage(create_random_dataset):
+def test_split_data_percentage(create_random_dataset: Tuple[pd.DataFrame, pd.DataFrame]) -> None:
     x_samples, y_samples = create_random_dataset
 
     with pytest.raises(AssertionError):  # percentage too low
@@ -85,7 +89,7 @@ def test_split_data_percentage(create_random_dataset):
     assert x_split.shape == (2, 2), 'Split not performed correct'
 
 
-def test_split_data_explicit(create_random_dataset):
+def test_split_data_explicit(create_random_dataset: Tuple[pd.DataFrame, pd.DataFrame]) -> None:
     x_samples, y_samples = create_random_dataset
 
     with pytest.raises(TypeError):  # wrong feature value type

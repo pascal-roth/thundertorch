@@ -3,7 +3,7 @@ import torch
 
 class Regularizer(object):
 
-    def reset(self):
+    def reset(self) -> None:
         raise NotImplementedError('subclass must implement this method')
 
     def __call__(self, module, input=None, output=None):
@@ -12,7 +12,7 @@ class Regularizer(object):
 
 class L1Regularizer(Regularizer):
 
-    def __init__(self, scale=1e-3, module_filter='*'):
+    def __init__(self, scale: float = 1e-3, module_filter='*'):
         self.scale = float(scale)
         self.module_filter = module_filter
         self.value = 0.
@@ -36,7 +36,7 @@ class L2Regularizer(Regularizer):
         self.value = 0.
 
     def __call__(self, module, input=None, output=None):
-        value = torch.sum(torch.pow(module.weight,2)) * self.scale
+        value = torch.sum(torch.pow(module.weight, 2)) * self.scale
         self.value += value
 
 
@@ -104,7 +104,7 @@ class MaxNormRegularizer(Regularizer):
 
     def __call__(self, module, input=None, output=None):
         w = module.weight
-        norm_diff = torch.norm(w,2,self.axis).sub(self.value)
+        norm_diff = torch.norm(w, 2, self.axis).sub(self.value)
         value = self.scale * torch.sum(norm_diff.gt(0).float().mul(norm_diff))
         self.value += value
 
@@ -130,4 +130,3 @@ class NonNegRegularizer(Regularizer):
         w = module.weight
         value = -1 * self.scale * torch.sum(w.gt(0).float().mul(w))
         self.value += value
-

@@ -29,22 +29,7 @@ _modules_callbacks = ['pytorch_lightning.callbacks', 'thunder_torch.callbacks']
 # Check imports
 try:
     import torch
-    import torch.nn as nn
-    import torch.nn.functional as F
     torch.set_default_dtype(torch.float64)
-
-    import pandas as pd
-    import numpy as np
-    import matplotlib.pyplot as plt
-    from tqdm.auto import tqdm
-    from .models import *
-    from .loader import *
-    from .models._losses import *
-    from .models._regularizers import *
-
-    import os
-    import sys
-    from sklearn.preprocessing import MinMaxScaler
 
     # Make sure right matplotlib backend is running
     import matplotlib

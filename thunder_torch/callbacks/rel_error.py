@@ -1,4 +1,3 @@
-import torch
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks import Callback
 
@@ -15,7 +14,7 @@ class RelError(Callback):
         self.rel_error_val = metrics.RelError(**kwargs)
         self.rel_error_test = metrics.RelError(**kwargs)
 
-        _logger.info(f'RelError metric activated')
+        _logger.info('RelError metric activated')
 
     def on_batch_end(self, trainer: pl.Trainer, pl_module: pl.LightningModule):
         if hasattr(trainer, 'hiddens'):

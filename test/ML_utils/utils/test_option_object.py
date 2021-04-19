@@ -4,7 +4,7 @@ from thunder_torch.utils.option_class import OptionClass
 
 
 @pytest.fixture(scope='module')
-def create_OptionsObject():
+def create_OptionsObject() -> OptionClass:
     options = OptionClass()
     options.add_key('n_inp', dtype=int, required=True)
     options.add_key('n_out', dtype=int, required=True)
@@ -15,7 +15,7 @@ def create_OptionsObject():
     return options
 
 
-def test_add_key():
+def test_add_key() -> None:
     options = OptionClass()
     options.add_key('some_key', dtype=str, required=True, mutually_exclusive=['other key'],
                     attr_of='thunder_torch.utils', param_dict=True)
@@ -27,7 +27,7 @@ def test_add_key():
     assert options.keylist['some_key']['attr_of'] == 'thunder_torch.utils'
 
 
-def test_check_required_keys(create_OptionsObject):
+def test_check_required_keys(create_OptionsObject: OptionClass) -> None:
     input_dict = {'n_inp': 1, 'n_out': 1, 'hidden_layer': [16, 16], 'output_relu': True}
     create_OptionsObject.check_required_keys(input_dict)
 
@@ -36,7 +36,7 @@ def test_check_required_keys(create_OptionsObject):
         create_OptionsObject.check_required_keys(input_dict)
 
 
-def test_check_dtype(create_OptionsObject):
+def test_check_dtype(create_OptionsObject: OptionClass) -> None:
     input_dict = {'n_inp': 1, 'n_out': 1, 'hidden_layer': [16, 16], 'output_relu': True}
     for key, item in input_dict.items():
         create_OptionsObject.check_dtype(key, item)
@@ -47,7 +47,7 @@ def test_check_dtype(create_OptionsObject):
             create_OptionsObject.check_dtype(key, item)
 
 
-def test_mutually_exclusive(create_OptionsObject):
+def test_mutually_exclusive(create_OptionsObject: OptionClass) -> None:
     input_dict = {'output_relu': True}
     for key, item in input_dict.items():
         create_OptionsObject.check_mutually_exclusive(key, input_dict.keys())
@@ -58,7 +58,7 @@ def test_mutually_exclusive(create_OptionsObject):
             create_OptionsObject.check_mutually_exclusive(key, input_dict.keys())
 
 
-def test_check_attr_of(create_OptionsObject):
+def test_check_attr_of(create_OptionsObject: OptionClass) -> None:
     input_dict = {'add_key': 'OptionClass'}
     for key, item in input_dict.items():
         create_OptionsObject.check_attr_of(key, item)

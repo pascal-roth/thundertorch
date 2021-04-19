@@ -13,13 +13,13 @@ from thunder_torch.loader import DataLoaderTemplate
 
 
 @pytest.fixture(scope='module')
-def path():
+def path() -> Path:
     path = Path(__file__).resolve()
     return path.parents[1]
 
 
 @pytest.mark.dependency()
-def test_lower_keys():
+def test_lower_keys() -> None:
     example_dict = {'DataLoader': 'params', 'model': 'params', 'Trainer': 'params'}
     example_dict = lower_keys(example_dict)
     assert example_dict['dataloader'] == 'params', 'does not convert to lower keys'
@@ -39,7 +39,7 @@ def test_lower_keys():
     assert example_dict['dataloader']['create_dataloader']['split_data']['T_0'] == 745, 'Split_data exception fails'
 
 
-def test_yaml_structure():
+def test_yaml_structure() -> None:
     with pytest.raises(AssertionError):
         general_structure = {'dataloader': 'params', 'model': 'params', 'trainer': 'params'}
         _ = general_structure.pop('dataloader')
@@ -54,7 +54,7 @@ def test_yaml_structure():
         check_yaml_structure(general_structure)
 
 
-def test_check_argsModel():
+def test_check_argsModel() -> None:
     yamlTemplate = LightningModelTemplate.yaml_template(key_list=['Model'])
     argsModel = yaml.load(yamlTemplate, Loader=yaml.FullLoader)
     argsModel = lower_keys(argsModel)
@@ -88,7 +88,7 @@ def test_check_argsModel():
         check_argsModel(argsModel)
 
 
-def test_check_argsLoader():
+def test_check_argsLoader() -> None:
     yamlTemplate = DataLoaderTemplate.yaml_template(key_list=['DataLoader'])
     argsLoader = yaml.load(yamlTemplate, Loader=yaml.FullLoader)
     argsLoader = lower_keys(argsLoader)
@@ -113,7 +113,7 @@ def test_check_argsLoader():
         check_argsLoader(argsLoader)
 
 
-def test_check_argsTrainer():
+def test_check_argsTrainer() -> None:
     yamlTemplate = trainer_yml_template(key_list=['Trainer'])
     argsTrainer = yaml.load(yamlTemplate, Loader=yaml.FullLoader)
     _ = argsTrainer['params'].pop('gpus')
@@ -130,7 +130,7 @@ def test_check_argsTrainer():
 
 
 @pytest.mark.dependency(depends=['test_lower_keys'])
-def test_get_argsModels(path):
+def test_get_argsModels(path: Path) -> None:
     # without config tree
     argsMulti = parse_yaml(path / 'scripts/MultiModelInputEval.yaml', low_key=False)
     _ = argsMulti.pop('config')
@@ -163,7 +163,7 @@ def test_get_argsModels(path):
 
 
 @pytest.mark.dependency(depends=['test_lower_keys'])
-def test_replace_keys(path):
+def test_replace_keys(path: Path) -> None:
     yaml_file = parse_yaml(path / 'scripts/MultiModelInputEval.yaml')
     yamlTemplate = parse_yaml(path / 'scripts/SingleModelInputEval.yaml')
     yaml_file = yaml_file.pop('model001')
@@ -180,7 +180,7 @@ def test_replace_keys(path):
         replace_keys(yaml_file, yamlTemplate)
 
 
-def test_replace_expression():
+def test_replace_expression() -> None:
     example_dict = {'dataloader': 'params', 'model': 'params', 'trainer': 'params_<model_name>'}
     example_dict = replace_expression(example_dict, 'Model001')
     assert example_dict['trainer'] == 'params_Model001', 'does not find expression'
@@ -204,7 +204,7 @@ def test_replace_expression():
 
 
 @pytest.mark.dependency(depends=['test_replace_keys', 'test_get_argsModels'])
-def test_get_argsDict(path):
+def test_get_argsDict(path: Path) -> None:
     argsMulti = parse_yaml(path / 'scripts/MultiModelInputEval.yaml', low_key=False)
     argsMulti['Model001']['template'] = argsMulti['Model002']['template'] = str(
         path / 'scripts/SingleModelInputEval.yaml')
@@ -223,7 +223,7 @@ def test_get_argsDict(path):
         get_argsDict(argsModels)
 
 @pytest.mark.dependency(depends=['test_get_argsModels'])
-def test_get_num_processes(path):
+def test_get_num_processes(path: Path) -> None:
     # without definition of cpu_per_model and gpu_per_model
     argsMulti = parse_yaml(path / 'scripts/MultiModelInputEval.yaml', low_key=False)
     argsMulti['Model001']['template'] = argsMulti['Model002']['template'] = str(
