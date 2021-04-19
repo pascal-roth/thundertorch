@@ -138,6 +138,7 @@ def get_dataLoader(argsLoader: dict, model: pl.LightningModule = None):
             break
         except AttributeError or ModuleNotFoundError:
             _logger.debug('Model Class of type {} has NOT been loaded from {}'.format(argsLoader['type'], m))
+        assert False, f"{argsLoader['type']} could not be found in {_modules_loader}"
 
     if model:
         dataLoader = loader_cls.read_from_yaml(argsLoader, batch=model.hparams.batch,
@@ -210,6 +211,7 @@ def train_callbacks(argsTrainer: dict) -> dict:
                     break
                 except AttributeError:
                     _logger.debug('Callback of type {} NOT found in {}'.format(argsTrainer['callbacks'][i]['type'], m))
+                assert False, f"{argsTrainer['callbacks'][i]['type']} could not be found in {_modules_callbacks}"
 
             if 'params' in argsTrainer['callbacks'][i]:
                 callback = callback_cls(**argsTrainer['callbacks'][i]['params'])
