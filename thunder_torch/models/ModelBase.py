@@ -11,6 +11,7 @@ from argparse import Namespace
 from thunder_torch import _logger
 from thunder_torch.utils.option_class import OptionClass
 from thunder_torch import _modules_activation, _modules_loss, _modules_optim, _modules_lr_scheduler
+from thunder_torch.utils.general import dynamic_imp
 from thunder_torch import metrics
 
 
@@ -165,7 +166,9 @@ class LightningModelBase(pl.LightningModule):
         """
         for m in _modules_activation:
             try:
-                self.activation_fn = getattr(importlib.import_module(m), self.hparams.activation)()
+                _, activation_cls = dynamic_imp(m, self.hparams.activation)
+                self.activation_fn = activation_cls()
+                # self.activation_fn = getattr(importlib.import_module(m), self.hparams.activation)()
                 _logger.debug(f'{self.hparams.activation} fct found in {m}')
                 break
             except AttributeError or ModuleNotFoundError:
@@ -174,7 +177,9 @@ class LightningModelBase(pl.LightningModule):
 
         for m in _modules_loss:
             try:
-                self.loss_fn = getattr(importlib.import_module(m), self.hparams.loss)()
+                _, loss_cls = dynamic_imp(m, self.hparams.loss)
+                self.loss_fn = loss_cls()
+                # self.loss_fn = getattr(importlib.import_module(m), self.hparams.loss)()
                 _logger.debug(f'{self.hparams.activation} fct found in {m}')
                 break
             except AttributeError or ModuleNotFoundError:
@@ -208,7 +213,8 @@ class LightningModelBase(pl.LightningModule):
         """
         for m in _modules_optim:
             try:
-                optimizer_cls = getattr(importlib.import_module(m), self.hparams.optimizer['type'])
+                _, optimizer_cls = dynamic_imp(m, self.hparams.optimizer['type'])
+                # optimizer_cls = getattr(importlib.import_module(m), self.hparams.optimizer['type'])
                 break
             except AttributeError or ModuleNotFoundError:
                 _logger.debug('Optimizer of type {} NOT found in {}'.format(self.hparams.optimizer['type'], m))
@@ -221,8 +227,10 @@ class LightningModelBase(pl.LightningModule):
         if self.hparams.scheduler['execute']:
             for m in _modules_lr_scheduler:
                 try:
-                    scheduler = getattr(importlib.import_module(m), self.hparams.scheduler['type'])\
-                        (optimizer, **self.hparams.scheduler['params'])
+                    _, scheduler_cls = dynamic_imp(m, self.hparams.scheduler['type'])
+                    scheduler = scheduler_cls(optimizer, **self.hparams.scheduler['params'])
+                    # scheduler = getattr(importlib.import_module(m), self.hparams.scheduler['type'])\
+                    #     (optimizer, **self.hparams.scheduler['params'])
                     break
                 except AttributeError or ModuleNotFoundError:
                     _logger.debug('LR Scheduler of type {} not found in {}'.format(self.hparams.scheduler['type'], m))
