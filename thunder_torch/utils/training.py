@@ -201,10 +201,13 @@ def train_callbacks(argsTrainer: dict) -> dict:
     for i in range(len(argsTrainer['callbacks'])):
 
         # Extra handling of EarlyStopping and Checkpointing callbacks because they have extra flags in the Trainer
+        # TODO: in newer versions own keyword for EarlyStopping removed
         if argsTrainer['callbacks'][i]['type'] == 'EarlyStopping':
             earlyStopping = pl.callbacks.EarlyStopping(**argsTrainer['callbacks'][i]['params'])
             argsTrainer['params']['early_stop_callback'] = earlyStopping
-        elif argsTrainer['callbacks'][i]['type'] == 'Checkpointing':
+        # TODO: in newer version, pre-implemented checkpoint callback changed! better use this one, also the own
+        #  keyword is not required anymore
+        elif argsTrainer['callbacks'][i]['type'] == 'ModelCheckpoint':
             checkpoint = callbacks.Checkpointing(**argsTrainer['callbacks'][i]['params'])
             argsTrainer['params']['checkpoint_callback'] = checkpoint
         else:
