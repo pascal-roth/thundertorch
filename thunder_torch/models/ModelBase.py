@@ -4,7 +4,6 @@
 
 # import packages
 import torch
-import importlib
 import pytorch_lightning as pl
 from argparse import Namespace
 from typing import List, Union, Tuple
