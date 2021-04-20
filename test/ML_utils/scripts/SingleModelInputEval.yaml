@@ -57,7 +57,7 @@ Trainer:
         patience: 12
         mode: min
 #    - type: lr_logger
-    - type: Checkpointing
+    - type: ModelCheckpoint
       params:
         filepath: None
         save_top_k: 1  # other params in documentation
