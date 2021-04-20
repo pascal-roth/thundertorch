@@ -24,7 +24,8 @@ def train_config(argsConfig: dict, argsTrainer: dict) -> dict:
 
         # Check if module can be imported, exception would be raised within dynamic_imp
         # source path must be full path with .py file extension
-        source_path = source_path.split(".")[0]
+        if source_path.endswith(".py"):
+            source_path = source_path[:-3]
 
         if os.path.exists(os.getcwd()+"/"+source_path+".py"):
             source_path = os.getcwd() + "/" + source_path
