@@ -54,7 +54,7 @@ class Histogram(Callback):
         _logger.info('Histogram creation activated')
 
     # Utility functions ###############################################################################################
-    def check_monitor(self, current):
+    def check_monitor(self, current, trainer: pl.Trainer):
         if not isinstance(current, torch.Tensor):
             rank_zero_warn(
                 f'{current} is supposed to be a torch.Tensor. Saving checkpoint may not work correctly. '
@@ -66,6 +66,13 @@ class Histogram(Callback):
             "min": torch.lt,
             "max": torch.gt,
         }[self.mode]
+
+        # If using multiple devices, make sure all processes are unanimous on the decision.
+        # should_update_best_and_save = trainer.training_type_plugin.reduce_boolean_decision(should_update_best_and_save)
+
+        _logger.debug(f'Metrics are of device {current.device}')
+        if current.device == 'gpu':
+            self.best_value.to(current.device)
 
         return monitor_op(current, self.best_value)
 
@@ -95,7 +102,8 @@ class Histogram(Callback):
             rank_zero_warn(
                 f'Can save best model only with {self.monitor} available, skipping.', RuntimeWarning
             )
-        elif self.check_monitor(current):
+        elif self.check_monitor(current, trainer):
+            self.best_value = current
             self._plot_histogram(self.errors_val.numpy(), 'val_histogram', 'Validation Data')
             self._plot_histogram(self.errors_train.numpy(), 'train_histogram', 'Training Data')
         elif self.verbose > 0:
