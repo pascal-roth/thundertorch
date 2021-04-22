@@ -3,5 +3,6 @@ from .explained_variance import Explained_Variance
 from .initialize_weights import WeightInitializer
 from .rel_error import RelError
 from .rel_acc_intervals import RelIntervals
+from .histogram import Histogram
 
-__all__ = ['Checkpointing', 'Explained_Variance', 'WeightInitializer', 'RelError', 'RelIntervals']
+__all__ = ['Checkpointing', 'Explained_Variance', 'WeightInitializer', 'RelError', 'RelIntervals', 'Histogram']

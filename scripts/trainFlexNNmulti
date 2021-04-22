@@ -17,7 +17,7 @@ def execute_model(model, argsTrainer: dict, dataLoader) -> None:
 def main(argsMulti):
     nbr_processes, list_gpu, model_dicts = config_multi(argsMulti)
 
-    mp_fn = mp.get_context('forkserver')
+    mp_fn = mp.get_context('fork')
     tic1 = time.time()
     processes = []
     ii = 0

@@ -20,7 +20,7 @@ def execute_model(model: pl.LightningModule, argsTrainer: dict, dataLoader: [Any
 def main(argsMulti: dict) -> None:
     nbr_processes, list_gpu, model_dicts = config_multi(argsMulti)
 
-    mp_fn = mp.get_context('forkserver')
+    mp_fn = mp.get_context('fork')
     tic1 = time.time()
     processes = []
     ii = 0

@@ -2,7 +2,7 @@ import os
 import numpy as np
 import matplotlib.pyplot as plt
 import pytorch_lightning as pl
-from typing import Optional, Any
+from typing import Any
 from pytorch_lightning.callbacks import Callback
 
 from thunder_torch import metrics

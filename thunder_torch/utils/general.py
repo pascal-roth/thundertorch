@@ -67,12 +67,13 @@ def load_model_from_checkpoint(checkpoint_path: str) -> LightningModule:
 
     for m in _modules_models:
         try:
-            model_class = getattr(importlib.import_module(m), model_type)
+            _, model_class = dynamic_imp(m, model_type)
+            # model_class = getattr(importlib.import_module(m), model_type)
             _logger.debug(f'{model_type} fct found in {m}')
             break
         except AttributeError or ModuleNotFoundError:
             _logger.debug(f'{model_type} fct not found in {m}')
-        assert False, f'{model_type} could not be found in {_modules_models}'
+        # assert False, f'{model_type} could not be found in {_modules_models}'
 
     return model_class.load_from_checkpoint(checkpoint_path)
 

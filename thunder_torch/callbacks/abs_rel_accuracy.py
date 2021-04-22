@@ -1,6 +1,6 @@
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks import Callback
-from typing import Optional, Any
+from typing import Any
 
 from thunder_torch import metrics
 from thunder_torch import _logger

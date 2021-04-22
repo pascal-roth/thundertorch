@@ -4,7 +4,6 @@
 
 # import packages
 import argparse
-import importlib
 import os
 import pytorch_lightning as pl
 import torch
@@ -25,9 +24,12 @@ def train_config(argsConfig: dict, argsTrainer: dict) -> dict:
 
         # Check if module can be imported, exception would be raised within dynamic_imp
         # source path must be full path with .py file extension
-        source_path = source_path.split(".")[0]
-        source_path = os.getcwd()+"/"+source_path
-        if not os.path.exists(source_path+".py"):
+        if source_path.endswith(".py"):
+            source_path = source_path[:-3]
+
+        if os.path.exists(os.getcwd()+"/"+source_path+".py"):
+            source_path = os.getcwd() + "/" + source_path
+        elif not os.path.exists(source_path + ".py"):
             raise FileNotFoundError(f"Source file for custom function or class does not exists.\nSearched for file: "
                                     f"{source_path+'.py'}")
         mod, _ = dynamic_imp(source_path)
@@ -93,7 +95,6 @@ def get_model(argsModel: Union[dict, argparse.Namespace]) -> pl.LightningModule:
 
     for m in _modules_models:
         try:
-            print(m)
             _, model_cls = dynamic_imp(m, argsModel.type)
             # model_cls = getattr(importlib.import_module(m), argsModel.type)
             _logger.debug(f'Model Class of type {argsModel.type} has been loaded from {m}')
@@ -134,11 +135,13 @@ def get_dataLoader(argsLoader: dict, model: pl.LightningModule = None) -> Any:
     """
     for m in _modules_loader:
         try:
-            loader_cls = getattr(importlib.import_module(m), argsLoader['type'])
+            _, loader_cls = dynamic_imp(m, argsLoader['type'])
+            # loader_cls = getattr(importlib.import_module(m), argsLoader['type'])
             _logger.debug('Model Class of type {} has been loaded from {}'.format(argsLoader['type'], m))
             break
         except AttributeError or ModuleNotFoundError:
             _logger.debug('Model Class of type {} has NOT been loaded from {}'.format(argsLoader['type'], m))
+        # assert False, f"{argsLoader['type']} could not be found in {_modules_loader}"
 
     if model:
         dataLoader = loader_cls.read_from_yaml(argsLoader, batch=model.hparams.batch,
@@ -198,20 +201,25 @@ def train_callbacks(argsTrainer: dict) -> dict:
     for i in range(len(argsTrainer['callbacks'])):
 
         # Extra handling of EarlyStopping and Checkpointing callbacks because they have extra flags in the Trainer
+        # TODO: in newer versions own keyword for EarlyStopping removed
         if argsTrainer['callbacks'][i]['type'] == 'EarlyStopping':
             earlyStopping = pl.callbacks.EarlyStopping(**argsTrainer['callbacks'][i]['params'])
             argsTrainer['params']['early_stop_callback'] = earlyStopping
-        elif argsTrainer['callbacks'][i]['type'] == 'Checkpointing':
+        # TODO: in newer version, pre-implemented checkpoint callback changed! better use this one, also the own
+        #  keyword is not required anymore
+        elif argsTrainer['callbacks'][i]['type'] == 'ModelCheckpoint':
             checkpoint = callbacks.Checkpointing(**argsTrainer['callbacks'][i]['params'])
             argsTrainer['params']['checkpoint_callback'] = checkpoint
         else:
             # Check from which destination the callback class is loaded
             for m in _modules_callbacks:
                 try:
-                    callback_cls = getattr(importlib.import_module(m), argsTrainer['callbacks'][i]['type'])
+                    _, callback_cls = dynamic_imp(m, argsTrainer['callbacks'][i]['type'])
+                    # callback_cls = getattr(importlib.import_module(m), argsTrainer['callbacks'][i]['type'])
                     break
                 except AttributeError:
                     _logger.debug('Callback of type {} NOT found in {}'.format(argsTrainer['callbacks'][i]['type'], m))
+                # assert False, f"{argsTrainer['callbacks'][i]['type']} could not be found in {_modules_callbacks}"
 
             if 'params' in argsTrainer['callbacks'][i]:
                 callback = callback_cls(**argsTrainer['callbacks'][i]['params'])
