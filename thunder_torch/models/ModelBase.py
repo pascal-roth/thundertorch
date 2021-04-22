@@ -7,7 +7,7 @@ import torch
 import importlib
 import pytorch_lightning as pl
 from argparse import Namespace
-from typing import List, Union, Tuple
+from typing import List, Union, Tuple, Optional
 from pathlib import Path
 from collections.abc import Callable
 
@@ -34,10 +34,11 @@ class LightningModelBase(pl.LightningModule):
 
         self.loss_fn:       Callable[..., torch.Tensor]
         self.activation_fn: Callable[..., torch.Tensor]
-        self.min_val_loss:  float
+        self.min_val_loss:  Optional[torch.Tensor] = None
         self.final_channel: int
 
-        self.layers:        List = []
+        self.layers_list:   List = []
+        self.layers:        torch.nn.Sequential
         self.height:        int
         self.width:         int
         self.depth:         int
@@ -55,24 +56,24 @@ class LightningModelBase(pl.LightningModule):
         # Construct all conv layers
         for layer_dict in layer_list:
             if 'params' in layer_dict:
-                self.layers.append(getattr(torch.nn, layer_dict['type'])(**layer_dict['params']))
+                self.layers_list.append(getattr(torch.nn, layer_dict['type'])(**layer_dict['params']))
             else:
-                self.layers.append(getattr(torch.nn, layer_dict['type'])())
+                self.layers_list.append(getattr(torch.nn, layer_dict['type'])())
 
-            if all(hasattr(self.layers[-1], elem) for elem in ['padding', 'stride', 'kernel_size']):
-                if isinstance(self.layers[-1].padding, tuple):
-                    self.height = int((self.height + 2 * self.layers[-1].padding[0]) /
-                                      self.layers[-1].stride[0]) - (self.layers[-1].kernel_size[0] - 1)
-                    self.width = int((self.width + 2 * self.layers[-1].padding[1]) /
-                                     self.layers[-1].stride[1]) - (self.layers[-1].kernel_size[1] - 1)
+            if all(hasattr(self.layers_list[-1], elem) for elem in ['padding', 'stride', 'kernel_size']):
+                if isinstance(self.layers_list[-1].padding, tuple):
+                    self.height = int((self.height + 2 * self.layers_list[-1].padding[0]) /
+                                      self.layers_list[-1].stride[0]) - (self.layers_list[-1].kernel_size[0] - 1)
+                    self.width = int((self.width + 2 * self.layers_list[-1].padding[1]) /
+                                     self.layers_list[-1].stride[1]) - (self.layers_list[-1].kernel_size[1] - 1)
                 else:
-                    self.height = int((self.height + 2 * self.layers[-1].padding) /
-                                      self.layers[-1].stride) - (self.height % self.layers[-1].kernel_size)
-                    self.width = int((self.width + 2 * self.layers[-1].padding) /
-                                     self.layers[-1].stride) - (self.width % self.layers[-1].kernel_size)
+                    self.height = int((self.height + 2 * self.layers_list[-1].padding) /
+                                      self.layers_list[-1].stride) - (self.height % self.layers_list[-1].kernel_size)
+                    self.width = int((self.width + 2 * self.layers_list[-1].padding) /
+                                     self.layers_list[-1].stride) - (self.width % self.layers_list[-1].kernel_size)
 
-            if isinstance(self.layers[-1], self.layer_activation):
-                self.layers.append(self.activation_fn)
+            if isinstance(self.layers_list[-1], self.layer_activation):
+                self.layers_list.append(self.activation_fn)
 
     def construct_nn3d(self, layer_list: dict) -> None:
         """
@@ -86,28 +87,28 @@ class LightningModelBase(pl.LightningModule):
         # Construct all conv layers
         for layer_dict in layer_list:
             if 'params' in layer_dict:
-                self.layers.append(getattr(torch.nn, layer_dict['type'])(**layer_dict['params']))
+                self.layers_list.append(getattr(torch.nn, layer_dict['type'])(**layer_dict['params']))
             else:
-                self.layers.append(getattr(torch.nn, layer_dict['type'])())
+                self.layers_list.append(getattr(torch.nn, layer_dict['type'])())
 
-            if all(hasattr(self.layers[-1], elem) for elem in ['padding', 'stride', 'kernel_size']):
-                if isinstance(self.layers[-1].padding, tuple):
-                    self.height = int((self.height + 2 * self.layers[-1].padding[0]) /
-                                      self.layers[-1].stride[0]) - (self.layers[-1].kernel_size[0] - 1)
-                    self.width = int((self.width + 2 * self.layers[-1].padding[1]) /
-                                     self.layers[-1].stride[1]) - (self.layers[-1].kernel_size[1] - 1)
-                    self.depth = int((self.depth + 2 * self.layers[-1].padding[2]) /
-                                     self.layers[-1].stride[2]) - (self.layers[-1].kernel_size[2] - 1)
+            if all(hasattr(self.layers_list[-1], elem) for elem in ['padding', 'stride', 'kernel_size']):
+                if isinstance(self.layers_list[-1].padding, tuple):
+                    self.height = int((self.height + 2 * self.layers_list[-1].padding[0]) /
+                                      self.layers_list[-1].stride[0]) - (self.layers_list[-1].kernel_size[0] - 1)
+                    self.width = int((self.width + 2 * self.layers_list[-1].padding[1]) /
+                                     self.layers_list[-1].stride[1]) - (self.layers_list[-1].kernel_size[1] - 1)
+                    self.depth = int((self.depth + 2 * self.layers_list[-1].padding[2]) /
+                                     self.layers_list[-1].stride[2]) - (self.layers_list[-1].kernel_size[2] - 1)
                 else:
-                    self.height = int((self.height + 2 * self.layers[-1].padding) /
-                                      self.layers[-1].stride) - (self.height % self.layers[-1].kernel_size)
-                    self.width = int((self.width + 2 * self.layers[-1].padding) /
-                                     self.layers[-1].stride) - (self.width % self.layers[-1].kernel_size)
-                    self.depth = int((self.depth + 2 * self.layers[-1].padding) /
-                                     self.layers[-1].stride) - (self.width % self.layers[-1].kernel_size)
+                    self.height = int((self.height + 2 * self.layers_list[-1].padding) /
+                                      self.layers_list[-1].stride) - (self.height % self.layers_list[-1].kernel_size)
+                    self.width = int((self.width + 2 * self.layers_list[-1].padding) /
+                                     self.layers_list[-1].stride) - (self.width % self.layers_list[-1].kernel_size)
+                    self.depth = int((self.depth + 2 * self.layers_list[-1].padding) /
+                                     self.layers_list[-1].stride) - (self.width % self.layers_list[-1].kernel_size)
 
-            if isinstance(self.layers[-1], self.layer_activation):
-                self.layers.append(self.activation_fn)
+            if isinstance(self.layers_list[-1], self.layer_activation):
+                self.layers_list.append(self.activation_fn)
 
     def construct_mlp(self, in_dim: int, hidden_layer: List[int], out_dim: int) -> None:
         """
@@ -121,16 +122,16 @@ class LightningModelBase(pl.LightningModule):
         """
         # TODO: think about adding a bias flag in case a linear function should be learned
         # Construct all MLP layers
-        self.layers.append(torch.nn.Linear(in_dim, hidden_layer[0]))
-        self.layers.append(self.activation_fn)
+        self.layers_list.append(torch.nn.Linear(in_dim, hidden_layer[0]))
+        self.layers_list.append(self.activation_fn)
 
         layer_sizes = zip(hidden_layer[:-1], hidden_layer[1:])
 
         for h1, h2 in layer_sizes:
-            self.layers.append(torch.nn.Linear(h1, h2))
-            self.layers.append(self.activation_fn)
+            self.layers_list.append(torch.nn.Linear(h1, h2))
+            self.layers_list.append(self.activation_fn)
 
-        self.layers.append(torch.nn.Linear(hidden_layer[-1], out_dim))
+        self.layers_list.append(torch.nn.Linear(hidden_layer[-1], out_dim))
 
     def check_hparams(self) -> None:
         options = self.get_OptionClass()
@@ -333,5 +334,5 @@ class LightningModelBase(pl.LightningModule):
         pass
 
     @staticmethod
-    def yaml_template() -> str:
+    def yaml_template(key_list: list) -> str:
         pass

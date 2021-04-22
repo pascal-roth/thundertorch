@@ -57,7 +57,8 @@ def test_split_data_random(create_random_dataset: Tuple[pd.DataFrame, pd.DataFra
         data_split_random(x_samples=x_samples, y_samples=y_samples, split_params=1.2)
     with pytest.raises(AssertionError):
         # Percentage defined in split_params has to be of type int
-        data_split_random(x_samples=x_samples, y_samples=y_samples, split_params='str')
+        # arg type error ignored since assertion error if wrong type is given is controlled
+        data_split_random(x_samples=x_samples, y_samples=y_samples, split_params='str')  # type: ignore[arg-type]
 
     x_samples, x_split, y_samples, y_split = data_split_random(x_samples=x_samples, y_samples=y_samples,
                                                                split_params=0.5)
@@ -73,7 +74,8 @@ def test_split_data_percentage(create_random_dataset: Tuple[pd.DataFrame, pd.Dat
     with pytest.raises(AssertionError):  # percentage too large
         data_split_percentage(x_samples=x_samples, y_samples=y_samples, split_params={'T_0': 1.2})
     with pytest.raises(AssertionError):  # feature missing
-        data_split_percentage(x_samples=x_samples, y_samples=y_samples, split_params=0.5)
+        # arg type error ignored since assertion error if wrong type is given is controlled
+        data_split_percentage(x_samples=x_samples, y_samples=y_samples, split_params=0.5)  # type: ignore[arg-type]
     with pytest.raises(AssertionError):  # feature not in data
         data_split_percentage(x_samples=x_samples, y_samples=y_samples, split_params={'T_1': 0.25})
 
@@ -97,7 +99,8 @@ def test_split_data_explicit(create_random_dataset: Tuple[pd.DataFrame, pd.DataF
     with pytest.raises(AssertionError):  # wrong feature value
         data_split_explicit(x_samples=x_samples, y_samples=y_samples, split_params={'T_0': 5})
     with pytest.raises(AssertionError):  # feature missing
-        data_split_explicit(x_samples=x_samples, y_samples=y_samples, split_params=0.5)
+        # arg type error ignored since assertion error if wrong type is given is controlled
+        data_split_explicit(x_samples=x_samples, y_samples=y_samples, split_params=0.5)  # type: ignore[arg-type]
     with pytest.raises(AssertionError):  # feature not in data
         data_split_explicit(x_samples=x_samples, y_samples=y_samples, split_params={'T_1': x_samples['T_0'].iloc[1]})
 

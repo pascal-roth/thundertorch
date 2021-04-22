@@ -1,5 +1,5 @@
 import torch
-from typing import Any, Optional
+from typing import Any, Optional, Union, Sequence
 
 
 from pytorch_lightning.utilities import rank_zero_warn
@@ -73,7 +73,7 @@ class ExplainedVariance(Metric):
             ' to large memory footprint.'
         )
 
-    def update(self, preds: torch.Tensor, target: torch.Tensor):
+    def update(self, preds: torch.Tensor, target: torch.Tensor) -> None:
         """
         Update state with predictions and targets.
         Args:
@@ -84,7 +84,7 @@ class ExplainedVariance(Metric):
         self.y_pred.append(preds)
         self.y.append(target)
 
-    def compute(self):
+    def compute(self) -> Union[torch.Tensor, Sequence[torch.Tensor]]:
         """
         Computes explained variance over state.
         """

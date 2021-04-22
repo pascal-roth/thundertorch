@@ -267,8 +267,8 @@ def execute_training(model: pl.LightningModule, dataLoader: Any, trainer: pl.Tra
         x_empty_size[0] = 1
         y_empty_size = list(dataLoader.y_train.shape)
         y_empty_size[0] = 1
-        val_dataloader = torch.utils.data.DataLoader(torch.utils.data.TensorDataset(torch.empty(x_empty_size),
-                                                                                    torch.empty(y_empty_size)))
+        val_dataloader = torch.utils.data.DataLoader(torch.utils.data.TensorDataset(  # type: ignore[attr-defined]
+            torch.empty(x_empty_size), torch.empty(y_empty_size)))
 
         trainer.fit(model, train_dataloader=dataLoader.train_dataloader(), val_dataloaders=val_dataloader)
 
@@ -287,8 +287,8 @@ def execute_testing(model: pl.LightningModule, dataLoader: Any, trainer: pl.Trai
         x_empty_size[0] = 1
         y_empty_size = list(dataLoader.y_train.shape)
         y_empty_size[0] = 1
-        test_dataloader = torch.utils.data.DataLoader(torch.utils.data.TensorDataset(torch.empty(x_empty_size),
-                                                                                     torch.empty(y_empty_size)))
+        test_dataloader = torch.utils.data.DataLoader(torch.utils.data.TensorDataset(  # type: ignore[attr-defined]
+            torch.empty(x_empty_size), torch.empty(y_empty_size)))
 
         trainer.test(model, test_dataloaders=test_dataloader)
     else:

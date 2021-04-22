@@ -1,4 +1,5 @@
 import torch
+from typing import Optional
 from argparse import Namespace
 from thunder_torch.models.ModelBase import LightningModelBase
 
@@ -35,13 +36,13 @@ class LightningFlexMLPImported(LightningModelBase):
         self.hparams = hparams
         self.get_default()
         self.get_functions()
-        self.min_val_loss = None
+        self.min_val_loss: Optional[torch.Tensor] = None
 
         # Construct MLP with a variable number of hidden layers
-        self.layers = []
+        self.layers_list = []
         self.construct_mlp(self.hparams.inputs, self.hparams.number_hidden_layers, self.hparams.outputs)
 
         if hasattr(self.hparams, 'output_activation'):
-            self.layers.append(getattr(torch.nn, self.hparams.output_activation)())
+            self.layers_list.append(getattr(torch.nn, self.hparams.output_activation)())
 
-        self.layers = torch.nn.Sequential(*self.layers)
+        self.layers = torch.nn.Sequential(*self.layers_list)

@@ -63,7 +63,7 @@ def load_model_from_checkpoint(checkpoint_path: str) -> LightningModule:
              "Cannot use this function since there is no 'model_type' key available in hparams.")
 
     model_type = c["hparams"]["model_type"]
-    model_class: object
+    model_class: LightningModule
 
     for m in _modules_models:
         try:

@@ -6,6 +6,7 @@
 import torch
 import yaml
 from argparse import Namespace
+from typing import Optional
 
 from thunder_torch.models.ModelBase import LightningModelBase
 from thunder_torch.utils.option_class import OptionClass
@@ -59,9 +60,9 @@ class LightningFlexNN(LightningModelBase):
         self.get_default()
         self.get_functions()
         self.set_channels()
-        self.min_val_loss
+        self.min_val_loss: Optional[torch.Tensor] = None
 
-        self.layers = []
+        self.layers_list = []
 
         self.height = self.hparams.height
         self.width = self.hparams.width
@@ -69,14 +70,14 @@ class LightningFlexNN(LightningModelBase):
         self.construct_nn2d(layer_list=self.hparams.layers)
 
         if hasattr(self.hparams, 'mlp_layer'):
-            self.layers.append(torch.nn.Flatten())
+            self.layers_list.append(torch.nn.Flatten())
             in_dim = self.final_channel * self.height * self.width
             self.construct_mlp(in_dim, self.hparams.mlp_layer['hidden_layer'], self.hparams.mlp_layer['n_out'])
 
         if hasattr(self.hparams, 'output_activation'):
-            self.layers.append(getattr(torch.nn, self.hparams.output_activation)())
+            self.layers_list.append(getattr(torch.nn, self.hparams.output_activation)())
 
-        self.layers = torch.nn.Sequential(*self.layers)
+        self.layers = torch.nn.Sequential(*self.layers_list)
 
     def set_channels(self) -> None:
         in_channels = self.hparams.depth

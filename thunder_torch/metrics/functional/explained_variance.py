@@ -25,18 +25,20 @@ def _explained_variance_compute(preds: torch.Tensor,
     nonzero_denominator = denominator != 0
     valid_score = nonzero_numerator & nonzero_denominator
     output_scores = torch.ones_like(diff_avg)
-    output_scores[valid_score] = 1.0 - (numerator[valid_score] / denominator[valid_score])
+    output_scores[valid_score] = 1.0 - float(numerator[valid_score] / denominator[valid_score])
     output_scores[nonzero_numerator & ~nonzero_denominator] = 0.
 
     # Decide what to do in multioutput case
     # Todo: allow user to pass in tensor with weights
     if multioutput == 'raw_values':
         return output_scores
-    if multioutput == 'uniform_average':
+    elif multioutput == 'uniform_average':
         return torch.mean(output_scores)
-    if multioutput == 'variance_weighted':
+    elif multioutput == 'variance_weighted':
         denom_sum = torch.sum(denominator)
         return torch.sum(denominator / denom_sum * output_scores)
+    else:
+        raise ValueError('value for multioutput not defined')
 
 
 def explained_variance(preds: torch.Tensor,

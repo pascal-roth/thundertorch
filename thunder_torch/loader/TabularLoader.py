@@ -9,7 +9,7 @@ import yaml
 import pandas as pd
 from sklearn import preprocessing
 from argparse import Namespace
-from typing import Union, Optional, List, Any
+from typing import Union, Optional, List, Any, TypeVar, Type
 from pathlib import Path, PosixPath
 
 from thunder_torch import _logger
@@ -17,6 +17,8 @@ from thunder_torch.loader import _utils
 from thunder_torch.loader.DataLoaderBase import DataLoaderBase
 from thunder_torch.utils.option_class import OptionClass
 from thunder_torch.utils.general import load_model_from_checkpoint
+
+TabularLoaderType = TypeVar('TabularLoaderType', bound='TabularLoader')
 
 
 class TabularLoader(DataLoaderBase):
@@ -154,33 +156,33 @@ class TabularLoader(DataLoaderBase):
 
     # create pytorch dataloaders ######################################################################################
     def get_dataloader(self, x_samples: pd.DataFrame, y_samples: pd.DataFrame, **kwargs: Any) -> \
-            Union[torch.utils.data.DataLoader, _utils.FastTensorDataLoader]:
+            Union[torch.utils.data.DataLoader, _utils.FastTensorDataLoader]:  # type: ignore[name-defined]
         if self.lparams.fast_loader:
             return _utils.FastTensorDataLoader(torch.tensor(x_samples), torch.tensor(y_samples),
                                                batch_size=self.lparams.batch, **kwargs)
         else:
             tensor = self.get_tensorDataset(x_samples, y_samples)
-            return torch.utils.data.DataLoader(tensor, batch_size=self.lparams.batch,
+            return torch.utils.data.DataLoader(tensor, batch_size=self.lparams.batch,  # type: ignore[attr-defined]
                                                num_workers=self.lparams.num_workers, **kwargs)
 
-    def train_dataloader(self, **kwargs: Optional[Any]) -> Union[torch.utils.data.DataLoader,
-                                                                 _utils.FastTensorDataLoader]:
+    def train_dataloader(self, **kwargs: Any) -> \
+            Union[torch.utils.data.DataLoader, _utils.FastTensorDataLoader]:  # type: ignore[name-defined]
         """
         Generate PyTorch DataLoader for the training data (all kwargs of the PyTorch DataLoader can be used)
         """
         x_samples, y_samples = self.data_normalization(self.x_train, self.y_train)
         return self.get_dataloader(x_samples, y_samples, **kwargs)
 
-    def val_dataloader(self, **kwargs: Optional[Any]) -> Union[torch.utils.data.DataLoader,
-                                                               _utils.FastTensorDataLoader]:
+    def val_dataloader(self, **kwargs: Any) -> \
+            Union[torch.utils.data.DataLoader, _utils.FastTensorDataLoader]:  # type: ignore[name-defined]
         """
         Generate PyTorch DataLoader for the validation data (all kwargs of the PyTorch DataLoader can be used)
         """
         x_samples, y_samples = self.data_normalization(self.x_val, self.y_val)
         return self.get_dataloader(x_samples, y_samples, **kwargs)
 
-    def test_dataloader(self, **kwargs: Optional[Any]) -> Union[torch.utils.data.DataLoader,
-                                                                _utils.FastTensorDataLoader]:
+    def test_dataloader(self, **kwargs: Any) -> \
+            Union[torch.utils.data.DataLoader, _utils.FastTensorDataLoader]:  # type: ignore[name-defined]
         """
         Generate PyTorch DataLoader for the test data (all kwargs of the PyTorch DataLoader can be used)
         """
@@ -189,8 +191,8 @@ class TabularLoader(DataLoaderBase):
 
     # classmethods ####################################################################################################
     @classmethod
-    def read_from_file(cls, file: Union[str, Path, PosixPath], features: List[str], labels: List[str],
-                       **kwargs: Optional[Any]) -> object:
+    def read_from_file(cls: Type[TabularLoaderType], file: Union[str, Path, PosixPath], features: List[str],
+                       labels: List[str], **kwargs: Any) -> TabularLoaderType:
         """
         Create TabularLoader object from file
 
@@ -211,7 +213,7 @@ class TabularLoader(DataLoaderBase):
         return cls(df_samples, features, labels, data_path=file, **kwargs)
 
     @classmethod
-    def read_from_yaml(cls, argsLoader: dict, **kwargs: Optional[Any]) -> object:
+    def read_from_yaml(cls: Type[TabularLoaderType], argsLoader: dict, **kwargs: Any) -> TabularLoaderType:
         """
         Create TabularLoader object from a dict similar to the one given under yml_template
 
@@ -230,7 +232,7 @@ class TabularLoader(DataLoaderBase):
         if 'load_dataloader' in argsLoader:
             _, file_extention = os.path.splitext(argsLoader['load_dataloader']['path'])
             if file_extention == '.pkl':
-                Loader = TabularLoader.load(argsLoader['load_dataloader']['path'])
+                Loader: TabularLoader = TabularLoader.load(argsLoader['load_dataloader']['path'])
                 Loader.lparams.data_path = argsLoader['load_dataloader']['path']
             elif file_extention == '.ckpt':
                 Loader = TabularLoader.read_from_checkpoint(argsLoader['load_dataloader']['path'])
@@ -279,7 +281,7 @@ class TabularLoader(DataLoaderBase):
         return Loader
 
     @classmethod
-    def read_from_checkpoint(cls, ckpt_file: Union[str, Path, PosixPath]) -> object:
+    def read_from_checkpoint(cls: Type[TabularLoaderType], ckpt_file: Union[str, Path, PosixPath]) -> TabularLoaderType:
         """
         Create cls TabluarLoader from pytorch lightning checkpoint
         !! Hparams of the checkpoint had to be updated with lparams of the Loader in order to reconstruct the Loader!!

@@ -16,7 +16,7 @@ class Histogram(Callback):
 
     def __init__(self,  bins: int = 100, path: str = 'histograms', boundaries: Optional[List[float]] = None,
                  density: bool = True, title: str = 'Relative Error of Training Data', period: int = 1,
-                 monitor: str = 'val_loss', mode: str = 'auto', verbose: int = 0):
+                 monitor: str = 'val_loss', mode: str = 'auto', verbose: int = 0) -> None:
         super().__init__()
 
         self.path = f'{os.getcwd()}/{path}'
@@ -47,14 +47,14 @@ class Histogram(Callback):
 
         self.best_value, self.mode = mode_dict[mode]
 
-        self.errors_train = None
-        self.errors_val = None
-        self.errors_test = None
+        self.errors_train: torch.Tensor
+        self.errors_val: torch.Tensor
+        self.errors_test: torch.Tensor
 
         _logger.info('Histogram creation activated')
 
     # Utility functions ###############################################################################################
-    def check_monitor(self, current):
+    def check_monitor(self, current: torch.Tensor) -> torch.Tensor:
         if not isinstance(current, torch.Tensor):
             rank_zero_warn(
                 f'{current} is supposed to be a torch.Tensor. Saving checkpoint may not work correctly. '
@@ -70,7 +70,7 @@ class Histogram(Callback):
         return monitor_op(current, self.best_value)
 
     @rank_zero_only
-    def _decide_plot_histogram(self, trainer: pl.Trainer):
+    def _decide_plot_histogram(self, trainer: pl.Trainer) -> None:
         # only run on main process
         if trainer.proc_rank != 0:
             return
@@ -101,7 +101,7 @@ class Histogram(Callback):
         elif self.verbose > 0:
             _logger.info(f'\nEpoch {epoch:05d}: {self.monitor}  was not best')
 
-    def _plot_histogram(self, rel_errors: np.ndarray, name: str, title: str):
+    def _plot_histogram(self, rel_errors: np.ndarray, name: str, title: str) -> None:
         fig, ax = plt.subplots(nrows=1, ncols=1)
         ax.set_xlabel("Relative Error [%]", size=16)
         ax.set_ylabel('Fraction of Samples', size=16)
@@ -121,7 +121,7 @@ class Histogram(Callback):
         plt.close(fig)
 
     # Model Hooks #####################################################################################################
-    def on_batch_end(self, trainer: pl.Trainer, pl_module: pl.LightningModule):
+    def on_batch_end(self, trainer: pl.Trainer, pl_module: pl.LightningModule) -> None:
         if hasattr(trainer, 'hiddens'):
             targets = trainer.hiddens["targets"]
             preds = trainer.hiddens["preds"]
@@ -135,7 +135,7 @@ class Histogram(Callback):
     #     self._decide_plot_histogram(trainer, self.errors_train, 'train_histogram', 'Training Data')
     #     self.errors_train = None
 
-    def on_validation_batch_end(self, trainer: pl.Trainer, pl_module: pl.LightningModule):
+    def on_validation_batch_end(self, trainer: pl.Trainer, pl_module: pl.LightningModule) -> None:
         if hasattr(trainer, 'hiddens'):
             targets = trainer.hiddens["targets"]
             preds = trainer.hiddens["preds"]
@@ -145,12 +145,12 @@ class Histogram(Callback):
             else:
                 self.errors_val = torch.cat((self.errors_val, ((preds - targets) / (targets + 1e-09)) * 100), dim=0)
 
-    def on_validation_end(self, trainer: pl.Trainer, pl_module: pl.LightningModule):
+    def on_validation_end(self, trainer: pl.Trainer, pl_module: pl.LightningModule) -> None:
         self._decide_plot_histogram(trainer)
-        self.errors_val = None
-        self.errors_train = None
+        self.errors_val = torch.empty(0)
+        self.errors_train = torch.empty(0)
 
-    def on_test_batch_end(self, trainer: pl.Trainer, pl_module: pl.LightningModule):
+    def on_test_batch_end(self, trainer: pl.Trainer, pl_module: pl.LightningModule) -> None:
         if hasattr(trainer, 'hiddens'):
             preds = trainer.hiddens["preds"]
             targets = trainer.hiddens["targets"]
@@ -160,5 +160,5 @@ class Histogram(Callback):
             else:
                 self.errors_test = torch.cat((self.errors_test, ((preds - targets) / (targets + 1e-09)) * 100), dim=0)
 
-    def on_test_end(self, trainer: pl.Trainer, pl_module: pl.LightningModule):
+    def on_test_end(self, trainer: pl.Trainer, pl_module: pl.LightningModule) -> None:
         self._plot_histogram(self.errors_test.numpy(), 'test_histogram', 'Test Data')

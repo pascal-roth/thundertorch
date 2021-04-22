@@ -90,11 +90,11 @@ def test_get_dataloader(path: Path, create_LightningFlexMLP: LightningFlexMLP, t
 @pytest.mark.dependency()
 def test_train_callbacks() -> None:
     # check handling of EarlyStopping and Checkpointing callback since they have their own trainer flags
-    argsTrainer = {'callbacks': [{'type': 'EarlyStopping',
-                                  'params': {'monitor': 'val_loss', 'patience': 12, 'mode': 'min'}},
-                                 {'type': 'Checkpointing',
-                                  'params': {'filepath': 'checkpoints/some_name', 'save_top_k': 1, 'period': 0}}],
-                   'params': {'max_epochs': 3}}
+    argsTrainer: dict = {'callbacks': [{'type': 'EarlyStopping',
+                                        'params': {'monitor': 'val_loss', 'patience': 12, 'mode': 'min'}},
+                                       {'type': 'Checkpointing',
+                                        'params': {'filepath': 'checkpoints/some_name', 'save_top_k': 1, 'period': 0}}],
+                         'params': {'max_epochs': 3}}
     argsTrainer = train_callbacks(argsTrainer)
 
     assert isinstance(argsTrainer['params']['early_stop_callback'], pl.callbacks.EarlyStopping), \
@@ -132,9 +132,9 @@ def test_train_logger() -> None:  # control of comet logger fails even if it is 
     #                                       'workspace': 'proth', 'experiment_name': 'try_out'}},
     #                           {'type': 'tensorboard',
     #                            'params': {'save_dir': 'logs/'}}]}
-    argsTrainer = {'params': {'max_epochs': 3},
-                   'logger': [{'type': 'TensorBoardLogger',
-                               'params': {'save_dir': 'logs/'}}]}
+    argsTrainer: dict = {'params': {'max_epochs': 3},
+                         'logger': [{'type': 'TensorBoardLogger',
+                                     'params': {'save_dir': 'logs/'}}]}
     argsTrainer['params']['logger'] = train_logger(argsTrainer)
 
     # assert isinstance(argsTrainer['params']['logger'][0], pl.loggers.comet.CometLogger), 'Comit init fails'

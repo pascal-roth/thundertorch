@@ -55,7 +55,7 @@ def _check_same_shape(pred: torch.Tensor, target: torch.Tensor) -> None:
 
 
 def apply_to_collection(data: Any, dtype: Union[type, tuple], function: Callable, *args: Optional[Any],
-                        **kwargs: Optional[Any]) -> Any:
+                        **kwargs: Any) -> Any:
     """
     Recursively applies a function to all elements of a certain dtype.
     Args:

@@ -41,7 +41,7 @@ class RelIntervals(Metric):
         self.correct_rel_right += torch.sum(rel_acc_right)
         self.total += target.numel()
 
-    def compute(self) -> Tuple[float, float, float]:
+    def compute(self) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
         """
         Computes accuracy over state.
         """

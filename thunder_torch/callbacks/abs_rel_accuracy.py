@@ -8,7 +8,7 @@ from thunder_torch import _logger
 
 class AbsRelAccuracy(Callback):
 
-    def __init__(self, abs_threshold: float = 0.005, rel_threshold: float = 0.01, **kwargs: Optional[Any]):
+    def __init__(self, abs_threshold: float = 0.005, rel_threshold: float = 0.01, **kwargs: Any):
         super().__init__()
 
         self.abs_rel_acc_train = metrics.AbsRelAccuracy(abs_threshold, rel_threshold, **kwargs)

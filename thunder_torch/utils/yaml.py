@@ -8,7 +8,7 @@ import glob
 import inspect
 import os
 from functools import reduce
-from typing import Union
+from typing import Union, Any, Tuple, List
 from pathlib import PosixPath, Path
 import operator
 import torch
@@ -31,7 +31,6 @@ def parse_yaml(yaml_path: Union[str, Path, PosixPath], low_key: bool = True) -> 
 
 
 def lower_keys(dict_file: dict) -> dict:
-
     def recursion(dict_file_rec: dict) -> dict:
         dict_file_rec = dict((k.lower(), v) for k, v in dict_file_rec.items())
 
@@ -187,23 +186,23 @@ def check_yaml_structure(args_yaml: dict) -> None:
     assert 'dataloader' in args_yaml, 'Training a model requires some data which is packed inside a DataLoader! ' \
                                       'Definiton of the DataLoader type and the corresponding parameters is missing. ' \
                                       'DataLoaders can be found under thunder_torch/loader. The tempolate ' \
-                                      'yml structure for a DataLoader is defined as follows: \n{}'.\
+                                      'yml structure for a DataLoader is defined as follows: \n{}'. \
         format(loader.DataLoaderTemplate.yaml_template([]))
 
     assert 'model' in args_yaml, 'Neural Network Model definition is missing! Possible models are {}. The template ' \
-                                 'yml structure for the Models is defined as follows: \n{}'.\
+                                 'yml structure for the Models is defined as follows: \n{}'. \
         format(glob.glob(os.path.dirname(inspect.getfile(models)) + '/Lightning*'),
                models.LightningModelTemplate.yaml_template([]))
 
     assert 'trainer' in args_yaml, 'No Trainer of the Network defined! The trainer is responsible for automating ' \
                                    'network training, tesing and saving. A detailed description of the possible ' \
                                    'parameters is given at: https://pytorch-lightning.readthedocs.io/en/latest/' \
-                                   'trainer.html. The yml structure to include a trainer is as follows: \n{}'.\
+                                   'trainer.html. The yml structure to include a trainer is as follows: \n{}'. \
         format(trainer_yml_template([]))
 
 
 # yaml template for trainer and config arguments, as well as the MultiModel Training ##################################
-def trainer_yml_template(key_list: list) -> dict:
+def trainer_yml_template(key_list: list) -> str:
     """
     Trainer yaml template
     """
@@ -227,7 +226,7 @@ def trainer_yml_template(key_list: list) -> dict:
     return yaml.dump(template, sort_keys=False)
 
 
-def config_yml_template(key_list: list) -> dict:
+def config_yml_template(key_list: list) -> str:
     """
     Config template for single model yaml
     """
@@ -242,36 +241,38 @@ def config_yml_template(key_list: list) -> dict:
     return yaml.dump(template, sort_keys=False)
 
 
-def multimodel_training_yml_template(key_list: list, template: str = 'path.yaml (required!)') -> dict:
+def multimodel_training_yml_template(key_list: list, template: str = 'path.yaml (required!)') -> str:
     """
     Template for Multi-Model Training
     """
 
-    template = {'config': {'###INFO###': '"CPU_per_model" and "GPU_per_model" mutually exclusive',
-                           'CPU_per_model': 'int', 'GPU_per_model': 'int',
-                           'nbr_processes': 'int', 'model_run': ['Model001', 'Model002', 'model_name_3', '...']},
-                'Model001': {'Template': template,
-                             '###INFO###': 'After template defintion, keys of the template can be changed or new '
-                                           'keys added. The key structure has to be the same. Here an example is given',
-                             'DataLoader': {'create_DataLoader': {'raw_data_path': 'different_path.csv',
-                                                                  'features': ['feature_1', 'feature_2'],
-                                                                  'labels': ['label_1', 'label_2']}},
-                             'Model': {'create_model': {'n_inp': 'int', 'n_out': 'int',
-                                                        'hidden_layer': ['int', 'int']}},
-                             'Trainer': {'params': {'max_epochs': 'int'},
-                                         'callbacks': [{'type': 'Checkpointing', 'params': {'filepath': 'path'}}]}},
-                'Model002': {'Template': template,
-                             'DataLoader': {'create_DataLoader': {'raw_data_path': 'different_path.csv',
-                                                                  'features': ['feature_1', 'feature_2'],
-                                                                  'labels': ['label_1', 'label_2']}},
-                             'Model': {'create_model': {'n_inp': 'int', 'n_out': 'int', 'hidden_layer': ['int', 'int']},
-                                       'params': {'optimizer': {'type': 'SGD', 'params': {'lr': 0.001}}}},
-                             'Trainer': {'params': {'max_epochs': 'int'}}}}
+    yml_template = {'config': {'###INFO###': '"CPU_per_model" and "GPU_per_model" mutually exclusive',
+                               'CPU_per_model': 'int', 'GPU_per_model': 'int',
+                               'nbr_processes': 'int', 'model_run': ['Model001', 'Model002', 'model_name_3', '...']},
+                    'Model001': {'Template': template,
+                                 '###INFO###': 'After template defintion, keys of the template can be changed or new '
+                                               'keys added. The key structure has to be the same. Here an example is '
+                                               'given',
+                                 'DataLoader': {'create_DataLoader': {'raw_data_path': 'different_path.csv',
+                                                                      'features': ['feature_1', 'feature_2'],
+                                                                      'labels': ['label_1', 'label_2']}},
+                                 'Model': {'create_model': {'n_inp': 'int', 'n_out': 'int',
+                                                            'hidden_layer': ['int', 'int']}},
+                                 'Trainer': {'params': {'max_epochs': 'int'},
+                                             'callbacks': [{'type': 'Checkpointing', 'params': {'filepath': 'path'}}]}},
+                    'Model002': {'Template': template,
+                                 'DataLoader': {'create_DataLoader': {'raw_data_path': 'different_path.csv',
+                                                                      'features': ['feature_1', 'feature_2'],
+                                                                      'labels': ['label_1', 'label_2']}},
+                                 'Model': {
+                                     'create_model': {'n_inp': 'int', 'n_out': 'int', 'hidden_layer': ['int', 'int']},
+                                     'params': {'optimizer': {'type': 'SGD', 'params': {'lr': 0.001}}}},
+                                 'Trainer': {'params': {'max_epochs': 'int'}}}}
 
     for i, key in enumerate(key_list):
-        template = template.get(key)
+        yml_template = yml_template.get(key)
 
-    return yaml.dump(template, sort_keys=False)
+    return yaml.dump(yml_template, sort_keys=False)
 
 
 # configure MultiModel Training #######################################################################################
@@ -422,19 +423,19 @@ def replace_keys(dictMultiModel: dict, dictSingleModel: dict) -> dict:
     """
 
     # get, set and del keys in nested dict structure
-    def get_by_path(root, items):
+    def get_by_path(root: dict, items: list) -> Any:
         """Access a nested object in root by item sequence."""
         return reduce(operator.getitem, items, root)
 
-    def set_by_path(root, items, value):
+    def set_by_path(root: dict, items: list, value: Any) -> None:
         """Set a value in a nested object in root by item sequence."""
         get_by_path(root, items[:-1])[items[-1]] = value
 
-    def del_by_path(root, items):
+    def del_by_path(root: dict, items: list) -> None:
         """Delete a key-value in a nested object in root by item sequence."""
         del get_by_path(root, items[:-1])[items[-1]]
 
-    def recursion_search(document: dict, key_list: list, dictModel: dict):
+    def recursion_search(document: dict, key_list: list, dictModel: dict) -> Tuple[dict, List[str]]:
         """
         Recursive function to add/ replace key in a nested dict
 
@@ -488,6 +489,7 @@ def replace_expression(argsModel: dict, ModelName: str, expression: str = '<mode
     In a multi layer dict replace the expression "{model_name}" by the defined ModelName. Convenience feature for the
     MultiModel Training
     """
+
     def recursion(rec_dict: dict):
         for key, value in rec_dict.items():
             if isinstance(value, str):

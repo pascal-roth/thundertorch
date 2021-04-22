@@ -2,6 +2,7 @@ import torch.nn as nn
 import torch
 import yaml
 from argparse import Namespace
+from typing import Optional
 
 from thunder_torch.models.ModelBase import LightningModelBase
 from thunder_torch.utils.option_class import OptionClass
@@ -43,19 +44,19 @@ class LightningResMLP(LightningModelBase):
         self.check_hparams()
         self.get_default()
         self.get_functions()
-        self.min_val_loss = None
+        self.min_val_loss: Optional[torch.Tensor] = None
 
         # Construct MLP with a variable number of hidden layers
-        self.layers = []
-        self.layers.append(nn.Linear(hparams.n_inp, hparams.hidden_blocks[0]))  # first layer
+        self.layers_list = []
+        self.layers_list.append(nn.Linear(hparams.n_inp, hparams.hidden_blocks[0]))  # first layer
         # construct hidden residual blocks
         for block in hparams.hidden_blocks:
-            self.layers.append(ResNetDNNBlock(block, self.activation_fn))
-        self.layers.append(nn.Linear(self.hparams.hidden_blocks[-1], self.hparams.n_out))   # last layer
+            self.layers_list.append(ResNetDNNBlock(block, self.activation_fn))
+        self.layers_list.append(nn.Linear(self.hparams.hidden_blocks[-1], self.hparams.n_out))   # last layer
         if hasattr(self.hparams, 'output_activation'):
-            self.layers.append(getattr(torch.nn, self.hparams.output_activation)())
+            self.layers_list.append(getattr(torch.nn, self.hparams.output_activation)())
 
-        self.layers = torch.nn.Sequential(*self.layers)
+        self.layers = torch.nn.Sequential(*self.layers_list)
 
     @staticmethod
     def get_OptionClass():

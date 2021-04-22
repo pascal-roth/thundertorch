@@ -8,13 +8,15 @@ import pickle
 import pandas as pd
 from sklearn import preprocessing
 from argparse import Namespace
-from typing import Union, Tuple, Optional, Any
+from typing import Union, Tuple, Optional, Any, Type, TypeVar
 from pathlib import Path
 
 from abc import ABC, abstractmethod
 
 from thunder_torch import _logger
 from thunder_torch.loader import _utils
+
+DataLoaderBaseType = TypeVar('DataLoaderBaseType', bound='DataLoaderBase')
 
 
 class DataLoaderBase(ABC):
@@ -55,7 +57,7 @@ class DataLoaderBase(ABC):
 
     # training_data ###################################################################################################
     @abstractmethod
-    def add_train_data(self, *args: Optional[Any], **kwargs: Optional[Any]) -> None:
+    def add_train_data(self, *args: Any, **kwargs: Any) -> None:
         """
         Load training samples and separate them into input and target samples
         """
@@ -63,7 +65,7 @@ class DataLoaderBase(ABC):
 
     # validation_data #################################################################################################
     @abstractmethod
-    def add_val_data(self, *args: Optional[Any], **kwargs: Optional[Any]) -> None:
+    def add_val_data(self, *args: Any, **kwargs: Any) -> None:
         """
         Load validation samples and separate them into input and target samples
         """
@@ -86,7 +88,7 @@ class DataLoaderBase(ABC):
 
     # test_data #######################################################################################################
     @abstractmethod
-    def add_test_data(self, *args: Optional[Any], **kwargs: Optional[Any]) -> None:
+    def add_test_data(self, *args: Any, **kwargs: Any) -> None:
         """
         Load test samples and separate them into input and target samples
 
@@ -123,35 +125,37 @@ class DataLoaderBase(ABC):
         return x_samples, y_samples
 
     @staticmethod
-    def get_tensorDataset(x_samples: pd.DataFrame, y_samples: pd.DataFrame) -> torch.utils.data.TensorDataset:
-        return torch.utils.data.TensorDataset(torch.tensor(x_samples), torch.tensor(y_samples))
+    def get_tensorDataset(x_samples: pd.DataFrame, y_samples: pd.DataFrame) -> \
+            torch.utils.data.TensorDataset:  # type: ignore[name-defined]
+        return torch.utils.data.TensorDataset(torch.tensor(x_samples),  # type: ignore[attr-defined]
+                                              torch.tensor(y_samples))
 
-    def train_dataloader(self, **kwargs: Optional[Any]) -> torch.utils.data.DataLoader:
+    def train_dataloader(self, **kwargs: Any) -> torch.utils.data.DataLoader:  # type: ignore[name-defined]
         """
         Generate PyTorch DataLoader for the training data (all kwargs of the PyTorch DataLoader can be used)
         """
         x_samples, y_samples = self.data_normalization(self.x_train, self.y_train)
         tensor = self.get_tensorDataset(x_samples, y_samples)
-        return torch.utils.data.DataLoader(tensor, batch_size=self.lparams.batch, num_workers=self.lparams.num_workers,
-                                           **kwargs)
+        return torch.utils.data.DataLoader(tensor, batch_size=self.lparams.batch,  # type: ignore[attr-defined]
+                                           num_workers=self.lparams.num_workers, **kwargs)
 
-    def val_dataloader(self, **kwargs: Optional[Any]) -> torch.utils.data.DataLoader:
+    def val_dataloader(self, **kwargs: Any) -> torch.utils.data.DataLoader:  # type: ignore[name-defined]
         """
         Generate PyTorch DataLoader for the validation data (all kwargs of the PyTorch DataLoader can be used)
         """
         x_samples, y_samples = self.data_normalization(self.x_val, self.y_val)
         tensor = self.get_tensorDataset(x_samples, y_samples)
-        return torch.utils.data.DataLoader(tensor, batch_size=self.lparams.batch, num_workers=self.lparams.num_workers,
-                                           **kwargs)
+        return torch.utils.data.DataLoader(tensor, batch_size=self.lparams.batch,  # type: ignore[attr-defined]
+                                           num_workers=self.lparams.num_workers, **kwargs)
 
-    def test_dataloader(self, **kwargs: Optional[Any]) -> torch.utils.data.DataLoader:
+    def test_dataloader(self, **kwargs: Any) -> torch.utils.data.DataLoader:  # type: ignore[name-defined]
         """
         Generate PyTorch DataLoader for the test data (all kwargs of the PyTorch DataLoader can be used)
         """
         x_samples, y_samples = self.data_normalization(self.x_test, self.y_test)
         tensor = self.get_tensorDataset(x_samples, y_samples)
-        return torch.utils.data.DataLoader(tensor, batch_size=self.lparams.batch, num_workers=self.lparams.num_workers,
-                                           **kwargs)
+        return torch.utils.data.DataLoader(tensor, batch_size=self.lparams.batch,  # type: ignore[attr-defined]
+                                           num_workers=self.lparams.num_workers, **kwargs)
 
     # save and load TabluarLoader object ##############################################################################
     def save(self, filename: Union[str, Path]) -> None:
@@ -173,7 +177,7 @@ class DataLoaderBase(ABC):
         _logger.info('TabularLoader object saved')
 
     @classmethod
-    def load(cls, filename: Union[str, Path]) -> object:
+    def load(cls: Type[DataLoaderBaseType], filename: Union[str, Path]) -> DataLoaderBaseType:
         if not isinstance(filename, str):
             filename = str(filename)
         if not filename.lower().endswith('.pkl'):
@@ -184,21 +188,22 @@ class DataLoaderBase(ABC):
 
     # classmethods ####################################################################################################
     @classmethod
-    def read_from_file(cls, *args: Optional[Any], **kwargs: Optional[Any]) -> object:
+    def read_from_file(cls: Type[DataLoaderBaseType], *args: Optional[Any], **kwargs: Any) -> DataLoaderBaseType:
         """
         Create DataLoader object from file
         """
         pass
 
     @classmethod
-    def read_from_yaml(cls, argsLoader: dict, **kwargs: Optional[Any]) -> object:
+    def read_from_yaml(cls, argsLoader: dict, **kwargs: Any) -> object:
         """
         Create TabularLoader object from a dict similar to the one given under yml_template
         """
         pass
 
     @classmethod
-    def read_from_checkpoint(cls, ckpt_file: str, model: str = 'LightningFlexMLP') -> object:
+    def read_from_checkpoint(cls: Type[DataLoaderBaseType], ckpt_file: str,
+                             model: str = 'LightningFlexMLP') -> DataLoaderBaseType:
         """
         Create cls DataLoader from pytorch lightning checkpoint
         !! Hparams of the checkpoint had to be updated with lparams of the Loader in order to reconstruct the Loader!!

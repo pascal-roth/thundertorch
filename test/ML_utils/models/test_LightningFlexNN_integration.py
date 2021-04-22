@@ -16,15 +16,17 @@ def test_LightningFlexNN_integration(tmp_path: PosixPath) -> None:
     x_train = mnist_train.data[:1000].double()
     x_train = x_train.reshape((1000, 1, 28, 28))
     y_train = mnist_train.targets[:1000].double()
-    train = torch.utils.data.TensorDataset(x_train, y_train)
-    train_loader = torch.utils.data.DataLoader(train, batch_size=64, shuffle=False, num_workers=10)
+    train = torch.utils.data.TensorDataset(x_train, y_train)  # type: ignore[attr-defined]
+    train_loader = torch.utils.data.DataLoader(train, batch_size=64, shuffle=False,    # type: ignore[attr-defined]
+                                               num_workers=10)
 
     mnist_val = datasets.MNIST(tmp_path, train=False, download=True, transform=transform)
     x_val = mnist_val.data[:200].double()
     x_val = x_val.reshape((200, 1, 28, 28))
     y_val = mnist_val.targets[:200].double()
-    val = torch.utils.data.TensorDataset(x_val, y_val)
-    val_loader = torch.utils.data.DataLoader(val, batch_size=64, shuffle=False, num_workers=10)
+    val = torch.utils.data.TensorDataset(x_val, y_val)    # type: ignore[attr-defined]
+    val_loader = torch.utils.data.DataLoader(val, batch_size=64, shuffle=False,  # type: ignore[attr-defined]
+                                             num_workers=10)
 
     model_dict = {'create_model': {'width': 28, 'height': 28, 'depth': 1,
                                    'layers': [{'type': 'Conv2d', 'params': {'kernel_size': 3, 'channels': 16, 'stride': 1}},

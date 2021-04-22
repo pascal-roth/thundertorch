@@ -12,7 +12,7 @@ from thunder_torch import _logger
 class RelIntervals(Callback):
 
     def __init__(self, rel_threshold: list = [0.001, 0.005, 0.01, 0.05, 0.1, 0.2, 0.5], path: str = 'intervals',
-                 **kwargs: Optional[Any]) -> None:
+                 **kwargs: Any) -> None:
         super().__init__()
 
         self.rel_thresholds = rel_threshold
@@ -21,6 +21,7 @@ class RelIntervals(Callback):
         self.intervals_rel_acc_train = []
         self.intervals_rel_acc_val = []
         self.intervals_rel_acc_test = []
+
         for i in range(len(rel_threshold)):
             self.intervals_rel_acc_train.append(metrics.RelIntervals(rel_threshold[i], **kwargs))
             self.intervals_rel_acc_val.append(metrics.RelIntervals(rel_threshold[i], **kwargs))

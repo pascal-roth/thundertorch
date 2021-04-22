@@ -250,7 +250,7 @@ def test_read_from_yaml_load(path: PosixPath, tmp_path: PosixPath, create_exampl
     yaml_file = parse_yaml(path / 'TabularLoaderEval.yaml')
     _ = yaml_file['dataloader'].pop('create_dataloader')
     yaml_file['dataloader']['load_dataloader']['path'] = str(tmp_path / 'exampleTabularLoader.pkl')
-    dataLoader = TabularLoader.read_from_yaml(yaml_file['dataloader'], batch=16, num_workers=2)
+    dataLoader: TabularLoader = TabularLoader.read_from_yaml(yaml_file['dataloader'], batch=16, num_workers=2)
     assert dataLoader.lparams.batch == 16, 'Batch overwrite does not succeed'
     assert dataLoader.lparams.num_workers == 2, 'Num_workers overwrite does not succeed'
 

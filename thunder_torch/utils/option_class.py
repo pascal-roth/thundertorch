@@ -1,4 +1,4 @@
-from typing import Optional, Any
+from typing import Any, Union, KeysView, List
 
 from thunder_torch import _logger
 from thunder_torch.utils.general import dynamic_imp
@@ -12,7 +12,7 @@ class OptionClass:
     structures are possible, however, for every dict that should be controlled an own OptionClass object is necessary.
     Thus the nested structure inside the dict is rebuild as a nested structure of OptionClass objects.
     """
-    def __init__(self, **kwargs: Optional[Any]) -> None:
+    def __init__(self, **kwargs: Any) -> None:
         """
         Create OptionClass Object
 
@@ -21,16 +21,16 @@ class OptionClass:
         kwargs          - template: template of the object that is printed when an exception is raised
         """
         super().__init__()
-        self.keylist = {}
-        self.required_keys = []
-        self.param_dicts = []
+        self.keylist: dict = {}
+        self.required_keys: List[str] = []
+        self.param_dicts: List[str] = []
 
         if kwargs.get('template'):
             self.template = 'Follow the template: \n{}'.format(kwargs.pop('template'))
         else:
             self.template = ''
 
-    def add_key(self, key: str, dtype: Any, **kwargs: Optional[Any]) -> None:
+    def add_key(self, key: str, dtype: Any, **kwargs: Any) -> None:
         """
         Add key to object
 
@@ -58,7 +58,7 @@ class OptionClass:
         if len(kwargs) != 0:
             _logger.warning('Additional/ unexpected kwargs are given!')
 
-    def check_dict(self, input_dict: dict, **kwargs: Optional[Any]) -> list:
+    def check_dict(self, input_dict: dict, **kwargs: Any) -> list:
         """
         Check given parameter dict
 
@@ -111,7 +111,7 @@ class OptionClass:
         assert type(item) in self.keylist[key]['dtype'], 'Key "{}" is expected to have dtype(s) "{}", but "{}" was ' \
                                                          'given!'.format(key, self.keylist[key]['dtype'], type(item))
 
-    def check_mutually_exclusive(self, key: str, key_list: list) -> None:
+    def check_mutually_exclusive(self, key: str, key_list: Union[list, KeysView[str]]) -> None:
         """
         Check for mutually exclusive relations in the list of keys of the parameter dict
         """

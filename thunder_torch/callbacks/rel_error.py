@@ -1,3 +1,4 @@
+from typing import Optional, Any
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks import Callback
 
@@ -7,7 +8,7 @@ from thunder_torch import _logger
 
 class RelError(Callback):
 
-    def __init__(self, **kwargs):
+    def __init__(self, **kwargs: Any) -> None:
         super().__init__()
 
         self.rel_error_train = metrics.RelError(**kwargs)
@@ -16,13 +17,13 @@ class RelError(Callback):
 
         _logger.info('RelError metric activated')
 
-    def on_batch_end(self, trainer: pl.Trainer, pl_module: pl.LightningModule):
+    def on_batch_end(self, trainer: pl.Trainer, pl_module: pl.LightningModule) -> None:
         if hasattr(trainer, 'hiddens'):
             targets = trainer.hiddens["targets"]
             preds = trainer.hiddens["preds"]
             self.rel_error_train(preds, targets)
 
-    def on_epoch_end(self, trainer: pl.Trainer, pl_module: pl.LightningModule):
+    def on_epoch_end(self, trainer: pl.Trainer, pl_module: pl.LightningModule) -> None:
         if hasattr(trainer, 'hiddens'):
             mean_rel_error, mean_abs_error = self.rel_error_train.compute()
             acc_dict = {'rel_error': mean_rel_error, 'abs_error': mean_abs_error}
@@ -35,13 +36,13 @@ class RelError(Callback):
             # pl_module.log('train_rel_acc', rel_acc, logger=True, prog_bar=True)
             # pl_module.log('train_abs_rel_acc', abs_rel_acc, logger=True, prog_bar=True)
 
-    def on_validation_batch_end(self, trainer: pl.Trainer, pl_module: pl.LightningModule):
+    def on_validation_batch_end(self, trainer: pl.Trainer, pl_module: pl.LightningModule) -> None:
         if hasattr(trainer, 'hiddens'):
             preds = trainer.hiddens["preds"]
             targets = trainer.hiddens["targets"]
             self.rel_error_val(preds, targets)
 
-    def on_validation_end(self, trainer: pl.Trainer, pl_module: pl.LightningModule):
+    def on_validation_end(self, trainer: pl.Trainer, pl_module: pl.LightningModule) -> None:
         if hasattr(trainer, 'hiddens'):
             mean_rel_error, mean_abs_error = self.rel_error_val.compute()
             acc_dict = {'val_rel_error': mean_rel_error, 'val_abs_error': mean_abs_error}
@@ -56,13 +57,13 @@ class RelError(Callback):
             # pl_module.log('val_rel_acc', rel_acc, logger=True, prog_bar=True)
             # pl_module.log('val_abs_rel_acc', abs_rel_acc, logger=True, prog_bar=True)
 
-    def on_test_batch_end(self, trainer: pl.Trainer, pl_module: pl.LightningModule):
+    def on_test_batch_end(self, trainer: pl.Trainer, pl_module: pl.LightningModule) -> None:
         if hasattr(trainer, 'hiddens'):
             preds = trainer.hiddens["preds"]
             targets = trainer.hiddens["targets"]
             self.rel_error_test(preds, targets)
 
-    def on_test_end(self, trainer: pl.Trainer, pl_module: pl.LightningModule):
+    def on_test_end(self, trainer: pl.Trainer, pl_module: pl.LightningModule) -> None:
         if hasattr(trainer, 'hiddens'):
             mean_rel_error, mean_abs_error = self.rel_error_test.compute()
             acc_dict = {'test_rel_error': mean_rel_error.item(), 'test_abs_error': mean_abs_error.item()}

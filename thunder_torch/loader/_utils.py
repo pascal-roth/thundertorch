@@ -8,7 +8,7 @@ import random
 import numpy as np
 import os
 import torch
-from typing import Union
+from typing import Union, Tuple
 from pathlib import Path, PosixPath
 from sklearn.model_selection import train_test_split
 
@@ -175,10 +175,10 @@ def read_df_from_file(file_path: Union[Path, PosixPath, str], sep: str = ',') ->
 
     elif file_extention == '.ulf':
         _logger.debug('"ulf" datatype recognized')
-        sep = None
+        sep_ulf = None
         with open(file_path, 'r') as f:
-            output_dict = next(f).split(sep)
-            data = np.vstack([np.array(line.split(sep), dtype=np.float64) for line in f])
+            output_dict = next(f).split(sep_ulf)
+            data = np.vstack([np.array(line.split(sep_ulf), dtype=np.float64) for line in f])
         data = pd.DataFrame(data)
         data.columns = output_dict
 
@@ -209,7 +209,7 @@ class FastTensorDataLoader:
     Code-Source: https://github.com/hcarlens/pytorch-tabular/blob/master/fast_tensor_data_loader.py
     """
 
-    def __init__(self, *tensors, batch_size: int, shuffle: bool = False) -> None:
+    def __init__(self, *tensors: torch.Tensor, batch_size: int, shuffle: bool = False) -> None:
         """
         Initialize a FastTensorDataLoader
         Parameters
@@ -219,7 +219,7 @@ class FastTensorDataLoader:
         shuffle         if True, shuffle the data *in-place* whenever an iterator is created out of this object.
         """
         assert all(t.shape[0] == tensors[0].shape[0] for t in tensors)
-        self.tensors = tensors
+        self.tensors: list = tensors
 
         self.dataset_len = self.tensors[0].shape[0]
         self.batch_size = batch_size
@@ -231,19 +231,19 @@ class FastTensorDataLoader:
             n_batches += 1
         self.n_batches = n_batches
 
-    def __iter__(self):
+    def __iter__(self) -> None:
         if self.shuffle:
             r = torch.randperm(self.dataset_len)
             self.tensors = [t[r] for t in self.tensors]
         self.i = 0
-        return self
+        # return self
 
-    def __next__(self):
+    def __next__(self) -> Tuple[torch.Tensor, torch.Tensor]:
         if self.i >= self.dataset_len:
             raise StopIteration
         batch = tuple(t[self.i:self.i + self.batch_size] for t in self.tensors)
         self.i += self.batch_size
         return batch
 
-    def __len__(self):
+    def __len__(self) -> int:
         return self.n_batches
