@@ -59,14 +59,16 @@ class LightningFlexNN(LightningModelBase):
         self.get_default()
         self.get_functions()
         self.set_channels()
-        self.min_val_loss
+        self.min_val_loss: float = None
 
         self.layers = []
 
         self.height = self.hparams.height
         self.width = self.hparams.width
+        self.depth = self.hparams.depth
         self.layer_activation = (torch.nn.Conv1d, torch.nn.Conv2d, torch.nn.Conv3d, torch.nn.Linear,)
-        self.construct_nn2d(layer_list=self.hparams.layers)
+        # self.construct_nn2d(layer_list=self.hparams.layers)
+        self.construct_nn3d(layer_list=self.hparams.layers)
 
         if hasattr(self.hparams, 'mlp_layer'):
             self.layers.append(torch.nn.Flatten())
@@ -79,14 +81,19 @@ class LightningFlexNN(LightningModelBase):
         self.layers = torch.nn.Sequential(*self.layers)
 
     def set_channels(self) -> None:
-        in_channels = self.hparams.depth
-        for i, layer_dict in enumerate(self.hparams.layers):
-            if layer_dict['type'] == 'Conv2d' and all(
-                    elem not in layer_dict for elem in ['in_channels', 'out_channels']):
+        in_channels = self.hparams.start_channels
+
+        for i, layer_dict in enumerate(self.hparams.layers):  # TODO: let automatically adapt for all conv layers
+            if layer_dict['type'] == 'Conv3d' and all(elem not in layer_dict
+                                                      for elem in ['in_channels', 'out_channels']):
                 out_channels = layer_dict['params'].pop('channels')
                 self.hparams.layers[i]['params']['in_channels'] = in_channels
                 self.hparams.layers[i]['params']['out_channels'] = out_channels
                 in_channels = out_channels
+            elif layer_dict['type'] == 'Conv3d' and all(elem in layer_dict['params']
+                                                        for elem in ['in_channels', 'out_channels']):
+                in_channels = self.hparams.layers[i]['params']['out_channels']
+
         self.final_channel = in_channels
 
     @staticmethod
@@ -94,7 +101,8 @@ class LightningFlexNN(LightningModelBase):
         options = {'hparams': OptionClass(template=LightningFlexNN.yaml_template(['Model', 'params']))}
         options['hparams'].add_key('depth', dtype=int, required=True)
         options['hparams'].add_key('width', dtype=int, required=True)
-        options['hparams'].add_key('height', dtype=int, required=True)
+        options['hparams'].add_key('height', dtype=int)  # only required for 3d Conv layers
+        options['hparams'].add_key('start_channels', dtype=int, required=True)
         options['hparams'].add_key('layers', dtype=list, required=True)
         options['hparams'].add_key('mlp_layer', dtype=dict, required=True)
         options['hparams'].add_key('output_activation', dtype=str, attr_of=_modules_activation)
