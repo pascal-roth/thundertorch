@@ -92,7 +92,7 @@ def test_train_callbacks() -> None:
     # check handling of EarlyStopping and Checkpointing callback since they have their own trainer flags
     argsTrainer: dict = {'callbacks': [{'type': 'EarlyStopping',
                                         'params': {'monitor': 'val_loss', 'patience': 12, 'mode': 'min'}},
-                                       {'type': 'Checkpointing',
+                                       {'type': 'ModelCheckpoint',
                                         'params': {'filepath': 'checkpoints/some_name', 'save_top_k': 1, 'period': 0}}],
                          'params': {'max_epochs': 3}}
     argsTrainer = train_callbacks(argsTrainer)
