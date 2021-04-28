@@ -9,6 +9,7 @@ from thunder_torch.utils.option_class import OptionClass
 from thunder_torch import _modules_activation, _modules_loss, _modules_lr_scheduler, _modules_optim
 import thunder_torch as tt
 
+
 class ResNetDNNBlock(nn.Module):
     def __init__(self, n_neurons: int, activation: Callable[..., torch.Tensor] = torch.nn.ReLU()) -> None:
         super().__init__()

@@ -13,6 +13,7 @@ from thunder_torch.utils.option_class import OptionClass
 from thunder_torch import _modules_activation, _modules_loss, _modules_lr_scheduler, _modules_optim
 import thunder_torch as tt
 
+
 class LightningModelTemplate(LightningModelBase):
     """
     Create Model as PyTorch LightningModule
