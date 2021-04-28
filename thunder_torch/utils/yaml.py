@@ -436,7 +436,7 @@ def replace_keys(dictMultiModel: dict, dictSingleModel: dict) -> dict:
     dictRunModel        - adjusted model dict
     """
 
-    def recursion_search(document: dict, key_list: list, dictModel: dict) -> Tuple[dict, List[str]]:
+    def recursion_search(document: Union[dict, str], key_list: list, dictModel: dict) -> Tuple[dict, List[str]]:
         """
         Recursive function to add/ replace key in a nested dict
 

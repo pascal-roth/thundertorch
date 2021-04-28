@@ -17,7 +17,7 @@ from thunder_torch.loader import _utils
 from thunder_torch.loader.DataLoaderBase import DataLoaderBase
 from thunder_torch.utils.option_class import OptionClass
 from thunder_torch.utils.general import load_model_from_checkpoint
-from thunder_torch.utils.yaml import get_by_path
+import thunder_torch as tt
 
 TabularLoaderType = TypeVar('TabularLoaderType', bound='TabularLoader')
 
@@ -397,6 +397,6 @@ class TabularLoader(DataLoaderBase):
                                                          'save_Loader': {'path': 'name.pkl'},
                                                          'fast_loader': 'bool (default: False)'}}}
 
-        template = get_by_path(template, key_list)
+        template = tt.utils.get_by_path(template, key_list)
 
         return yaml.dump(template, sort_keys=False)

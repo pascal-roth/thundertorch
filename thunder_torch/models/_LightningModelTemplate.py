@@ -11,8 +11,7 @@ from typing import Optional, Any
 from thunder_torch.models.ModelBase import LightningModelBase
 from thunder_torch.utils.option_class import OptionClass
 from thunder_torch import _modules_activation, _modules_loss, _modules_lr_scheduler, _modules_optim
-from thunder_torch.utils.yaml import get_by_path
-
+import thunder_torch as tt
 
 class LightningModelTemplate(LightningModelBase):
     """
@@ -77,6 +76,6 @@ class LightningModelTemplate(LightningModelBase):
                                                              'params': {'param_1': 'int', 'param_2': 'int'}},
                                                'num_workers': 'int', 'batch': 'int'}}}
 
-        template = get_by_path(template, key_list)
+        template = tt.utils.get_by_path(template, key_list)
 
         return yaml.dump(template, sort_keys=False)
