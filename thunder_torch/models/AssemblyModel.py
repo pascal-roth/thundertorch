@@ -1,6 +1,8 @@
 import torch
 import os
-from typing import List
+from typing import List, Optional, Union
+
+from thunder_torch.models.LightningFlexMLP import LightningFlexMLP
 
 
 class AssemblyModel(torch.nn.Module):
@@ -8,7 +10,12 @@ class AssemblyModel(torch.nn.Module):
     model that combines various single torch models that have the same input but different output
     into one model for later convenience
     """
-    def __init__(self, models: list, x_min, x_max, y_min, y_max, limit_scale: bool = False) -> None:
+    def __init__(self, models: List[LightningFlexMLP],
+                 x_min: Optional[Union[List[float], torch.Tensor]] = None,
+                 x_max: Optional[Union[List[float], torch.Tensor]] = None,
+                 y_min: Optional[Union[List[float], torch.Tensor]] = None,
+                 y_max: Optional[Union[List[float], torch.Tensor]] = None,
+                 limit_scale: bool = False) -> None:
         """
 
         Parameters
@@ -22,16 +29,28 @@ class AssemblyModel(torch.nn.Module):
         super().__init__()
 
         self.models = torch.nn.ModuleList(models)
-        X_max = x_max if isinstance(x_max, torch.Tensor) else torch.tensor(x_max, dtype=torch.float64)
-        X_min = x_min if isinstance(x_min, torch.Tensor) else torch.tensor(x_min, dtype=torch.float64)
-        Y_max = y_max if isinstance(y_max, torch.Tensor) else torch.tensor(y_max, dtype=torch.float64)
-        Y_min = y_min if isinstance(y_min, torch.Tensor) else torch.tensor(y_min, dtype=torch.float64)
+        if all(elem is not None for elem in [x_max, x_min, y_max, y_min]):
+            X_max = x_max if isinstance(x_max, torch.Tensor) else torch.tensor(x_max, dtype=torch.float64)
+            X_min = x_min if isinstance(x_min, torch.Tensor) else torch.tensor(x_min, dtype=torch.float64)
+            Y_max = y_max if isinstance(y_max, torch.Tensor) else torch.tensor(y_max, dtype=torch.float64)
+            Y_min = y_min if isinstance(y_min, torch.Tensor) else torch.tensor(y_min, dtype=torch.float64)
 
-        # register scaling parameters as buffers that their device will also be changed then calling .to .cuda or .cpu
-        self.register_buffer("X_max", X_max)
-        self.register_buffer("X_min", X_min)
-        self.register_buffer("Y_max", Y_max)
-        self.register_buffer("Y_min", Y_min)
+            # register scaling parameters as buffers that their device will also be changed then
+            # calling .to .cuda or .cpu
+            self.register_buffer("X_max", X_max)
+            self.register_buffer("X_min", X_min)
+            self.register_buffer("Y_max", Y_max)
+            self.register_buffer("Y_min", Y_min)
+
+            self.X_max: torch.Tensor
+            self.X_min: torch.Tensor
+            self.Y_max: torch.Tensor
+            self.Y_min: torch.Tensor
+
+            self.min_max_scale = True
+        else:
+            self.min_max_scale = False
+
         self.limit_scale = limit_scale
 
         # Save features and labels as attributes of the torch script, emtpy list must be typed for the tracing
@@ -40,7 +59,7 @@ class AssemblyModel(torch.nn.Module):
             self.labels.append(model.hparams.lparams.labels)
         self.features = models[0].hparams.lparams.features
 
-    def forward(self, Xorg: torch.Tensor):
+    def forward(self, Xorg: torch.Tensor) -> torch.Tensor:  # type: ignore[override]
         """
         Forward pass of model
             runs forward pass through all submodels and scales all in- and outputs
@@ -55,15 +74,22 @@ class AssemblyModel(torch.nn.Module):
 
         """
         X = Xorg.clone()
-        X = (X - self.X_min) / (self.X_max - self.X_min)
+
+        if self.min_max_scale:
+            X = (X - self.X_min) / (self.X_max - self.X_min)
         # If input are out of range of trained scales, set value to border
         # if self.limit_scale:
         #     X[X > 1] = 1
         #     X[X < 0] = 0
         outputs = []
-        for i, model in enumerate(self.models):
-            out = model(X)
-            out = out * (self.Y_max[i] - self.Y_min[i]) + self.Y_min[i]
+
+        # enumerate leads to errors since ModuleList not Iterable
+        for i in range(len(self.models)):
+            out = self.models[i](X)
+
+            if self.min_max_scale:
+                out = out * (self.Y_max[i] - self.Y_min[i]) + self.Y_min[i]
+
             # out = out.view(-1)
             outputs.append(out)
         return torch.cat(outputs, 1)
@@ -73,7 +99,7 @@ class AssemblyModel(torch.nn.Module):
     # For some reason self.models are unknown and cannot be iterated over, please try to use it in a later torch version
     # as of now torch 1.7 and earlier does not work
     # #@torch.jit.export
-    def forward_parallel(self, Xorg: torch.tensor):
+    def forward_parallel(self, Xorg: torch.Tensor) -> torch.Tensor:
         """
         Forward pass of model
             runs forward pass through all submodels in parallel using torch::jit::fork and scales all in- and outputs
@@ -89,7 +115,10 @@ class AssemblyModel(torch.nn.Module):
         """
         X = Xorg.clone()
         X.requires_grad_(False)
-        X = (X - self.X_min) / (self.X_max - self.X_min)
+
+        if self.min_max_scale:
+            X = (X - self.X_min) / (self.X_max - self.X_min)
+
         # If input are out of range of trained scales, set value to border
         if self.limit_scale:
             X[X > 1] = 1
@@ -97,11 +126,13 @@ class AssemblyModel(torch.nn.Module):
 
         # jit.fork spawns an asynchronous task that are run in parallel until jit.wait
         # in pt 1.2 fork and wait are called with leading underscore
-        futures = [torch.jit._fork(model, X) for model in self.models]
+        # mypy - ModuleList has no attribute __next__, however working
+        futures = [torch.jit._fork(model, X) for model in self.models]  # type: ignore[attr-defined]
         outputs = [torch.jit._wait(fut) for fut in futures]
         return torch.cat(outputs, 1)
 
     def toTorchScript(self, path: str) -> None:
+        # TODO introduce general export scripts in utils to let every model be exportable
         """
         saves assembly model as torch-script for application in C++ Code
 
@@ -109,7 +140,8 @@ class AssemblyModel(torch.nn.Module):
         ----------
         path: str   path + file name of model
         """
-        n_inp = self.models[0].hparams.n_inp
+        # mypy does not recognize LightningFlexMLP and its Namespace correctly, see again after change of function
+        n_inp: int = self.models[0].hparams.n_inp  # type: ignore
         sample_input = torch.ones([8, n_inp], dtype=torch.float64)
         # b = self.forward(sample_input)
         with torch.no_grad():
@@ -124,7 +156,7 @@ class AssemblyModel(torch.nn.Module):
                 answer = input(msg)
                 if answer == "no" or answer == "n":
                     print("Execution aborted!")
-                    return -1
+                    return
 
         print("Saving assembly model as torchScript to {}".format(path))
         torch_script.save(path)
@@ -140,9 +172,10 @@ class AssemblyModel(torch.nn.Module):
             dtype of saved model
         """
         import torch.onnx
-        n_inp = self.models[0].hparams.n_inp
+        # mypy does not recognize LightningFlexMLP and its Namespace correctly, see again after change of function
+        n_inp: int = self.models[0].hparams.n_inp  # type: ignore
         dtype = self.models[0].dtype
-        x = torch.ones([8, n_inp], dtype=dtype)
+        x = torch.ones([8, n_inp], dtype=dtype)  # type: ignore
 
         # Export the model
         torch.onnx.export(self,  # model being run

@@ -17,6 +17,7 @@ from thunder_torch.loader import _utils
 from thunder_torch.loader.DataLoaderBase import DataLoaderBase
 from thunder_torch.utils.option_class import OptionClass
 from thunder_torch.utils.general import load_model_from_checkpoint
+from thunder_torch.utils.yaml import get_by_path
 
 TabularLoaderType = TypeVar('TabularLoaderType', bound='TabularLoader')
 
@@ -94,7 +95,7 @@ class TabularLoader(DataLoaderBase):
         assert all(elem not in self.lparams.labels for elem in self.lparams.features), "Feature is included in labels"
 
     # training_data ###################################################################################################
-    def add_train_data(self, path: Union[Path, PosixPath, str], sep: str = ',') -> None:
+    def add_train_data(self, path: Union[Path, PosixPath, str], sep: str = ',') -> None:  # type: ignore[override]
         """
         Load training samples and separate them into input and target samples
 
@@ -115,7 +116,7 @@ class TabularLoader(DataLoaderBase):
         _logger.debug(f'Train samples added from file {path} with sep {sep}!')
 
     # validation_data #################################################################################################
-    def add_val_data(self, path: Union[Path, PosixPath, str], sep: str = ',') -> None:
+    def add_val_data(self, path: Union[Path, PosixPath, str], sep: str = ',') -> None:  # type: ignore[override]
         """
         Load validation samples and separate them into input and target samples
 
@@ -135,7 +136,7 @@ class TabularLoader(DataLoaderBase):
         _logger.debug(f'Validation samples added from file {path} with sep {sep}!')
 
     # test_data #######################################################################################################
-    def add_test_data(self, path: Union[Path, PosixPath, str], sep: str = ',') -> None:
+    def add_test_data(self, path: Union[Path, PosixPath, str], sep: str = ',') -> None:  # type: ignore[override]
         """
         Load test samples and separate them into input and target samples
 
@@ -191,8 +192,8 @@ class TabularLoader(DataLoaderBase):
 
     # classmethods ####################################################################################################
     @classmethod
-    def read_from_file(cls: Type[TabularLoaderType], file: Union[str, Path, PosixPath], features: List[str],
-                       labels: List[str], **kwargs: Any) -> TabularLoaderType:
+    def read_from_file(cls: Type[TabularLoaderType], file: Union[str, Path, PosixPath],   # type: ignore[override]
+                       features: List[str], labels: List[str], **kwargs: Any) -> TabularLoaderType:
         """
         Create TabularLoader object from file
 
@@ -278,10 +279,11 @@ class TabularLoader(DataLoaderBase):
         else:
             raise KeyError('No DataLoader generated! Either include dict "load_DataLoader" or "create_DataLoader"!')
 
-        return Loader
+        return Loader  # type: ignore[return-value]
 
     @classmethod
-    def read_from_checkpoint(cls: Type[TabularLoaderType], ckpt_file: Union[str, Path, PosixPath]) -> TabularLoaderType:
+    def read_from_checkpoint(cls: Type[TabularLoaderType],  # type: ignore[override]
+                             ckpt_file: str) -> TabularLoaderType:
         """
         Create cls TabluarLoader from pytorch lightning checkpoint
         !! Hparams of the checkpoint had to be updated with lparams of the Loader in order to reconstruct the Loader!!
@@ -323,7 +325,7 @@ class TabularLoader(DataLoaderBase):
         else:
             _logger.debug('NO test data included!')
 
-        return Loader
+        return Loader  # type: ignore[return-value]
 
     @staticmethod
     def __get_OptionClass() -> dict:
@@ -395,7 +397,6 @@ class TabularLoader(DataLoaderBase):
                                                          'save_Loader': {'path': 'name.pkl'},
                                                          'fast_loader': 'bool (default: False)'}}}
 
-        for i, key in enumerate(key_list):
-            template = template.get(key)
+        template = get_by_path(template, key_list)
 
         return yaml.dump(template, sort_keys=False)

@@ -25,7 +25,12 @@ class AbsRelAccuracy(Metric):
         self.abs_threshold = abs_threshold
         self.rel_threshold = rel_threshold
 
-    def update(self, preds: torch.Tensor, target: torch.Tensor) -> None:
+        self.total: torch.Tensor
+        self.correct_rel: torch.Tensor
+        self.correct_abs: torch.Tensor
+        self.correct_abs_rel: torch.Tensor
+
+    def update(self, preds: torch.Tensor, target: torch.Tensor) -> None:   # type: ignore[override]
         """
         Update state with predictions and targets.
 

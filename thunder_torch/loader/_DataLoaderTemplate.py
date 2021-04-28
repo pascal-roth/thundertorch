@@ -6,11 +6,17 @@
 import os
 import yaml
 from argparse import Namespace
+from typing import Any, Union, Type, TypeVar
+from pathlib import Path, PosixPath
 
 from thunder_torch import _logger
 from thunder_torch import models
 from thunder_torch.utils.option_class import OptionClass
 from thunder_torch.loader.DataLoaderBase import DataLoaderBase
+from thunder_torch.utils.yaml import get_by_path
+
+
+DataLoaderTemplateType = TypeVar('DataLoaderTemplateType', bound='DataLoaderTemplate')
 
 
 class DataLoaderTemplate(DataLoaderBase):
@@ -19,7 +25,7 @@ class DataLoaderTemplate(DataLoaderBase):
     DataLoader that are used as input of the Lightning Trainer class
     """
 
-    def __init__(self, param_1, param_2, **kwargs) -> None:
+    def __init__(self, param_1: Any, param_2: Any, **kwargs: Any) -> None:
         """
         Create object
 
@@ -53,14 +59,14 @@ class DataLoaderTemplate(DataLoaderBase):
         elif kwargs.get('test_path', None):
             self.add_test_data(**kwargs.pop('test_path'))
 
-    def check_lparams(self):
+    def check_lparams(self) -> None:
         """
         function to check given parameters (e. g. with assert statements)
         """
         # assert param_1 == 'some value', 'Error Message'
 
     # training_data ###################################################################################################
-    def add_train_data(self, path) -> None:
+    def add_train_data(self, path: Union[str, Path, PosixPath]) -> None:  # type: ignore[override]
         """
         Function to load training samples
 
@@ -74,7 +80,7 @@ class DataLoaderTemplate(DataLoaderBase):
         self.x_train = self.y_train = None
 
     # validation_data #################################################################################################
-    def add_val_data(self, path) -> None:
+    def add_val_data(self, path: Union[str, Path, PosixPath]) -> None:  # type: ignore[override]
         """
         Function to load validation samples
 
@@ -88,7 +94,7 @@ class DataLoaderTemplate(DataLoaderBase):
         self.x_val = self.y_val = None
 
     # test_data #######################################################################################################
-    def add_test_data(self, path) -> None:
+    def add_test_data(self, path: Union[str, Path, PosixPath]) -> None:  # type: ignore[override]
         """
         Function to load test samples
 
@@ -104,15 +110,16 @@ class DataLoaderTemplate(DataLoaderBase):
 
     # classmethods ####################################################################################################
     @classmethod
-    def read_from_file(cls, file, **kwargs):
+    def read_from_file(cls: Type[DataLoaderTemplateType], file: Union[str, Path, PosixPath],  # type: ignore[override]
+                       **kwargs: Any) -> DataLoaderTemplateType:
         """
         Function to create DataLoader from some kind of file
         """
         return cls(param_1=None, param_2=None, **kwargs)
 
     @classmethod
-    def read_from_yaml(cls, argsLoader, **kwargs) -> object:
-        options = DataLoaderTemplate.get_OptionClass()
+    def read_from_yaml(cls: Type[DataLoaderTemplateType], argsLoader: dict, **kwargs: Any) -> DataLoaderTemplateType:
+        options = DataLoaderTemplate.__get_OptionClass()
         OptionClass.checker(input_dict=argsLoader, option_classes=options)
 
         if 'load_DataLoader' in argsLoader:
@@ -163,10 +170,11 @@ class DataLoaderTemplate(DataLoaderBase):
         else:
             raise KeyError('No DataLoader generated! Either include dict "load_DataLoader" or "create_DataLoader"!')
 
-        return Loader
+        return Loader  # type: ignore[return-value]
 
     @classmethod
-    def read_from_checkpoint(cls, ckpt_file):
+    def read_from_checkpoint(cls: Type[DataLoaderTemplateType],  # type: ignore[override, return-value]
+                             ckpt_file: Union[str, Path, PosixPath]) -> DataLoaderTemplateType:
         """
         Construct DataLoader with information saved in Model Checkpointing
         """
@@ -183,21 +191,21 @@ class DataLoaderTemplate(DataLoaderBase):
         if hasattr(model.hparams, 'val_path'):
             Loader.add_val_data(model.hparams.val_path)
         elif all(hasattr(model.hparams, attr) for attr in ['val_method', 'val_params']):
-            Loader.val_split(method=model.hparams.val_method, val_params=model.hparams.val_params)
+            Loader.val_split(method=model.hparams.val_method, params=model.hparams.val_params)
         else:
             raise KeyError('Keys to assign validation data are missing/ not complete')
 
         if hasattr(model.hparams, 'test_path'):
             Loader.add_val_data(model.hparams.test_path)
         elif all(hasattr(model.hparams, attr) for attr in ['test_method', 'test_params']):
-            Loader.val_split(method=model.hparams.test_method, val_params=model.hparams.test_params)
+            Loader.val_split(method=model.hparams.test_method, params=model.hparams.test_params)
         else:
             raise KeyError('Keys to assign validation data are missing/ not complete')
 
-        return Loader
+        return Loader  # type: ignore[return-value]
 
     @staticmethod
-    def yaml_template(key_list):
+    def yaml_template(key_list: list) -> str:
         """
         Yaml Template for the class to allow usage
         Parameters
@@ -228,7 +236,6 @@ class DataLoaderTemplate(DataLoaderBase):
                                                                              'val_params': 'split_params'}},
                                                          'save_Loader': {'execute': 'bool', 'path': 'name.pkl'}}}}
 
-        for i, key in enumerate(key_list):
-            template = template.get(key)
+        template = get_by_path(template, key_list)
 
         return yaml.dump(template, sort_keys=False)

@@ -48,14 +48,14 @@ def test_check_dtype(create_OptionsObject: OptionClass) -> None:
 
 
 def test_mutually_exclusive(create_OptionsObject: OptionClass) -> None:
-    input_dict = {'output_relu': True}
-    for key, item in input_dict.items():
-        create_OptionsObject.check_mutually_exclusive(key, input_dict.keys())
+    input_dict_v0 = {'output_relu': True}
+    for key in input_dict_v0.keys():
+        create_OptionsObject.check_mutually_exclusive(key, input_dict_v0.keys())
 
     with pytest.raises(AssertionError):
-        input_dict = {'output_relu': True, 'activation': 'relu'}
-        for key, item in input_dict.items():
-            create_OptionsObject.check_mutually_exclusive(key, input_dict.keys())
+        input_dict_v1 = {'output_relu': True, 'activation': 'relu'}
+        for key in input_dict_v1.keys():
+            create_OptionsObject.check_mutually_exclusive(key, input_dict_v1.keys())
 
 
 def test_check_attr_of(create_OptionsObject: OptionClass) -> None:

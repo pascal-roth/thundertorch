@@ -1,5 +1,5 @@
 import torch
-from typing import Any, Optional, Union, Sequence
+from typing import Any, Optional, Union, Sequence,  List
 
 
 from pytorch_lightning.utilities import rank_zero_warn
@@ -67,13 +67,16 @@ class ExplainedVariance(Metric):
         self.add_state("y", default=[], dist_reduce_fx=None)
         self.add_state("y_pred", default=[], dist_reduce_fx=None)
 
+        self.y: List[torch.Tensor]
+        self.y_pred: List[torch.Tensor]
+
         rank_zero_warn(
             'Metric `ExplainedVariance` will save all targets and'
             ' predictions in buffer. For large datasets this may lead'
             ' to large memory footprint.'
         )
 
-    def update(self, preds: torch.Tensor, target: torch.Tensor) -> None:
+    def update(self, preds: torch.Tensor, target: torch.Tensor) -> None:  # type: ignore[override]
         """
         Update state with predictions and targets.
         Args:

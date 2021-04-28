@@ -20,7 +20,11 @@ class RelError(Metric):
         self.add_state("abs_error", default=torch.tensor(0, dtype=torch.float64), dist_reduce_fx="sum")
         self.add_state("total", default=torch.tensor(0), dist_reduce_fx="sum")
 
-    def update(self, preds: torch.Tensor, target: torch.Tensor) -> None:
+        self.total: torch.Tensor
+        self.rel_error: torch.Tensor
+        self.abs_error: torch.Tensor
+
+    def update(self, preds: torch.Tensor, target: torch.Tensor) -> None:   # type: ignore[override]
         """
         Update state with predictions and targets.
 

@@ -17,28 +17,29 @@ def test_LightningFlexNN_integration(tmp_path: PosixPath) -> None:
     x_train = x_train.reshape((1000, 1, 28, 28))
     y_train = mnist_train.targets[:1000].double()
     train = torch.utils.data.TensorDataset(x_train, y_train)  # type: ignore[attr-defined]
-    train_loader = torch.utils.data.DataLoader(train, batch_size=64, shuffle=False,    # type: ignore[attr-defined]
+    train_loader = torch.utils.data.DataLoader(train, batch_size=64, shuffle=False,  # type: ignore[attr-defined]
                                                num_workers=10)
 
     mnist_val = datasets.MNIST(tmp_path, train=False, download=True, transform=transform)
     x_val = mnist_val.data[:200].double()
     x_val = x_val.reshape((200, 1, 28, 28))
     y_val = mnist_val.targets[:200].double()
-    val = torch.utils.data.TensorDataset(x_val, y_val)    # type: ignore[attr-defined]
+    val = torch.utils.data.TensorDataset(x_val, y_val)  # type: ignore[attr-defined]
     val_loader = torch.utils.data.DataLoader(val, batch_size=64, shuffle=False,  # type: ignore[attr-defined]
                                              num_workers=10)
 
-    model_dict = {'create_model': {'width': 28, 'height': 28, 'depth': 1,
-                                   'layers': [{'type': 'Conv2d', 'params': {'kernel_size': 3, 'channels': 16, 'stride': 1}},
-                                              {'type': 'MaxPool2d', 'params': {'kernel_size': 2}}],
-                                   'mlp_layer': {'n_out': 10, 'hidden_layer': [64]}},
-                  'params': {'loss': 'CrossEntropyLoss'}}
+    model_dict: dict = {'create_model': {'width': 28, 'height': 28, 'depth': 1,
+                                         'layers': [{'type': 'Conv2d',
+                                                     'params': {'kernel_size': 3, 'channels': 16, 'stride': 1}},
+                                                    {'type': 'MaxPool2d', 'params': {'kernel_size': 2}}],
+                                         'mlp_layer': {'n_out': 10, 'hidden_layer': [64]}},
+                        'params': {'loss': 'CrossEntropyLoss'}}
 
     model = LightningFlexNN(argparse.Namespace(**model_dict['create_model']))
     model.hparams_update(model_dict['params'])
 
-    for layer in model.layers:
-        if isinstance(layer, (torch.nn.Conv2d, torch.nn.Linear, )):
+    for layer in model.layers:  # type: ignore[attr-defined]
+        if isinstance(layer, (torch.nn.Conv2d, torch.nn.Linear,)):
             torch.nn.init.constant_(layer.weight, val=0.1)
             torch.nn.init.constant_(layer.bias, val=0.1)
 

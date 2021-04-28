@@ -24,7 +24,12 @@ class RelIntervals(Metric):
 
         self.rel_threshold = rel_threshold
 
-    def update(self, preds: torch.Tensor, target: torch.Tensor) -> None:
+        self.total: torch.Tensor
+        self.correct_rel: torch.Tensor
+        self.correct_rel_left: torch.Tensor
+        self.correct_rel_right: torch.Tensor
+
+    def update(self, preds: torch.Tensor, target: torch.Tensor) -> None:   # type: ignore[override]
         """
         Update state with predictions and targets.
 

@@ -4,7 +4,6 @@
 import torch
 import os
 import numpy as np
-from pathlib import Path, PosixPath
 from typing import Optional, Union
 
 import pytorch_lightning as pl
@@ -15,7 +14,7 @@ from pytorch_lightning import _logger as log
 
 class Checkpointing(Callback):
 
-    def __init__(self, filepath: Optional[Union[str, Path, PosixPath]] = None, monitor: str = 'val_loss',
+    def __init__(self, filepath: Optional[Union[str, os.PathLike]] = None, monitor: str = 'val_loss',
                  verbose: bool = False, save_top_k: int = 1, save_weights_only: bool = False,
                  mode: str = 'auto', period: int = 1):
         super().__init__()
@@ -40,7 +39,7 @@ class Checkpointing(Callback):
         self.save_weights_only = save_weights_only
         self.period = period
         self.epoch_last_check = None
-        self.best_k_models = dict({})
+        self.best_k_models: dict = {}
         # {filename: monitor}
         self.kth_best_model = ''
         self.best = 0
@@ -99,14 +98,19 @@ class Checkpointing(Callback):
         Generate a filename according to the defined template.
         """
         if self.filename is None:
-            filename = f'ckpt_epoch_{epoch}'
+            filename: str = f'ckpt_epoch_{epoch}'
         elif self.save_top_k != 1:
             filename = f'{self.filename}_epoch_{epoch}'
         else:
             filename = self.filename
 
-        str_ver = f'_v{ver}' if ver is not None else ''
-        filepath = os.path.join(self.dirpath, filename + str_ver + '.ckpt')
+        str_ver: str = f'_v{ver}' if ver is not None else ''
+        if self.dirpath is None:  # TODO after controller Optional of filepath, this if can possibly be removed
+            raise ValueError('filepath not given by user and initialization by trainer failed')
+        else:
+            dirpath: Union[str, os.PathLike[str]] = self.dirpath
+
+        filepath = os.path.join(dirpath, filename + str_ver + '.ckpt')
         return filepath
 
     @rank_zero_only
@@ -156,7 +160,7 @@ class Checkpointing(Callback):
                 log.info(f'\nEpoch {epoch:05d}: saving model to {filepath}')
             self._save_model(filepath)
 
-    def _do_check_save(self, filepath: str, current: torch.tensor, epoch: int) -> None:
+    def _do_check_save(self, filepath: str, current: torch.Tensor, epoch: int) -> None:
         # remove kth
 
         del_list = []
@@ -169,7 +173,7 @@ class Checkpointing(Callback):
         if len(self.best_k_models) == self.save_top_k:
             # monitor dict has reached k elements
             _op = max if self.mode == 'min' else min
-            self.kth_best_model = _op(self.best_k_models,
+            self.kth_best_model = _op(self.best_k_models,  # type: ignore[type-var]
                                       key=self.best_k_models.get)
             self.kth_value = self.best_k_models[self.kth_best_model]
 

@@ -3,7 +3,7 @@
 #######################################################################################################################
 
 # import packages
-from typing import Any
+from typing import Any, List
 import time
 import torch.multiprocessing as mp
 import pytorch_lightning as pl
@@ -13,7 +13,7 @@ from thunder_torch.utils import train_model, config_multi, check_yaml_structure,
     check_argsConfig_single, train_config, get_model, get_dataLoader, parse_yaml, parse_arguments, logger_level
 
 
-def execute_model(model: pl.LightningModule, argsTrainer: dict, dataLoader: [Any]) -> None:
+def execute_model(model: pl.LightningModule, argsTrainer: dict, dataLoader: List[Any]) -> None:
     train_model(model, dataLoader, argsTrainer)
 
 

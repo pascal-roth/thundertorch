@@ -2,22 +2,23 @@ import torch.nn as nn
 import torch
 import yaml
 from argparse import Namespace
-from typing import Optional
+from typing import Optional, List, Callable
 
 from thunder_torch.models.ModelBase import LightningModelBase
 from thunder_torch.utils.option_class import OptionClass
 from thunder_torch import _modules_activation, _modules_loss, _modules_lr_scheduler, _modules_optim
+from thunder_torch.utils.yaml import get_by_path
 
 
 class ResNetDNNBlock(nn.Module):
-    def __init__(self, n_neurons, activation=torch.nn.ReLU()):
+    def __init__(self, n_neurons: int, activation: Callable[..., torch.Tensor] = torch.nn.ReLU()) -> None:
         super().__init__()
 
         self.activation = activation
         self.layer1 = nn.Linear(n_neurons, n_neurons)
         self.layer2 = nn.Linear(n_neurons, n_neurons)
 
-    def forward(self, x):
+    def forward(self, x: torch.Tensor) -> torch.Tensor:  # type: ignore[override]
         out = self.layer1(x)
         out = self.activation(out)
         out = self.layer2(out)
@@ -36,9 +37,6 @@ class LightningResMLP(LightningModelBase):
         hparams         - Namespace object including hyperparameters
         """
         super(LightningResMLP, self).__init__()
-
-        self.loss_fn = None
-        self.activation_fn = None
 
         self.hparams = hparams
         self.check_hparams()
@@ -59,7 +57,7 @@ class LightningResMLP(LightningModelBase):
         self.layers = torch.nn.Sequential(*self.layers_list)
 
     @staticmethod
-    def get_OptionClass():
+    def get_OptionClass() -> dict:
         options = {'hparams': OptionClass(template=LightningResMLP.yaml_template(['Model', 'params']))}
         options['hparams'].add_key('n_inp', dtype=int, required=True)
         options['hparams'].add_key('n_out', dtype=int, required=True)
@@ -88,7 +86,7 @@ class LightningResMLP(LightningModelBase):
         return options
 
     @staticmethod
-    def yaml_template(key_list):
+    def yaml_template(key_list: List[str]) -> str:
         """
         Yaml template for LightningResMLP
         """
@@ -105,7 +103,6 @@ class LightningResMLP(LightningModelBase):
                                                                   'min_lr': 'float'}},
                                          'num_workers': 'int (default: 10)', 'batch': 'int (default: 64)'}}}
 
-        for i, key in enumerate(key_list):
-            template = template.get(key)
+        template = get_by_path(template, key_list)
 
         return yaml.dump(template, sort_keys=False)

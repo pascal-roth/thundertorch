@@ -39,6 +39,6 @@ try:
 
 except ImportError as error:
     # Check if thunder_torch was installed with ML support
-    print(error.__class__.__name__ + ": " + error.msg)
+    print(error.__class__.__name__ + ": " + error.msg)  # type: ignore[attr-defined]
     print("Are you sure you have installed the thunder_torch with ML support?")
     print("Run InstallThunderTorch.sh again and answer with 'y' when asked for ML support!")

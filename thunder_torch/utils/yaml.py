@@ -220,8 +220,7 @@ def trainer_yml_template(key_list: list) -> str:
                                         'params': {'save_dir': 'path', 'name': 'log_name',
                                                    'version': 'experiment version'}}]}}
 
-    for i, key in enumerate(key_list):
-        template = template.get(key)
+    template = get_by_path(template, key_list)
 
     return yaml.dump(template, sort_keys=False)
 
@@ -235,8 +234,7 @@ def config_yml_template(key_list: list) -> str:
                                            'loaded)',
                            'deterministic': 'True'}}
 
-    for i, key in enumerate(key_list):
-        template = template.get(key)
+    template = get_by_path(template, key_list)
 
     return yaml.dump(template, sort_keys=False)
 
@@ -269,8 +267,7 @@ def multimodel_training_yml_template(key_list: list, template: str = 'path.yaml 
                                      'params': {'optimizer': {'type': 'SGD', 'params': {'lr': 0.001}}}},
                                  'Trainer': {'params': {'max_epochs': 'int'}}}}
 
-    for i, key in enumerate(key_list):
-        yml_template = yml_template.get(key)
+    yml_template = get_by_path(yml_template, key_list)
 
     return yaml.dump(yml_template, sort_keys=False)
 
@@ -401,9 +398,26 @@ def get_num_processes(argsConfig: dict, argsModels: dict) -> tuple:
             list_gpu.append(gpu_available[0:gpu_per_process])
             del gpu_available[0:gpu_per_process]
     else:
-        list_gpu = [0 for x in range(nbr_processes)]
+        list_gpu = [0 for _ in range(nbr_processes)]  # type: ignore[misc]
 
     return nbr_processes, list_gpu
+
+
+# Functions to modify dicts - get, set and del keys in nested dict structure
+def get_by_path(root: dict, items: list) -> Any:
+    """Access a nested object in root by item sequence."""
+    return reduce(operator.getitem, items, root)
+
+
+def set_by_path(root: dict, items: list, value: Any) -> dict:
+    """Set a value in a nested object in root by item sequence."""
+    get_by_path(root, items[:-1])[items[-1]] = value
+    return root  # TODO control if it is working and really replacing the keys as intended
+
+
+def del_by_path(root: dict, items: list) -> None:
+    """Delete a key-value in a nested object in root by item sequence."""
+    del get_by_path(root, items[:-1])[items[-1]]
 
 
 # function used in MultiModel Training to replace keys in the template  ###############################################
@@ -421,19 +435,6 @@ def replace_keys(dictMultiModel: dict, dictSingleModel: dict) -> dict:
     -------
     dictRunModel        - adjusted model dict
     """
-
-    # get, set and del keys in nested dict structure
-    def get_by_path(root: dict, items: list) -> Any:
-        """Access a nested object in root by item sequence."""
-        return reduce(operator.getitem, items, root)
-
-    def set_by_path(root: dict, items: list, value: Any) -> None:
-        """Set a value in a nested object in root by item sequence."""
-        get_by_path(root, items[:-1])[items[-1]] = value
-
-    def del_by_path(root: dict, items: list) -> None:
-        """Delete a key-value in a nested object in root by item sequence."""
-        del get_by_path(root, items[:-1])[items[-1]]
 
     def recursion_search(document: dict, key_list: list, dictModel: dict) -> Tuple[dict, List[str]]:
         """
@@ -469,7 +470,7 @@ def replace_keys(dictMultiModel: dict, dictSingleModel: dict) -> dict:
 
         else:
             try:
-                set_by_path(dictModel, key_list, document)
+                dictModel = set_by_path(dictModel, key_list, document)
             except KeyError:
                 raise KeyError(f'The given key list {key_list[:-1]} towards the key [{key_list[-1]}] which should be '
                                f'added or changed is incorrect. Keep attention that only the last key can be edited, '
@@ -490,7 +491,7 @@ def replace_expression(argsModel: dict, ModelName: str, expression: str = '<mode
     MultiModel Training
     """
 
-    def recursion(rec_dict: dict):
+    def recursion(rec_dict: dict) -> dict:
         for key, value in rec_dict.items():
             if isinstance(value, str):
                 rec_dict[key] = value.replace(expression, ModelName)

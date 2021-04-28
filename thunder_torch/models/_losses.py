@@ -21,7 +21,7 @@ class RelativeMSELoss(nn.Module):
         self.truncated = truncated
         self.threshold = threshold
 
-    def forward(self, y: torch.Tensor, t: torch.Tensor) -> torch.Tensor:
+    def forward(self, y: torch.Tensor, t: torch.Tensor) -> torch.Tensor:  # type: ignore[override]
         """
 
         Parameters

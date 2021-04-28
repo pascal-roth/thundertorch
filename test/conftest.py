@@ -3,6 +3,7 @@
 # import packages
 import pandas as pd
 import numpy as np
+from _pytest.fixtures import FixtureRequest
 import pytest
 import argparse
 import shutil
@@ -11,9 +12,9 @@ from thunder_torch.models import *
 from thunder_torch.loader import *
 
 
-def pytest_configure(config) -> None:
-    plugin = config.pluginmanager.getplugin('mypy')
-    plugin.mypy_argv.append('--check-untyped-defs')
+# def pytest_configure(config) -> None:
+#     plugin = config.pluginmanager.getplugin('mypy')
+#     plugin.mypy_argv.append('--check-untyped-defs')
 
 
 @pytest.fixture(scope='session')
@@ -38,7 +39,7 @@ def create_TabularLoader(create_random_df: pd.DataFrame) -> TabularLoader:
 
 
 @pytest.fixture(scope="session", autouse=True)
-def finalizer(request) -> None:
+def finalizer(request: FixtureRequest) -> None:
     def clean_directories() -> None:
         shutil.rmtree('checkpoints')
     request.addfinalizer(clean_directories)

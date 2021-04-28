@@ -13,6 +13,7 @@ import pytorch_lightning as pl
 import multiprocessing as mp
 import itertools
 import pytest
+from typing import Tuple
 
 from thunder_torch.models import LightningFlexMLP
 from thunder_torch.loader import TabularLoader
@@ -26,7 +27,7 @@ def init_process() -> None:
     gas_multi[0].transport_model = 'Multi'
 
 
-def homogeneous_reactor(argsReactor) -> None:
+def homogeneous_reactor(argsReactor: Tuple[float, float, float]) -> np.ndarray:
     """
     Constant-volume and fixed-mass homogeneous reactor model
 
@@ -73,7 +74,7 @@ def homogeneous_reactor(argsReactor) -> None:
     return values
 
 
-def generate_samples():
+def generate_samples() -> pd.DataFrame:
     """
     iterator over different temperatures
 
@@ -111,12 +112,12 @@ def generate_samples():
 
 
 # @pytest.mark.dependency(depends=["./test_LightningFlexMLP_unit.py::test_init"], scope='session')
-def test_LightningFlexMLP_integration():
+def test_LightningFlexMLP_integration() -> None:
     hparams = argparse.Namespace(**{'n_inp': 2, 'n_out': 3, 'hidden_layer': [64, 64]})
     model = LightningFlexMLP(hparams)
 
     # initialize weights constant (necessary for integration test)
-    for layer in model.layers:
+    for layer in model.layers:  # type: ignore[attr-defined]
         if isinstance(layer, (torch.nn.Conv2d, torch.nn.Linear, )):
             torch.nn.init.constant_(layer.weight, val=0.1)
             torch.nn.init.constant_(layer.bias, val=0.1)

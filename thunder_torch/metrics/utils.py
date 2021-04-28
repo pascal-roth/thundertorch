@@ -1,13 +1,13 @@
 import torch
 from collections.abc import Mapping, Sequence
 
-from typing import Any, Callable, Optional, Union
+from typing import Any, Callable, Optional, Union, List, Tuple
 
 
 METRIC_EPS = 1e-6
 
 
-def dim_zero_cat(x: torch.Tensor) -> torch.Tensor:
+def dim_zero_cat(x: Union[Tuple[torch.Tensor, ...], List[torch.Tensor]]) -> torch.Tensor:
     return torch.cat(x, dim=0)
 
 
@@ -86,7 +86,8 @@ def apply_to_collection(data: Any, dtype: Union[type, tuple], function: Callable
     return data
 
 
-def gather_all_tensors_if_available(result: Union[torch.Tensor], group: Optional[Any] = None) -> torch.tensor:
+def gather_all_tensors_if_available(result: Union[torch.Tensor, List[torch.Tensor]],
+                                    group: Optional[Any] = None) -> Union[torch.Tensor, List[torch.Tensor]]:
     """
     Function to gather all tensors from several ddp processes onto a list that
     is broadcasted to all processes
@@ -97,17 +98,18 @@ def gather_all_tensors_if_available(result: Union[torch.Tensor], group: Optional
         gathered_result: list with size equal to the process group where
             gathered_result[i] corresponds to result tensor from process i
     """
-    if torch.distributed.is_available() and torch.distributed.is_initialized():
+    if torch.distributed.is_available() and torch.distributed.is_initialized():  # type: ignore[attr-defined]
         if group is None:
-            group = torch.distributed.group.WORLD
+            group = torch.distributed.group.WORLD  # type: ignore[attr-defined]
 
-        world_size = torch.distributed.get_world_size(group)
+        world_size = torch.distributed.get_world_size(group)  # type: ignore[attr-defined]
 
-        gathered_result = [torch.zeros_like(result) for _ in range(world_size)]
+        gathered_result = [torch.zeros_like(result) for _ in range(world_size)]  # type: ignore
+        # TODO: check function in lightning because ignore does not make sense
 
         # sync and broadcast all
-        torch.distributed.barrier(group=group)
-        torch.distributed.all_gather(gathered_result, result, group)
+        torch.distributed.barrier(group=group)  # type: ignore[attr-defined]
+        torch.distributed.all_gather(gathered_result, result, group)  # type: ignore[attr-defined]
 
         result = gathered_result
     return result

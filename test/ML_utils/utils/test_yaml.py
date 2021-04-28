@@ -20,23 +20,24 @@ def path() -> Path:
 
 @pytest.mark.dependency()
 def test_lower_keys() -> None:
-    example_dict = {'DataLoader': 'params', 'model': 'params', 'Trainer': 'params'}
-    example_dict = lower_keys(example_dict)
-    assert example_dict['dataloader'] == 'params', 'does not convert to lower keys'
-    assert example_dict['trainer'] == 'params', 'does not convert to lower keys'
+    example_dict_v0 = {'DataLoader': 'params', 'model': 'params', 'Trainer': 'params'}
+    example_dict_v0 = lower_keys(example_dict_v0)
+    assert example_dict_v0['dataloader'] == 'params', 'does not convert to lower keys'
+    assert example_dict_v0['trainer'] == 'params', 'does not convert to lower keys'
 
-    example_dict = {'DataLoader': 'params', 'model': {'n_inp': 3, 'N_out': 4}, 'trainer': 'params'}
-    example_dict = lower_keys(example_dict)
-    assert example_dict['model']['n_out'] == 4, 'Recursion fails'
+    example_dict_v1: dict = {'DataLoader': 'params', 'model': {'n_inp': 3, 'N_out': 4}, 'trainer': 'params'}
+    example_dict_v1 = lower_keys(example_dict_v1)
+    assert example_dict_v1['model']['n_out'] == 4, 'Recursion fails'
 
-    example_dict = {'DataLoader': 'params', 'model': 'params', 'Trainer': [{'callback_1': 'param'}, {'CallBack_2': 3}]}
-    example_dict = lower_keys(example_dict)
-    assert example_dict['trainer'][1]['callback_2'] == 3, 'List access fails'
+    example_dict_v3: dict = {'DataLoader': 'params', 'model': 'params', 'Trainer': [{'callback_1': 'param'},
+                                                                                    {'CallBack_2': 3}]}
+    example_dict_v3 = lower_keys(example_dict_v3)
+    assert example_dict_v3['trainer'][1]['callback_2'] == 3, 'List access fails'
 
-    example_dict = {'DataLoader': {'create_DataLoader': {'split_data': {'method': 'explicit', 'T_0': 745}}},
-                    'model': 'params', 'trainer': 'params'}
-    example_dict = lower_keys(example_dict)
-    assert example_dict['dataloader']['create_dataloader']['split_data']['T_0'] == 745, 'Split_data exception fails'
+    example_dict_v4: dict = {'DataLoader': {'create_DataLoader': {'split_data': {'method': 'explicit', 'T_0': 745}}},
+                             'model': 'params', 'trainer': 'params'}
+    example_dict_v4 = lower_keys(example_dict_v4)
+    assert example_dict_v4['dataloader']['create_dataloader']['split_data']['T_0'] == 745, 'Split_data exception fails'
 
 
 def test_yaml_structure() -> None:
@@ -181,26 +182,26 @@ def test_replace_keys(path: Path) -> None:
 
 
 def test_replace_expression() -> None:
-    example_dict = {'dataloader': 'params', 'model': 'params', 'trainer': 'params_<model_name>'}
-    example_dict = replace_expression(example_dict, 'Model001')
-    assert example_dict['trainer'] == 'params_Model001', 'does not find expression'
+    example_dict_v0: dict = {'dataloader': 'params', 'model': 'params', 'trainer': 'params_<model_name>'}
+    example_dict_v0 = replace_expression(example_dict_v0, 'Model001')
+    assert example_dict_v0['trainer'] == 'params_Model001', 'does not find expression'
 
-    example_dict = {'trainer': {'max_epochs': 3, 'load_from_checkpoint': './checkpoints/<model_name>'}}
-    example_dict = replace_expression(example_dict, 'Model001')
-    assert example_dict['trainer']['load_from_checkpoint'] == './checkpoints/Model001', 'Recursion fails'
+    example_dict_v1: dict = {'trainer': {'max_epochs': 3, 'load_from_checkpoint': './checkpoints/<model_name>'}}
+    example_dict_v1 = replace_expression(example_dict_v1, 'Model001')
+    assert example_dict_v1['trainer']['load_from_checkpoint'] == './checkpoints/Model001', 'Recursion fails'
 
-    example_dict = {'trainer': {'max_epochs': 3, 'load_from_checkpoint': './checkpoints/{model_name_new}'}}
-    example_dict = replace_expression(example_dict, 'Model001', '{model_name_new}')
-    assert example_dict['trainer']['load_from_checkpoint'] == './checkpoints/Model001', 'Expression adjustment fails'
+    example_dict_v2: dict = {'trainer': {'max_epochs': 3, 'load_from_checkpoint': './checkpoints/{model_name_new}'}}
+    example_dict_v2 = replace_expression(example_dict_v2, 'Model001', '{model_name_new}')
+    assert example_dict_v2['trainer']['load_from_checkpoint'] == './checkpoints/Model001', 'Expression adjustment fails'
 
-    example_dict = {'DataLoader': 'params', 'model': 'params', 'trainer':
+    example_dict_v3: dict = {'DataLoader': 'params', 'model': 'params', 'trainer':
         [{'callback_1': 'param'}, {'callback_2': {'load_from_checkpoint': './checkpoints/<model_name>'}}]}
-    example_dict = replace_expression(example_dict, 'Model001')
-    assert example_dict['trainer'][1]['callback_2']['load_from_checkpoint'] == './checkpoints/Model001', 'List fails'
+    example_dict_v3 = replace_expression(example_dict_v3, 'Model001')
+    assert example_dict_v3['trainer'][1]['callback_2']['load_from_checkpoint'] == './checkpoints/Model001', 'List fails'
 
-    example_dict = {'model': ['label_1', '<model_name>', 'label_3']}
-    example_dict = replace_expression(example_dict, 'Model001')
-    assert example_dict['model'][1] == 'Model001', 'List of str fails'
+    example_dict_v4: dict = {'model': ['label_1', '<model_name>', 'label_3']}
+    example_dict_v4 = replace_expression(example_dict_v4, 'Model001')
+    assert example_dict_v4['model'][1] == 'Model001', 'List of str fails'
 
 
 @pytest.mark.dependency(depends=['test_replace_keys', 'test_get_argsModels'])
@@ -240,16 +241,18 @@ def test_get_num_processes(path: Path) -> None:
         argsConfig['gpu_per_model'] = 1
         get_num_processes(argsConfig, argsModels)
 
-    # with defintion of cpu_per_model
+    # with defintion of cpu_per_model  # TODO: changed for docker which can hurt the sense of the test, control that
     argsMulti = parse_yaml(path / 'scripts/MultiModelInputEval.yaml', low_key=False)
     argsModels, argsConfig = get_argsModel(argsMulti)
-    argsConfig['cpu_per_model'] = max(int(os.cpu_count() / 2), 1)
+    # argsConfig['cpu_per_model'] = max(int(os.cpu_count() / 2), 1)
+    argsConfig['cpu_per_model'] = 1
     nbr_processes, list_gpu = get_num_processes(argsConfig, argsModels)
-    assert nbr_processes == 1, f'nbr_processes "{nbr_processes}" intended to be 2'
+    assert nbr_processes == 1, f'nbr_processes "{nbr_processes}" intended to be 1'
 
     argsMulti = parse_yaml(path / 'scripts/MultiModelInputEval.yaml', low_key=False)
     argsModels, argsConfig = get_argsModel(argsMulti)
-    argsConfig['cpu_per_model'] = max(int(os.cpu_count() / 4), 1)
+    # argsConfig['cpu_per_model'] = max(int(os.cpu_count() / 4), 1)
+    argsConfig['cpu_per_model'] = 1
     nbr_processes, list_gpu = get_num_processes(argsConfig, argsModels)
     assert nbr_processes == 1, f'nbr_processes "{nbr_processes}" has to be downgraded to 2 since only two models are ' \
                                f'available'
@@ -257,13 +260,14 @@ def test_get_num_processes(path: Path) -> None:
     with pytest.raises(AssertionError):  # nbr of cpu_per_model exceeds available cpu's
         argsMulti = parse_yaml(path / 'scripts/MultiModelInputEval.yaml', low_key=False)
         argsModels, argsConfig = get_argsModel(argsMulti)
-        argsConfig['cpu_per_model'] = os.cpu_count() + 1
+        argsConfig['cpu_per_model'] = os.cpu_count() + 1  #type: ignore[operator]
         get_num_processes(argsConfig, argsModels)
 
     # with definition of nbr_processes
     argsMulti = parse_yaml(path / 'scripts/MultiModelInputEval.yaml', low_key=False)
     argsModels, argsConfig = get_argsModel(argsMulti)
-    argsConfig['cpu_per_model'] = max(int(os.cpu_count() / 2), 1)
+    # argsConfig['cpu_per_model'] = max(int(os.cpu_count() / 2), 1)
+    argsConfig['cpu_per_model'] = 1
     argsConfig['nbr_processes'] = 1
     nbr_processes, list_gpu = get_num_processes(argsConfig, argsModels)
     assert nbr_processes == 1, f'nbr_processes "{nbr_processes}" has to be downgraded to 1 since the defined nbr of ' \

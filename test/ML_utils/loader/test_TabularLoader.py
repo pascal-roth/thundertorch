@@ -310,7 +310,7 @@ def test_read_from_checkpoint(tmp_path: PosixPath, create_TabularLoader: Tabular
     trainer.fit(model, train_dataloader=dataLoader.train_dataloader(), val_dataloaders=dataLoader.val_dataloader())
 
     # check if TabularLoader can be restored
-    TabularLoader.read_from_checkpoint(tmp_path / 'test.ckpt')
+    TabularLoader.read_from_checkpoint(str(tmp_path / 'test.ckpt'))
 
 
 

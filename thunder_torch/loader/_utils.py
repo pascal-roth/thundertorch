@@ -8,7 +8,7 @@ import random
 import numpy as np
 import os
 import torch
-from typing import Union, Tuple
+from typing import Union, Tuple, List
 from pathlib import Path, PosixPath
 from sklearn.model_selection import train_test_split
 
@@ -219,7 +219,7 @@ class FastTensorDataLoader:
         shuffle         if True, shuffle the data *in-place* whenever an iterator is created out of this object.
         """
         assert all(t.shape[0] == tensors[0].shape[0] for t in tensors)
-        self.tensors: list = tensors
+        self.tensors: List[torch.Tensor] = list(tensors)  # TODO: check if change to list does not introduce bugs
 
         self.dataset_len = self.tensors[0].shape[0]
         self.batch_size = batch_size
@@ -238,7 +238,7 @@ class FastTensorDataLoader:
         self.i = 0
         # return self
 
-    def __next__(self) -> Tuple[torch.Tensor, torch.Tensor]:
+    def __next__(self) -> Tuple[torch.Tensor, ...]:
         if self.i >= self.dataset_len:
             raise StopIteration
         batch = tuple(t[self.i:self.i + self.batch_size] for t in self.tensors)

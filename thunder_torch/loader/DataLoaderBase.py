@@ -8,8 +8,8 @@ import pickle
 import pandas as pd
 from sklearn import preprocessing
 from argparse import Namespace
-from typing import Union, Tuple, Optional, Any, Type, TypeVar
-from pathlib import Path
+from typing import Union, Tuple, Any, Type, TypeVar
+from pathlib import Path, PosixPath
 
 from abc import ABC, abstractmethod
 
@@ -158,7 +158,7 @@ class DataLoaderBase(ABC):
                                            num_workers=self.lparams.num_workers, **kwargs)
 
     # save and load TabluarLoader object ##############################################################################
-    def save(self, filename: Union[str, Path]) -> None:
+    def save(self, filename: Union[str, Path, PosixPath]) -> None:
         """
         Save TabularLoader cls as .pkl file
 
@@ -177,7 +177,7 @@ class DataLoaderBase(ABC):
         _logger.info('TabularLoader object saved')
 
     @classmethod
-    def load(cls: Type[DataLoaderBaseType], filename: Union[str, Path]) -> DataLoaderBaseType:
+    def load(cls: Type[DataLoaderBaseType], filename: Union[str, Path, PosixPath]) -> DataLoaderBaseType:
         if not isinstance(filename, str):
             filename = str(filename)
         if not filename.lower().endswith('.pkl'):
@@ -188,7 +188,7 @@ class DataLoaderBase(ABC):
 
     # classmethods ####################################################################################################
     @classmethod
-    def read_from_file(cls: Type[DataLoaderBaseType], *args: Optional[Any], **kwargs: Any) -> DataLoaderBaseType:
+    def read_from_file(cls: Type[DataLoaderBaseType], *args: Any, **kwargs: Any) -> DataLoaderBaseType:
         """
         Create DataLoader object from file
         """
@@ -202,7 +202,7 @@ class DataLoaderBase(ABC):
         pass
 
     @classmethod
-    def read_from_checkpoint(cls: Type[DataLoaderBaseType], ckpt_file: str,
+    def read_from_checkpoint(cls: Type[DataLoaderBaseType], ckpt_file: Union[str, Path, PosixPath],
                              model: str = 'LightningFlexMLP') -> DataLoaderBaseType:
         """
         Create cls DataLoader from pytorch lightning checkpoint
