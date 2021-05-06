@@ -75,7 +75,11 @@ def load_model_from_checkpoint(checkpoint_path: str) -> LightningModule:
             _logger.debug(f'{model_type} fct not found in {m}')
         # assert False, f'{model_type} could not be found in {_modules_models}'
 
-    return model_class.load_from_checkpoint(checkpoint_path)
+    try:
+        return model_class.load_from_checkpoint(checkpoint_path)
+    except NameError:
+        raise NameError(f'Your defined model type: {model_type} cannot be found in the given resources '
+                        f'{_modules_models}')
 
 
 def dynamic_imp(module_path: str, class_name: Optional[str] = None) -> tuple:

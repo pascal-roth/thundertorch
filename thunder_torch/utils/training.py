@@ -102,16 +102,20 @@ def get_model(argsModel: Union[dict, argparse.Namespace]) -> pl.LightningModule:
         except AttributeError or ModuleNotFoundError:
             _logger.debug(f'Model Class of type {argsModel.type} has NOT been loaded from {m}')
 
-    if hasattr(argsModel, 'load_model'):
-        ckpt_path = get_ckpt_path(argsModel.load_model['path'])
-        model = model_cls.load_from_checkpoint(ckpt_path)
-        _logger.debug('Model successfully loaded')
+    try:
+        if hasattr(argsModel, 'load_model'):
+            ckpt_path = get_ckpt_path(argsModel.load_model['path'])
+            model = model_cls.load_from_checkpoint(ckpt_path)
+            _logger.debug('Model successfully loaded')
 
-    elif hasattr(argsModel, 'create_model'):
-        model = model_cls(argparse.Namespace(**argsModel.create_model))
-        _logger.debug('Model successfully created')
-    else:
-        raise KeyError('Model not generated! Either include load_model or create_model dict!')
+        elif hasattr(argsModel, 'create_model'):
+            model = model_cls(argparse.Namespace(**argsModel.create_model))
+            _logger.debug('Model successfully created')
+        else:
+            raise KeyError('Model not generated! Either include load_model or create_model dict!')
+    except NameError:
+        raise NameError(f'Your defined model type: {argsModel.type} cannot be found in the given resources '
+                        f'{_modules_models}')
 
     if hasattr(argsModel, 'params'):
         model.hparams_update(update_dict=argsModel.params)
@@ -141,17 +145,20 @@ def get_dataLoader(argsLoader: dict, model: pl.LightningModule = None) -> Any:
             break
         except AttributeError or ModuleNotFoundError:
             _logger.debug('Model Class of type {} has NOT been loaded from {}'.format(argsLoader['type'], m))
-        # assert False, f"{argsLoader['type']} could not be found in {_modules_loader}"
 
-    if model:
-        dataLoader = loader_cls.read_from_yaml(argsLoader, batch=model.hparams.batch,
-                                               num_workers=model.hparams.num_workers)
-        model.hparams_update(update_dict={'lparams': dataLoader.lparams})
-        _logger.info('DataLoader generated using batch_size and num_workers from model. Loader params are included '
-                     'in model.hparams')
-    else:
-        dataLoader = loader_cls.read_from_yaml(argsLoader)
-        _logger.info('DataLoader generated without model information and Loader params not included in model')
+    try:
+        if model:
+            dataLoader = loader_cls.read_from_yaml(argsLoader, batch=model.hparams.batch,
+                                                   num_workers=model.hparams.num_workers)
+            model.hparams_update(update_dict={'lparams': dataLoader.lparams})
+            _logger.info('DataLoader generated using batch_size and num_workers from model. Loader params are included '
+                         'in model.hparams')
+        else:
+            dataLoader = loader_cls.read_from_yaml(argsLoader)
+            _logger.info('DataLoader generated without model information and Loader params not included in model')
+    except NameError:
+        raise NameError(f'Your defined dataloader type: {argsLoader["type"]} cannot be found in the given resources '
+                        f'{_modules_loader}')
 
     return dataLoader
 
@@ -221,10 +228,18 @@ def train_callbacks(argsTrainer: dict) -> dict:
                     _logger.debug('Callback of type {} NOT found in {}'.format(argsTrainer['callbacks'][i]['type'], m))
                 # assert False, f"{argsTrainer['callbacks'][i]['type']} could not be found in {_modules_callbacks}"
 
-            if 'params' in argsTrainer['callbacks'][i]:
-                callback = callback_cls(**argsTrainer['callbacks'][i]['params'])
-            else:
-                callback = callback_cls()
+            try:
+                if 'params' in argsTrainer['callbacks'][i]:
+                    callback = callback_cls(**argsTrainer['callbacks'][i]['params'])
+                else:
+                    callback = callback_cls()
+            except NameError:
+                raise NameError(
+                    f'Your defined callback type: {argsTrainer["callbacks"][i]["type"]} cannot be found in the '
+                    f'given resources {_modules_callbacks}')
+
+            callback_cls = None
+
             callback_list.append(callback)
 
     if callback_list:
