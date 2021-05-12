@@ -6,7 +6,7 @@
 import torch
 import yaml
 from argparse import Namespace
-from typing import Optional
+from typing import Optional, List
 
 from thunder_torch.models.ModelBase import LightningModelBase
 from thunder_torch.utils.option_class import OptionClass
@@ -101,9 +101,9 @@ class LightningFlexNN(LightningModelBase):
     @staticmethod
     def get_OptionClass() -> dict:
         options = {'hparams': OptionClass(template=LightningFlexNN.yaml_template(['Model', 'params']))}
-        options['hparams'].add_key('depth', dtype=int, required=True)
+        options['hparams'].add_key('height', dtype=int, required=True)
         options['hparams'].add_key('width', dtype=int, required=True)
-        options['hparams'].add_key('height', dtype=int)  # only required for 3d Conv layers
+        options['hparams'].add_key('depth', dtype=int)  # only required for 3d Conv layers
         options['hparams'].add_key('start_channels', dtype=int, required=True)
         options['hparams'].add_key('layers', dtype=list, required=True)
         options['hparams'].add_key('mlp_layer', dtype=dict, required=True)
@@ -137,11 +137,11 @@ class LightningFlexNN(LightningModelBase):
         return options
 
     @staticmethod
-    def yaml_template(key_list: list) -> str:
-        template = {'Model': {'type': 'LightningFlexNN',
+    def yaml_template(key_list: List[str]) -> str:
+        template = {'model': {'type': 'LightningFlexNN',
                               '###INFO###': 'load_model and create_model are mutually exclusive',
                               'load_model': {'path': 'name.ckpt'},
-                              'create_model': {'width': 'int', 'height': 'int', 'depth': 'int',
+                              'create_model': {'width': 'int', 'height': 'int', 'depth': 'int (only for 3d models',
                                                'layers': [{'type': 'torch.nn module',
                                                            'params': {'module_param_1': 'value',
                                                                       'module_param_2': 'value'}},

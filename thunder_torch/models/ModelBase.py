@@ -42,7 +42,8 @@ class LightningModelBase(pl.LightningModule):
         self.height:        int
         self.width:         int
         self.depth:         int
-        self.layer_activation = (torch.nn.Conv1d, torch.nn.Conv2d, torch.nn.Conv3d, torch.nn.Linear,)
+        self.layer_activation = (torch.nn.Conv1d, torch.nn.Conv2d, torch.nn.Conv3d, torch.nn.Linear,
+                                 torch.nn.ConvTranspose1d, torch.nn.ConvTranspose2d, torch.nn.ConvTranspose3d,)
 
     def construct_nn2d(self, layer_list: dict) -> None:
         """
@@ -56,8 +57,10 @@ class LightningModelBase(pl.LightningModule):
         # Construct all conv layers
         for layer_dict in layer_list:
             if 'params' in layer_dict:
+                activation = layer_dict['params'].pop('activation', True)
                 self.layers_list.append(getattr(torch.nn, layer_dict['type'])(**layer_dict['params']))
             else:
+                activation = True
                 self.layers_list.append(getattr(torch.nn, layer_dict['type'])())
 
             if all(hasattr(self.layers_list[-1], elem) for elem in ['padding', 'stride', 'kernel_size']):
@@ -72,7 +75,7 @@ class LightningModelBase(pl.LightningModule):
                     self.width = int((self.width + 2 * self.layers_list[-1].padding) /
                                      self.layers_list[-1].stride) - (self.width % self.layers_list[-1].kernel_size)
 
-            if isinstance(self.layers_list[-1], self.layer_activation):
+            if isinstance(self.layers_list[-1], self.layer_activation) and activation:
                 self.layers_list.append(self.activation_fn)
 
     def construct_nn3d(self, layer_list: dict) -> None:
@@ -87,8 +90,10 @@ class LightningModelBase(pl.LightningModule):
         # Construct all conv layers
         for layer_dict in layer_list:
             if 'params' in layer_dict:
+                activation = layer_dict['params'].pop('activation', True)
                 self.layers_list.append(getattr(torch.nn, layer_dict['type'])(**layer_dict['params']))
             else:
+                activation = True
                 self.layers_list.append(getattr(torch.nn, layer_dict['type'])())
 
             if all(hasattr(self.layers_list[-1], elem) for elem in ['padding', 'stride', 'kernel_size']):
@@ -107,7 +112,7 @@ class LightningModelBase(pl.LightningModule):
                     self.depth = int((self.depth + 2 * self.layers_list[-1].padding) /
                                      self.layers_list[-1].stride) - (self.width % self.layers_list[-1].kernel_size)
 
-            if isinstance(self.layers_list[-1], self.layer_activation):
+            if isinstance(self.layers_list[-1], self.layer_activation) and activation:
                 self.layers_list.append(self.activation_fn)
 
     def construct_mlp(self, in_dim: int, hidden_layer: List[int], out_dim: int) -> None:
