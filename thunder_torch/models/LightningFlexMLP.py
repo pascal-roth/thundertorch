@@ -57,6 +57,9 @@ class LightningFlexMLP(LightningModelBase):
         self.get_functions()
         self.min_val_loss: Optional[torch.Tensor] = None
 
+        # add hparams keyword so that model can be easly restored (see utils/general.py::load_model_from_checkpoint)
+        self.hparams.model_type = 'LightningFlexMLP'
+
         # Construct MLP with a variable number of hidden layers
         self.layers_list = []
         self.construct_mlp(self.hparams.n_inp, self.hparams.hidden_layer, self.hparams.n_out)

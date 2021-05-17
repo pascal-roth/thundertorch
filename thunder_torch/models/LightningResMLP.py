@@ -44,6 +44,9 @@ class LightningResMLP(LightningModelBase):
         self.get_functions()
         self.min_val_loss: Optional[torch.Tensor] = None
 
+        # add hparams keyword so that model can be easly restored (see utils/general.py::load_model_from_checkpoint)
+        self.hparams.model_type = 'LightningResMLP'
+
         # Construct MLP with a variable number of hidden layers
         self.layers_list = []
         self.layers_list.append(nn.Linear(hparams.n_inp, hparams.hidden_blocks[0]))  # first layer

@@ -31,6 +31,9 @@ class LightningModelTemplate(LightningModelBase):
         self.get_defaults()
         self.min_val_loss: Optional[torch.Tensor] = None
 
+        # add hparams keyword so that model can be easly restored (see utils/general.py::load_model_from_checkpoint)
+        self.hparams.model_type = 'LightningModelTemplate'
+
         # code to construct the model
         # store layers in self.layers or change this flag in optimization function
         # store output layer in self.output or change this flag in optimization

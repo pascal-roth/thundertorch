@@ -11,6 +11,7 @@ from typing import List, Tuple, Optional, Dict, Any
 from thunder_torch.models.ModelBase import LightningModelBase
 from thunder_torch.utils.option_class import OptionClass
 from thunder_torch import _modules_activation, _modules_loss, _modules_lr_scheduler, _modules_optim
+from thunder_torch.models._utils import Reshape
 import thunder_torch as tt
 
 
@@ -72,6 +73,9 @@ class LightningFlexDeEnCoder(LightningModelBase):
         self.channel_computation = ['Conv1d', 'Conv1d', 'Conv3d', 'ConvTranspose1d', 'ConTranspose2d',
                                     'ConvTranspose3d']
 
+        # add hparams keyword so that model can be easly restored (see utils/general.py::load_model_from_checkpoint)
+        self.hparams.model_type = 'LightningFlexDeEnCoder'
+
         if hasattr(self.hparams, 'encoder'):
             self.encoder_applied = True
             self.hparams.encoder, self.final_channel = self.set_channels(self.hparams.input_dim['start_channels'],
@@ -132,6 +136,8 @@ class LightningFlexDeEnCoder(LightningModelBase):
                 if not self.encoder_applied:
                     self.height = self.hparams.input_dim['height']
                     self.width = self.hparams.input_dim['width']
+                if self.mlp_applied:
+                    self.layers_list.append(Reshape((self.height, self.width, )))
                 self.construct_nn2d(layer_list=self.hparams.decoder)
 
             elif self.hparams.decoder[0]['type'] == 'ConvTranspose3d':
@@ -139,6 +145,8 @@ class LightningFlexDeEnCoder(LightningModelBase):
                     self.height = self.hparams.input_dim['height']
                     self.width = self.hparams.input_dim['width']
                     self.depth = self.hparams.input_dim['depth']
+                if self.mlp_applied:
+                    self.layers_list.append(Reshape((self.height, self.width, self.depth, )))
                 self.construct_nn3d(layer_list=self.hparams.decoder)
 
             elif self.hparams.decoder[0]['type'] == 'Upsample':
@@ -151,7 +159,7 @@ class LightningFlexDeEnCoder(LightningModelBase):
 
         for i, layer_dict in enumerate(layer_dicts):  # TODO: let automatically adapt for all conv layers
             if any(layer_dict['type'] == item for item in self.channel_computation) \
-                    and all(elem not in layer_dict for elem in ['in_channels', 'out_channels']):
+                    and all(elem not in layer_dict['params'] for elem in ['in_channels', 'out_channels']):
                 out_channels = layer_dict['params'].pop('channels')
                 layer_dicts[i]['params']['in_channels'] = in_channels
                 layer_dicts[i]['params']['out_channels'] = out_channels

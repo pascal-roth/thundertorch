@@ -63,6 +63,9 @@ class LightningFlexNN(LightningModelBase):
         self.set_channels()
         self.min_val_loss: Optional[torch.Tensor] = None
 
+        # add hparams keyword so that model can be easly restored (see utils/general.py::load_model_from_checkpoint)
+        self.hparams.model_type = 'LightningFlexNN'
+
         self.layers_list = []
 
         self.height = self.hparams.height
@@ -86,7 +89,7 @@ class LightningFlexNN(LightningModelBase):
         in_channels = self.hparams.start_channels
 
         for i, layer_dict in enumerate(self.hparams.layers):  # TODO: let automatically adapt for all conv layers
-            if layer_dict['type'] == 'Conv3d' and all(elem not in layer_dict
+            if layer_dict['type'] == 'Conv3d' and all(elem not in layer_dict['params']
                                                       for elem in ['in_channels', 'out_channels']):
                 out_channels = layer_dict['params'].pop('channels')
                 self.hparams.layers[i]['params']['in_channels'] = in_channels
