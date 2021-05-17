@@ -14,15 +14,18 @@ from thunder_torch import _logger
 
 class Histogram(Callback):
 
-    def __init__(self,  bins: int = 100, path: str = 'histograms', boundaries: Optional[List[float]] = None,
+    def __init__(self,  bins: int = 100, filepath: str = 'histograms', boundaries: Optional[List[float]] = None,
                  density: bool = True, title: str = 'Relative Error of Training Data', period: int = 1,
                  monitor: str = 'val_loss', mode: str = 'auto', verbose: int = 0,
                  multi_output: str = 'average') -> None:
         super().__init__()
 
-        self.path = f'{os.getcwd()}/{path}'
-        if not os.path.isdir(f'{os.getcwd()}/{path}'):
-            os.makedirs(f'{os.getcwd()}/{path}')
+        # check given filepath
+        if os.path.isdir(filepath):
+            self.dirpath, self.filename = filepath, 'hist'
+        else:
+            self.dirpath, self.filename = os.path.split(filepath)
+        os.makedirs(self.dirpath, exist_ok=True)
 
         self.bins = bins
         self.range = boundaries
@@ -107,8 +110,8 @@ class Histogram(Callback):
             )
         elif self.check_monitor(current):
             self.best_value = current
-            self._plot_histogram(self.errors_val.numpy(), 'val_histogram', 'Validation Data')
-            self._plot_histogram(self.errors_train.numpy(), 'train_histogram', 'Training Data')
+            self._plot_histogram(self.errors_val.numpy(), 'val', 'Validation Data')
+            self._plot_histogram(self.errors_train.numpy(), 'train', 'Training Data')
         elif self.verbose > 0:
             _logger.info(f'\nEpoch {epoch:05d}: {self.monitor}  was not best')
 
@@ -146,7 +149,7 @@ class Histogram(Callback):
         ax.add_artist(at)
 
         plt.tight_layout()
-        plt.savefig(f'{self.path}/{name}.jpg')
+        plt.savefig(f'{self.dirpath}/{self.filename}_{name}.jpg')
         plt.close(fig)
 
     # Model Hooks #####################################################################################################
@@ -190,4 +193,4 @@ class Histogram(Callback):
                 self.errors_test = torch.cat((self.errors_test, ((preds - targets) / (targets + 1e-09)) * 100), dim=0)
 
     def on_test_end(self, trainer: pl.Trainer, pl_module: pl.LightningModule) -> None:
-        self._plot_histogram(self.errors_test.numpy(), 'test_histogram', 'Test Data')
+        self._plot_histogram(self.errors_test.numpy(), 'test', 'Test Data')
