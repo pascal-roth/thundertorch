@@ -56,6 +56,8 @@ def load_model_from_checkpoint(checkpoint_path: str) -> LightningModule:
     model_class:
         loaded model based off 'model_type' hyperparameter of checkpoint
     """
+    assert isinstance(checkpoint_path, str), f'checkpoint path has to be of type str, but {type(checkpoint_path)} ' \
+                                             f'was given'
 
     c = torch.load(checkpoint_path, torch.device("cpu"))
     if "model_type" not in c["hparams"].keys():
@@ -75,7 +77,11 @@ def load_model_from_checkpoint(checkpoint_path: str) -> LightningModule:
             _logger.debug(f'{model_type} fct not found in {m}')
         # assert False, f'{model_type} could not be found in {_modules_models}'
 
-    return model_class.load_from_checkpoint(checkpoint_path)
+    try:
+        return model_class.load_from_checkpoint(checkpoint_path)
+    except NameError:
+        raise NameError(f'Model "{model_type}" cannot be found in given sources: "{_modules_models}"')
+
 
 
 def dynamic_imp(module_path: str, class_name: Optional[str] = None) -> tuple:

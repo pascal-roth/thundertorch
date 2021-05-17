@@ -226,10 +226,14 @@ class LightningModelBase(pl.LightningModule):
             except AttributeError or ModuleNotFoundError:
                 _logger.debug('Optimizer of type {} NOT found in {}'.format(self.hparams.optimizer['type'], m))
 
-        if 'params' in self.hparams.optimizer:
-            optimizer = optimizer_cls(self.layers.parameters(), **self.hparams.optimizer['params'])
-        else:
-            optimizer = optimizer_cls(self.layers.parameters())
+        try:
+            if 'params' in self.hparams.optimizer:
+                optimizer = optimizer_cls(self.layers.parameters(), **self.hparams.optimizer['params'])
+            else:
+                optimizer = optimizer_cls(self.layers.parameters())
+        except NameError:
+            raise NameError(f'Optimizer "{self.hparams.optimizer["type"]}" cannot be found in given '
+                            f'sources: "{_modules_optim}"')
 
         if self.hparams.scheduler['execute']:
             for m in _modules_lr_scheduler:
@@ -241,7 +245,13 @@ class LightningModelBase(pl.LightningModule):
                     break
                 except AttributeError or ModuleNotFoundError:
                     _logger.debug('LR Scheduler of type {} not found in {}'.format(self.hparams.scheduler['type'], m))
-            return [optimizer], [scheduler]
+
+            try:
+                return [optimizer], [scheduler]
+            except NameError:
+                raise NameError(f'LR Scheduler "{self.hparams.scheduler["type"]}" cannot be found in given '
+                                f'sources: "{_modules_lr_scheduler}"')
+
         else:
             return optimizer
 
