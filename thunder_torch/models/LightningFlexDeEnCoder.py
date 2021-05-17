@@ -104,12 +104,19 @@ class LightningFlexDeEnCoder(LightningModelBase):
 
             # check if encoder layers already applied, if yes apply Flatten operation
             if self.encoder_applied:
-                self.layers.append(torch.nn.Flatten())
+                self.layers_list.append(torch.nn.Flatten())
                 in_dim = self.final_channel * self.height * self.width
             else:
                 in_dim = self.hparams.input_dim
 
-            self.construct_mlp(in_dim, self.hparams.mlp_layer['hidden_layer'], self.hparams.mlp_layer['n_out'])
+            if 'n_out' in self.hparams.mlp_layer:
+                out_dim = self.hparams.mlp_layer['n_out']
+            else:
+                out_dim = in_dim
+
+            self.construct_mlp(in_dim, self.hparams.mlp_layer['hidden_layer'], out_dim)
+            self.layers_list.append(self.activation_fn)
+
         else:
             self.mlp_applied = False
 
@@ -123,9 +130,9 @@ class LightningFlexDeEnCoder(LightningModelBase):
                 self.hparams.decoder, self.final_channel = self.set_channels(self.hparams.input_dim['start_channels'],
                                                                              self.hparams.decoder)
 
-            if self.mlp_applied:
-                raise NotImplementedError('MLP to CNN transformation not implemented yet')
-                # self.layers.append(torch.nn.reshape())
+            # if self.mlp_applied:
+            #     raise NotImplementedError('MLP to CNN transformation not implemented yet')
+            #     # self.layers.append(torch.nn.reshape())
 
             if self.hparams.decoder[0]['type'] == 'Conv1Transposed':
                 self.height = self.hparams.input_dim['height']
@@ -137,7 +144,8 @@ class LightningFlexDeEnCoder(LightningModelBase):
                     self.height = self.hparams.input_dim['height']
                     self.width = self.hparams.input_dim['width']
                 if self.mlp_applied:
-                    self.layers_list.append(Reshape((self.height, self.width, )))
+                    self.layers_list.append(Reshape([self.height, self.width],
+                                                    self.hparams.decoder[0]['params']['in_channels']))
                 self.construct_nn2d(layer_list=self.hparams.decoder)
 
             elif self.hparams.decoder[0]['type'] == 'ConvTranspose3d':
@@ -146,7 +154,8 @@ class LightningFlexDeEnCoder(LightningModelBase):
                     self.width = self.hparams.input_dim['width']
                     self.depth = self.hparams.input_dim['depth']
                 if self.mlp_applied:
-                    self.layers_list.append(Reshape((self.height, self.width, self.depth, )))
+                    self.layers_list.append(Reshape([self.height, self.width, self.depth],
+                                                    self.hparams.decoder[0]['params']['in_channels']))
                 self.construct_nn3d(layer_list=self.hparams.decoder)
 
             elif self.hparams.decoder[0]['type'] == 'Upsample':
@@ -202,7 +211,7 @@ class LightningFlexDeEnCoder(LightningModelBase):
 
         options['mlp_layer'] = OptionClass(template=LightningFlexDeEnCoder.yaml_template(['Model', 'create_model',
                                                                                           'mlp_layer']))
-        options['mlp_layer'].add_key('n_out', dtype=int, required=True)
+        options['mlp_layer'].add_key('n_out', dtype=int)
         options['mlp_layer'].add_key('hidden_layer', dtype=list, required=True)
 
         options['optimizer'] = OptionClass(template=LightningFlexDeEnCoder.yaml_template(['Model', 'params',
