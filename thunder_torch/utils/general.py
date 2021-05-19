@@ -83,7 +83,6 @@ def load_model_from_checkpoint(checkpoint_path: str) -> LightningModule:
         raise NameError(f'Model "{model_type}" cannot be found in given sources: "{_modules_models}"')
 
 
-
 def dynamic_imp(module_path: str, class_name: Optional[str] = None) -> tuple:
     """
 

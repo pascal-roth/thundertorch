@@ -6,7 +6,7 @@
 import torch
 import yaml
 from argparse import Namespace
-from typing import List, Tuple, Optional, Union, Tuple
+from typing import List, Optional, Union, Tuple
 
 from thunder_torch.models.ModelBase import LightningModelBase
 from thunder_torch.utils.option_class import OptionClass
@@ -143,7 +143,7 @@ class LightningFlexAutoEncoderMultiInput(LightningModelBase):
         if hasattr(self.hparams, 'mlp_layer'):
             self.applied_mlp = True
             # check if encoder layers already applied, if yes apply Flatten operation
-            self.layers_list.append(torch.nn.Flatten())
+            self.layers_list.append(torch.nn.Flatten())  # type: ignore[attr-defined]
             in_dim = self.final_channel * self.height * self.width
 
             if 'n_out' in self.hparams.mlp_layer:
@@ -194,8 +194,8 @@ class LightningFlexAutoEncoderMultiInput(LightningModelBase):
             self.layers = torch.nn.Sequential(*self.layers_list)
             self.layers_list = []
 
-            self.hparams.decoder_single['layers'], self.final_channel = self.set_channels\
-                (self.final_channel, self.hparams.decoder_single['layers'])
+            self.hparams.decoder_single['layers'], self.final_channel = \
+                self.set_channels(self.final_channel, self.hparams.decoder_single['layers'])
 
             if self.hparams.decoder_single['layers'][0]['type'] == 'Conv1Transposed':
                 assert NotImplementedError('Support for 1d Conv layers not implemented at the moment')
@@ -233,7 +233,7 @@ class LightningFlexAutoEncoderMultiInput(LightningModelBase):
 
         return layer_dicts, in_channels
 
-    def forward(self, x: torch.Tensor) -> Tuple[torch.Tensor]:
+    def forward(self, x: torch.Tensor) -> List[torch.Tensor]:
         """
         forward pass through the network
 
@@ -316,7 +316,8 @@ class LightningFlexAutoEncoderMultiInput(LightningModelBase):
         for i in range(len(y_hat)):
             loss += self.loss_fn(y_hat[i], y[:, i, :, :, :, :])
         log = {'train_loss': loss}
-        hiddens = {'inputs': x[:, 1, :, :, :, :].detach(), 'preds': y_hat[1].detach(), 'targets': y[:, 1, :, :, :, :].detach()}  # TODO general solution
+        hiddens = {'inputs': x[:, 1, :, :, :, :].detach(), 'preds': y_hat[1].detach(),
+                   'targets': y[:, 1, :, :, :, :].detach()}  # TODO general solution
         results = {'loss': loss, 'log': log, 'hiddens': hiddens}
         return results
 
@@ -330,7 +331,8 @@ class LightningFlexAutoEncoderMultiInput(LightningModelBase):
         loss = torch.zeros(1)
         for i in range(len(y_hat)):
             loss += self.loss_fn(y_hat[i], y[:, i, :, :, :, :])
-        hiddens = {'inputs': x[:, 1, :, :, :, :].detach(), 'preds': y_hat[1].detach(), 'targets': y[:, 1, :, :, :, :].detach()}  # TODO general solution
+        hiddens = {'inputs': x[:, 1, :, :, :, :].detach(), 'preds': y_hat[1].detach(),
+                   'targets': y[:, 1, :, :, :, :].detach()}  # TODO general solution
         return {'val_loss': loss, 'hiddens': hiddens}
 
     def test_step(self, batch: Tuple[torch.Tensor, torch.Tensor], batch_idx: int) -> dict:
@@ -343,7 +345,8 @@ class LightningFlexAutoEncoderMultiInput(LightningModelBase):
         loss = torch.zeros(1)
         for i in range(len(y_hat)):
             loss += self.loss_fn(y_hat[i], y[:, i, :, :, :, :])
-        hiddens = {'inputs': x[:, 1, :, :, :, :].detach(), 'preds': y_hat[1].detach(), 'targets': y[:, 1, :, :, :, :].detach()}  # TODO general solution
+        hiddens = {'inputs': x[:, 1, :, :, :, :].detach(), 'preds': y_hat[1].detach(),
+                   'targets': y[:, 1, :, :, :, :].detach()}  # TODO general solution
         return {'test_loss': loss, 'hiddens': hiddens}
 
     @staticmethod

@@ -6,7 +6,7 @@
 import torch
 import yaml
 from argparse import Namespace
-from typing import List, Tuple, Optional, Dict, Any
+from typing import List, Tuple, Optional
 
 from thunder_torch.models.ModelBase import LightningModelBase
 from thunder_torch.utils.option_class import OptionClass
@@ -104,7 +104,7 @@ class LightningFlexDeEnCoder(LightningModelBase):
 
             # check if encoder layers already applied, if yes apply Flatten operation
             if self.encoder_applied:
-                self.layers_list.append(torch.nn.Flatten())
+                self.layers_list.append(torch.nn.Flatten())  # type: ignore[attr-defined]
                 in_dim = self.final_channel * self.height * self.width
             else:
                 in_dim = self.hparams.input_dim

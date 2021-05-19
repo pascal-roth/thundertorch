@@ -8,10 +8,10 @@ class View(torch.nn.Module):
     """
     def __init__(self, shape: Union[int, List[int]], channels: int) -> None:
         super().__init__()
-        self.shape = shape
+        self.shape = shape if not isinstance(shape, int) else [shape]
         self.channels = channels
 
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
+    def forward(self, x: torch.Tensor) -> torch.Tensor:  # type: ignore[override]
         return x.view(tuple([x.shape[0]] + [self.channels] + self.shape))
 
 
@@ -29,7 +29,7 @@ class Reshape(torch.nn.Module):
         self.shape = shape
         self.channels = channels
 
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
+    def forward(self, x: torch.Tensor) -> torch.Tensor:  # type: ignore[override]
         return torch.reshape(x, tuple([x.shape[0]] + [self.channels] + self.shape))
 
 
@@ -47,7 +47,7 @@ class Cat(torch.nn.Module):
         super().__init__()
         self.dim = dim
 
-    def forward(self, x: List[torch.Tensor]) -> torch.Tensor:
+    def forward(self, x: List[torch.Tensor]) -> torch.Tensor:  # type: ignore[override]
         return torch.cat(x, self.dim)
 
 
@@ -72,7 +72,7 @@ class Split(torch.nn.Module):
         self.dim = dim
         self.split_size_or_sections = split_size_or_sections
 
-    def forward(self, x: torch.Tensor) -> Tuple[torch.Tensor]:
+    def forward(self, x: torch.Tensor) -> Tuple[torch.Tensor]:  # type: ignore[override]
         """
         Parameters
         ----------
