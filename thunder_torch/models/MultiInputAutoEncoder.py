@@ -101,8 +101,8 @@ class LightningFlexAutoEncoderMultiInput(LightningModelBase):
                 self.depth = self.hparams.input_dim['depth']
                 self.construct_nn3d(layer_list=self.hparams.encoder_single['layers'])
 
-            self.encoder_single = [torch.nn.Sequential(*self.layers_list) for _ in
-                                   range(self.hparams.input_dim['multi_input'])]
+            self.encoder_single = torch.nn.ModuleList([torch.nn.Sequential(*self.layers_list) for _ in
+                                                       range(self.hparams.input_dim['multi_input'])])
 
             # reset layers list for combined encoder, starting with the cat layer
             self.layers_list = []
@@ -211,8 +211,8 @@ class LightningFlexAutoEncoderMultiInput(LightningModelBase):
                 # TODO implement upsample method
                 raise NotImplementedError('Support for Upsample not implemented yet')
 
-            self.decoder_single = [torch.nn.Sequential(*self.layers_list) for _ in
-                                   range(self.hparams.input_dim['multi_output'])]
+            self.decoder_single = torch.nn.ModuleList([torch.nn.Sequential(*self.layers_list) for _ in
+                                                       range(self.hparams.input_dim['multi_output'])])
         else:
             self.layers = torch.nn.Sequential(*self.layers_list)
             _logger.info('Network has no separation in different outputs with individual decoder layers')
