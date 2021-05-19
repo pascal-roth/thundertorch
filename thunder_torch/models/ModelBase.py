@@ -45,7 +45,7 @@ class LightningModelBase(pl.LightningModule):
         self.layer_activation = (torch.nn.Conv1d, torch.nn.Conv2d, torch.nn.Conv3d, torch.nn.Linear,
                                  torch.nn.ConvTranspose1d, torch.nn.ConvTranspose2d, torch.nn.ConvTranspose3d,)
 
-    def construct_nn2d(self, layer_list: dict) -> None:
+    def construct_nn2d(self, layer_list: list) -> None:
         """
         Functionality to build any kind of torch.nn 2d layer (convolutional, pooling, padding, normalization, recurrent,
         dropout, linear ...)
@@ -78,7 +78,7 @@ class LightningModelBase(pl.LightningModule):
             if isinstance(self.layers_list[-1], self.layer_activation) and activation:
                 self.layers_list.append(self.activation_fn)
 
-    def construct_nn3d(self, layer_list: dict) -> None:
+    def construct_nn3d(self, layer_list: list) -> None:
         """
         Functionality to build any kind of torch.nn 3d layer (convolutional, pooling, padding, normalization, recurrent,
         dropout, linear ...)

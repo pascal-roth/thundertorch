@@ -16,7 +16,7 @@ from thunder_torch import _logger
 
 
 # data split ##########################################################################################################
-def data_split_random(x_samples: pd.DataFrame, y_samples: pd.DataFrame, split_params: float) -> tuple:
+def data_split_random(x_samples: pd.DataFrame, y_samples: pd.DataFrame, split_params: float, **kwargs) -> tuple:
     """
     Randomly split x_samples and y_samples DataFrame by a percentage
 
@@ -35,7 +35,7 @@ def data_split_random(x_samples: pd.DataFrame, y_samples: pd.DataFrame, split_pa
     """
     assert isinstance(split_params, float), 'Val_size must be float in range 0 to 1!'
     assert split_params < 1, 'Percentage exceeds 100%!'
-    x_samples, x_split, y_samples, y_split = train_test_split(x_samples, y_samples, test_size=split_params)
+    x_samples, x_split, y_samples, y_split = train_test_split(x_samples, y_samples, test_size=split_params, **kwargs)
     _logger.info(f'Random split with percentage {split_params} has been performed!')
 
     return x_samples, x_split, y_samples, y_split

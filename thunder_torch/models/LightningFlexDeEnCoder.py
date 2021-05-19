@@ -229,7 +229,7 @@ class LightningFlexDeEnCoder(LightningModelBase):
 
     @staticmethod
     def yaml_template(key_list: List[str]) -> str:
-        template = {'Model': {'type': 'LightningFlexNN',
+        template = {'Model': {'type': 'LightningFlexDeEnCoder',
                               '###INFO###': 'load_model and create_model are mutually exclusive',
                               'load_model': {'path': 'name.ckpt'},
                               'create_model': {'input_dim': {'width': 'int', 'height': 'int',
