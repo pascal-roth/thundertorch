@@ -3,6 +3,7 @@ import argparse
 import torch
 import importlib
 from thunder_torch import _logger
+import os
 import logging
 from thunder_torch import _modules_models
 from typing import Optional, Union
@@ -40,6 +41,30 @@ def logger_level(argument: argparse.Namespace) -> None:
         _logger.setLevel(logging.DEBUG)
 
 
+def get_ckpt_path(path: str) -> str:
+    if os.path.isfile(path):
+        ckpt_path = path
+        _logger.debug('Direct path to ckpt is given')
+
+    elif os.path.isdir(path):
+        checkpoints = []
+
+        for file in os.listdir(path):
+            if file.endswith(".ckpt"):
+                checkpoints.append(os.path.join(path, file))
+
+        assert len(checkpoints) == 1, f'Either no or multiple checkpoint files are included in the given ' \
+                                      f'directory: {path}. Specify intended ckpt!'
+
+        ckpt_path = checkpoints[0]
+        _logger.debug('Directory with single ckpt is given')
+
+    else:
+        raise AttributeError(f'Entered path {path} does not exists!')
+
+    return ckpt_path
+
+
 def load_model_from_checkpoint(checkpoint_path: str) -> LightningModule:
     """
     Loads a model from a given checkpoint path even if the model class is not known prior by the code
@@ -59,7 +84,8 @@ def load_model_from_checkpoint(checkpoint_path: str) -> LightningModule:
     assert isinstance(checkpoint_path, str), f'checkpoint path has to be of type str, but {type(checkpoint_path)} ' \
                                              f'was given'
 
-    c = torch.load(checkpoint_path, torch.device("cpu"))
+    ckpt_path = get_ckpt_path(checkpoint_path)
+    c = torch.load(ckpt_path, torch.device("cpu"))
     if "model_type" not in c["hparams"].keys():
         exit("ERROR in load_model_from_checkpoint: "
              "Cannot use this function since there is no 'model_type' key available in hparams.")
@@ -78,7 +104,7 @@ def load_model_from_checkpoint(checkpoint_path: str) -> LightningModule:
         # assert False, f'{model_type} could not be found in {_modules_models}'
 
     try:
-        return model_class.load_from_checkpoint(checkpoint_path)
+        return model_class.load_from_checkpoint(ckpt_path)
     except NameError:
         raise NameError(f'Model "{model_type}" cannot be found in given sources: "{_modules_models}"')
 

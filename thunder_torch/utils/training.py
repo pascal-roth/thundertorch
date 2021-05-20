@@ -13,7 +13,7 @@ from thunder_torch import _logger  # Logger that are defined in __all__ in the _
 from thunder_torch import callbacks  # Callbacks that are defined in __all__ in the __init__ file
 from thunder_torch import _modules_models, _modules_loader, _modules_callbacks, _modules_loss, \
     _modules_optim, _modules_activation, _modules_lr_scheduler
-from thunder_torch.utils.general import dynamic_imp
+from thunder_torch.utils.general import dynamic_imp, get_ckpt_path
 
 
 def train_config(argsConfig: dict, argsTrainer: dict) -> dict:
@@ -56,30 +56,6 @@ def train_config(argsConfig: dict, argsTrainer: dict) -> dict:
         argsTrainer['params']['deterministic'] = True
 
     return argsTrainer
-
-
-def get_ckpt_path(path: str) -> str:
-    if os.path.isfile(path):
-        ckpt_path = path
-        _logger.debug('Direct path to ckpt is given')
-
-    elif os.path.isdir(path):
-        checkpoints = []
-
-        for file in os.listdir(path):
-            if file.endswith(".ckpt"):
-                checkpoints.append(os.path.join(path, file))
-
-        assert len(checkpoints) == 1, f'Either no or multiple checkpoint files are included in the given ' \
-                                      f'directory: {path}. Specify intended ckpt!'
-
-        ckpt_path = checkpoints[0]
-        _logger.debug('Directory with single ckpt is given')
-
-    else:
-        raise AttributeError(f'Entered path {path} does not exists!')
-
-    return ckpt_path
 
 
 def get_model(argsModel: Union[dict, argparse.Namespace]) -> pl.LightningModule:
