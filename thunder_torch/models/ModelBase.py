@@ -44,6 +44,8 @@ class LightningModelBase(pl.LightningModule):
         self.depth:         int
         self.layer_activation = (torch.nn.Conv1d, torch.nn.Conv2d, torch.nn.Conv3d, torch.nn.Linear,
                                  torch.nn.ConvTranspose1d, torch.nn.ConvTranspose2d, torch.nn.ConvTranspose3d,)
+        self.channel_computation = ['Conv1d', 'Conv1d', 'Conv3d', 'ConvTranspose1d', 'ConTranspose2d',
+                                    'ConvTranspose3d']
 
     def construct_nn2d(self, layer_list: list) -> None:
         """
@@ -137,6 +139,21 @@ class LightningModelBase(pl.LightningModule):
             self.layers_list.append(self.activation_fn)
 
         self.layers_list.append(torch.nn.Linear(hidden_layer[-1], out_dim))
+
+    def set_channels(self, in_channels: int, layer_dicts: List[dict]) -> Tuple[List[dict], int]:
+
+        for i, layer_dict in enumerate(layer_dicts):
+            if any(layer_dict['type'] == item for item in self.channel_computation) \
+                    and all(elem not in layer_dict['params'] for elem in ['in_channels', 'out_channels']):
+                out_channels = layer_dict['params'].pop('channels')
+                layer_dicts[i]['params']['in_channels'] = in_channels
+                layer_dicts[i]['params']['out_channels'] = out_channels
+                in_channels = out_channels
+            elif layer_dict['type'] == 'Conv3d' and all(elem in layer_dict['params']
+                                                        for elem in ['in_channels', 'out_channels']):
+                in_channels = layer_dicts[i]['params']['out_channels']
+
+        return layer_dicts, in_channels
 
     def check_hparams(self) -> None:
         options = self.get_OptionClass()

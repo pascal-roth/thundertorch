@@ -60,56 +60,75 @@ class LightningFlexNN(LightningModelBase):
         self.check_hparams()
         self.get_default()
         self.get_functions()
-        self.set_channels()
         self.min_val_loss: Optional[torch.Tensor] = None
 
         # add hparams keyword so that model can be easly restored (see utils/general.py::load_model_from_checkpoint)
         self.hparams.model_type = 'LightningFlexNN'
 
-        self.layers_list = []
+        if hasattr(self.hparams, 'layers'):
+            # if only a single layer is given, transform it to list object
+            if not isinstance(self.hparams.layers, list):
+                self.hparams.layers = [self.hparams.layers]
 
-        self.height = self.hparams.height
-        self.width = self.hparams.width
-        self.depth = self.hparams.depth
-        self.layer_activation = (torch.nn.Conv1d, torch.nn.Conv2d, torch.nn.Conv3d, torch.nn.Linear,)
-        # self.construct_nn2d(layer_list=self.hparams.layers)
-        self.construct_nn3d(layer_list=self.hparams.layers)
+            self.hparams.layers, self.final_channel = self.set_channels(self.hparams.start_channels,
+                                                                        self.hparams.layers)
+
+            in_dim = None
+            if self.hparams.layers[0]['type'] == 'Conv1d':
+                self.height = self.hparams.height
+                assert NotImplementedError('Support for 1d Conv layers not implemented at the moment')
+                # TODO: implement support
+
+            elif self.hparams.layers[0]['type'] == 'Conv2d':
+                self.height = self.hparams.height
+                self.width = self.hparams.width
+                self.construct_nn2d(layer_list=self.hparams.layers)
+                in_dim = self.final_channel * self.height * self.width
+
+            elif self.hparams.layers[0]['type'] == 'Conv3d':
+                self.height = self.hparams.height
+                self.width = self.hparams.width
+                self.depth = self.hparams.depth
+                self.construct_nn3d(layer_list=self.hparams.layers)
+                in_dim = self.final_channel * self.height * self.width * self.depth
+
+            elif self.hparams.layers[0]['type'] == 'Linear':
+                raise NotImplementedError('Support for an MLP layer as starting layer in the layers dict not '
+                                          'implemented yet. If an only mlp network should be constructed, pls use the '
+                                          'key "mlp_layer" to construct it or the LightningFlexMLP module!')
+
+            else:
+                raise KeyError(f'Type "{self.hparams.layers[0]["type"]}" as starting layer for the network is not '
+                               f'supported. Please start with either an convolutional or linear layer!')
 
         if hasattr(self.hparams, 'mlp_layer'):
+
+            if in_dim is not None and 'n_in' in self.hparams.mlp_layer:
+                assert in_dim == self.hparams.mlp_layer['n_in'], 'Entered input dimension of MLP Network not equal ' \
+                                                                   'to the one calculated '
+            elif in_dim is None and 'n_in' not in self.hparams.mlp_layer:
+                raise KeyError('Input dimension of MLP network is missing, please add "in_dim" key to "mlp_layer" dict')
+            elif in_dim is not None and 'n_in' not in self.hparams.mlp_layer:
+                self.hparams.mlp_layer['n_in'] = in_dim
+
             self.layers_list.append(torch.nn.Flatten())  # type: ignore[attr-defined]
-            in_dim = self.final_channel * self.height * self.width
-            self.construct_mlp(in_dim, self.hparams.mlp_layer['hidden_layer'], self.hparams.mlp_layer['n_out'])
+            self.construct_mlp(self.hparams.mlp_layer['n_in'], self.hparams.mlp_layer['hidden_layer'],
+                               self.hparams.mlp_layer['n_out'])
 
         if hasattr(self.hparams, 'output_activation'):
             self.layers_list.append(getattr(torch.nn, self.hparams.output_activation)())
 
         self.layers = torch.nn.Sequential(*self.layers_list)
 
-    def set_channels(self) -> None:
-        in_channels = self.hparams.start_channels
-
-        for i, layer_dict in enumerate(self.hparams.layers):  # TODO: let automatically adapt for all conv layers
-            if layer_dict['type'] == 'Conv3d' and all(elem not in layer_dict['params']
-                                                      for elem in ['in_channels', 'out_channels']):
-                out_channels = layer_dict['params'].pop('channels')
-                self.hparams.layers[i]['params']['in_channels'] = in_channels
-                self.hparams.layers[i]['params']['out_channels'] = out_channels
-                in_channels = out_channels
-            elif layer_dict['type'] == 'Conv3d' and all(elem in layer_dict['params']
-                                                        for elem in ['in_channels', 'out_channels']):
-                in_channels = self.hparams.layers[i]['params']['out_channels']
-
-        self.final_channel = in_channels
-
     @staticmethod
     def get_OptionClass() -> dict:
         options = {'hparams': OptionClass(template=LightningFlexNN.yaml_template(['Model', 'params']))}
         options['hparams'].add_key('height', dtype=int, required=True)
-        options['hparams'].add_key('width', dtype=int, required=True)
-        options['hparams'].add_key('depth', dtype=int)  # only required for 3d Conv layers
-        options['hparams'].add_key('start_channels', dtype=int, required=True)
-        options['hparams'].add_key('layers', dtype=list, required=True)
-        options['hparams'].add_key('mlp_layer', dtype=dict, required=True)
+        options['hparams'].add_key('width', dtype=int)  # only required for 2d layers
+        options['hparams'].add_key('depth', dtype=int)  # only required for 3d layers
+        options['hparams'].add_key('start_channels', dtype=int)
+        options['hparams'].add_key('layers', dtype=list)
+        options['hparams'].add_key('mlp_layer', dtype=dict)
         options['hparams'].add_key('output_activation', dtype=str, attr_of=_modules_activation)
         options['hparams'].add_key('activation', dtype=str, attr_of=_modules_activation)
         options['hparams'].add_key('loss', dtype=str, attr_of=_modules_loss)
@@ -126,6 +145,7 @@ class LightningFlexNN(LightningModelBase):
         options['mlp_layer'] = OptionClass(template=LightningFlexNN.yaml_template(['Model', 'create_model',
                                                                                    'mlp_layer']))
         options['mlp_layer'].add_key('n_out', dtype=int, required=True)
+        options['mlp_layer'].add_key('n_in', dtype=int)
         options['mlp_layer'].add_key('hidden_layer', dtype=list, required=True)
 
         options['optimizer'] = OptionClass(template=LightningFlexNN.yaml_template(['Model', 'params', 'optimizer']))
@@ -141,10 +161,12 @@ class LightningFlexNN(LightningModelBase):
 
     @staticmethod
     def yaml_template(key_list: List[str]) -> str:
-        template = {'model': {'type': 'LightningFlexNN',
+        template = {'Model': {'type': 'LightningFlexNN',
                               '###INFO###': 'load_model and create_model are mutually exclusive',
                               'load_model': {'path': 'name.ckpt'},
-                              'create_model': {'width': 'int', 'height': 'int', 'depth': 'int (only for 3d models',
+                              'create_model': {'height': 'int',
+                                               'width': 'int (only for 2d models)',
+                                               'depth': 'int (only for 3d models)',
                                                'layers': [{'type': 'torch.nn module',
                                                            'params': {'module_param_1': 'value',
                                                                       'module_param_2': 'value'}},

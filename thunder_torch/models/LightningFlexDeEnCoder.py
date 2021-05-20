@@ -164,21 +164,6 @@ class LightningFlexDeEnCoder(LightningModelBase):
 
         self.layers = torch.nn.Sequential(*self.layers_list)
 
-    def set_channels(self, in_channels: int, layer_dicts: List[dict]) -> Tuple[List[dict], int]:
-
-        for i, layer_dict in enumerate(layer_dicts):  # TODO: let automatically adapt for all conv layers
-            if any(layer_dict['type'] == item for item in self.channel_computation) \
-                    and all(elem not in layer_dict['params'] for elem in ['in_channels', 'out_channels']):
-                out_channels = layer_dict['params'].pop('channels')
-                layer_dicts[i]['params']['in_channels'] = in_channels
-                layer_dicts[i]['params']['out_channels'] = out_channels
-                in_channels = out_channels
-            elif layer_dict['type'] == 'Conv3d' and all(elem in layer_dict['params']
-                                                        for elem in ['in_channels', 'out_channels']):
-                in_channels = layer_dicts[i]['params']['out_channels']
-
-        return layer_dicts, in_channels
-
     @staticmethod
     def get_OptionClass() -> dict:
         options = {'hparams': OptionClass(template=LightningFlexDeEnCoder.yaml_template(['Model', 'params']))}
