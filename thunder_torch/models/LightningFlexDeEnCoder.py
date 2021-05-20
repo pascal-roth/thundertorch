@@ -12,6 +12,7 @@ from thunder_torch.models.ModelBase import LightningModelBase
 from thunder_torch.utils.option_class import OptionClass
 from thunder_torch import _modules_activation, _modules_loss, _modules_lr_scheduler, _modules_optim
 from thunder_torch.models._utils import Reshape
+from thunder_torch import _logger
 import thunder_torch as tt
 
 
@@ -76,101 +77,133 @@ class LightningFlexDeEnCoder(LightningModelBase):
         # add hparams keyword so that model can be easly restored (see utils/general.py::load_model_from_checkpoint)
         self.hparams.model_type = 'LightningFlexDeEnCoder'
 
-        if hasattr(self.hparams, 'encoder'):
-            self.encoder_applied = True
-            self.hparams.encoder, self.final_channel = self.set_channels(self.hparams.input_dim['start_channels'],
-                                                                         self.hparams.encoder)
+        in_encoder_dim = None
+        out_encoder_dim = None
 
-            if self.hparams.encoder[0]['type'] == 'Conv1d':
+        if hasattr(self.hparams, 'cnn_encoder'):
+            self.cnn_encoder_applied = True
+            self.hparams.cnn_encoder, self.final_channel = self.set_channels(self.hparams.input_dim['start_channels'],
+                                                                             self.hparams.cnn_encoder)
+
+            if self.hparams.cnn_encoder[0]['type'] == 'Conv1d':
                 self.height = self.hparams.input_dim['height']
                 assert NotImplementedError('Support for 1d Conv layers not implemented at the moment')
                 # TODO: implement support
 
-            elif self.hparams.encoder[0]['type'] == 'Conv2d':
+            elif self.hparams.cnn_encoder[0]['type'] == 'Conv2d':
                 self.height = self.hparams.input_dim['height']
                 self.width = self.hparams.input_dim['width']
-                self.construct_nn2d(layer_list=self.hparams.encoder)
+                self.construct_nn2d(layer_list=self.hparams.cnn_encoder)
+                in_encoder_dim = self.final_channel * self.height * self.width
 
-            elif self.hparams.encoder[0]['type'] == 'Conv3d':
+            elif self.hparams.cnn_encoder[0]['type'] == 'Conv3d':
                 self.height = self.hparams.input_dim['height']
                 self.width = self.hparams.input_dim['width']
                 self.depth = self.hparams.input_dim['depth']
-                self.construct_nn3d(layer_list=self.hparams.encoder)
-        else:
-            self.encoder_applied = False
+                self.construct_nn3d(layer_list=self.hparams.cnn_encoder)
+                in_encoder_dim = self.final_channel * self.height * self.width * self.depth
 
-        if hasattr(self.hparams, 'mlp_layer'):
-            self.mlp_applied = True
+        else:
+            self.cnn_encoder_applied = False
+
+        if hasattr(self.hparams, 'mlp_encoder'):
+            self.mlp_encoder_applied = True
 
             # check if encoder layers already applied, if yes apply Flatten operation
-            if self.encoder_applied:
+            if self.cnn_encoder_applied:
                 self.layers_list.append(torch.nn.Flatten())  # type: ignore[attr-defined]
-                in_dim = self.final_channel * self.height * self.width
             else:
-                in_dim = self.hparams.input_dim
+                in_encoder_dim = self.hparams.input_dim
 
-            if 'n_out' in self.hparams.mlp_layer:
-                out_dim = self.hparams.mlp_layer['n_out']
+            out_encoder_dim = self.hparams.mlp_encoder['hidden_layer'][-1]
+            self.hparams.mlp_encoder['hidden_layer'] = self.hparams.mlp_encoder['hidden_layer'][:-1]
+
+            self.construct_mlp(in_encoder_dim, self.hparams.mlp_encoder['hidden_layer'], out_encoder_dim)
+            self.layers_list.append(self.activation_fn)
+        else:
+            self.mlp_encoder_applied = False
+
+        # summarize layers upto this point as encoder
+        if self.layers_list:
+            self.encoder = torch.nn.Sequential(*self.layers_list)
+            self.layers_list = []
+
+        if hasattr(self.hparams, 'mlp_decoder'):
+            self.mlp_decoder_applied = True
+
+            if self.mlp_encoder_applied:
+                in_decoder_dim = out_encoder_dim
+                out_decoder_dim = in_encoder_dim
             else:
-                out_dim = in_dim
+                in_decoder_dim = self.hparams.input_dim
+                out_decoder_dim = self.hparams.mlp_decoder['hidden_layer'][-1]
+                self.hparams.mlp_decoder['hidden_layer'] = self.hparams.mlp_decoder['hidden_layer'][:-1]
 
-            self.construct_mlp(in_dim, self.hparams.mlp_layer['hidden_layer'], out_dim)
+            self.construct_mlp(in_decoder_dim, self.hparams.mlp_decoder['hidden_layer'], out_decoder_dim)
             self.layers_list.append(self.activation_fn)
 
         else:
-            self.mlp_applied = False
+            self.mlp_decoder_applied = False
 
-        if hasattr(self.hparams, 'decoder'):
-            self.decoder_applied = True
+        if hasattr(self.hparams, 'cnn_decoder'):
+            self.cnn_decoder_applied = True
 
             # check if encoder and/or mlp layers already
-            if self.encoder_applied:
-                self.hparams.decoder, self.final_channel = self.set_channels(self.final_channel, self.hparams.decoder)
+            if self.cnn_encoder_applied:
+                self.hparams.cnn_decoder, self.final_channel = self.set_channels(
+                    self.final_channel, self.hparams.cnn_decoder)
             else:
-                self.hparams.decoder, self.final_channel = self.set_channels(self.hparams.input_dim['start_channels'],
-                                                                             self.hparams.decoder)
+                self.hparams.cnn_decoder, self.final_channel = self.set_channels(
+                    self.hparams.input_dim['start_channels'], self.hparams.cnn_decoder)
 
-            # if self.mlp_applied:
-            #     raise NotImplementedError('MLP to CNN transformation not implemented yet')
-            #     # self.layers.append(torch.nn.reshape())
-
-            if self.hparams.decoder[0]['type'] == 'Conv1Transposed':
+            if self.hparams.cnn_decoder[0]['type'] == 'Conv1Transposed':
                 self.height = self.hparams.input_dim['height']
                 assert NotImplementedError('Support for 1d Conv layers not implemented at the moment')
                 # TODO: implement support
 
-            elif self.hparams.decoder[0]['type'] == 'ConvTranspose2d':
-                if not self.encoder_applied:
+            elif self.hparams.cnn_decoder[0]['type'] == 'ConvTranspose2d':
+                if not self.cnn_encoder_applied:
                     self.height = self.hparams.input_dim['height']
                     self.width = self.hparams.input_dim['width']
-                if self.mlp_applied:
+                if self.mlp_decoder_applied or self.mlp_encoder_applied:  # TODO: what if no cnn preior defined
                     self.layers_list.append(Reshape([self.height, self.width],
-                                                    self.hparams.decoder[0]['params']['in_channels']))
-                self.construct_nn2d(layer_list=self.hparams.decoder)
+                                                    self.hparams.cnn_decoder[0]['params']['in_channels']))
+                self.construct_nn2d(layer_list=self.hparams.cnn_decoder)
 
-            elif self.hparams.decoder[0]['type'] == 'ConvTranspose3d':
-                if not self.encoder_applied:
+            elif self.hparams.cnn_decoder[0]['type'] == 'ConvTranspose3d':
+                if not self.cnn_encoder_applied:
                     self.height = self.hparams.input_dim['height']
                     self.width = self.hparams.input_dim['width']
                     self.depth = self.hparams.input_dim['depth']
-                if self.mlp_applied:
+                if self.mlp_decoder_applied or self.mlp_encoder_applied:
                     self.layers_list.append(Reshape([self.height, self.width, self.depth],
-                                                    self.hparams.decoder[0]['params']['in_channels']))
-                self.construct_nn3d(layer_list=self.hparams.decoder)
+                                                    self.hparams.cnn_decoder[0]['params']['in_channels']))
+                self.construct_nn3d(layer_list=self.hparams.cnn_decoder)
 
-            elif self.hparams.decoder[0]['type'] == 'Upsample':
+            elif self.hparams.cnn_decoder[0]['type'] == 'Upsample':
                 # TODO implement upsample method
                 raise NotImplementedError('Support for Upsample not implemented yet')
 
-        self.layers = torch.nn.Sequential(*self.layers_list)
+        if self.layers_list:
+            self.decoder = torch.nn.Sequential(*self.layers_list)
+            self.layers_list = []
+
+        # define model parameters which should be optimized
+        self.optimizer_parameters = list(self.encoder.parameters()) + list(self.decoder.parameters())
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        x = self.encoder(x)
+        x = self.decoder(x)
+        return x
 
     @staticmethod
     def get_OptionClass() -> dict:
         options = {'hparams': OptionClass(template=LightningFlexDeEnCoder.yaml_template(['Model', 'params']))}
         options['hparams'].add_key('input_dim', dtype=[int, dict], required=True)
-        options['hparams'].add_key('encoder', dtype=list)
-        options['hparams'].add_key('decoder', dtype=list)
-        options['hparams'].add_key('mlp_layer', dtype=dict)
+        options['hparams'].add_key('cnn_encoder', dtype=list)
+        options['hparams'].add_key('mlp_encoder', dtype=dict)
+        options['hparams'].add_key('mlp_decoder', dtype=dict)
+        options['hparams'].add_key('cnn_decoder', dtype=list)
         options['hparams'].add_key('output_activation', dtype=str, attr_of=_modules_activation)
         options['hparams'].add_key('activation', dtype=str, attr_of=_modules_activation)
         options['hparams'].add_key('loss', dtype=str, attr_of=_modules_loss)
@@ -187,17 +220,16 @@ class LightningFlexDeEnCoder(LightningModelBase):
         options['input_dim'].add_key('depth', dtype=int)  # only required for 3d Conv layers
         options['input_dim'].add_key('start_channels', dtype=int, required=True)
 
-        options['encoder'] = OptionClass(template=LightningFlexDeEnCoder.yaml_template(['Model', 'create_model',
-                                                                                        'encoder']))
-        options['encoder'].add_key('type', dtype=str, required=True, attr_of='torch.nn')
-        options['encoder'].add_key('params', dtype=dict, param_dict=True)
+        options['cnn_encoder'] = OptionClass(template=LightningFlexDeEnCoder.yaml_template(['Model', 'create_model',
+                                                                                        'cnn_encoder']))
+        options['cnn_encoder'].add_key('type', dtype=str, required=True, attr_of='torch.nn')
+        options['cnn_encoder'].add_key('params', dtype=dict, param_dict=True)
+        options['cnn_decoder'] = options['cnn_encoder']
 
-        options['decoder'] = options['encoder']
-
-        options['mlp_layer'] = OptionClass(template=LightningFlexDeEnCoder.yaml_template(['Model', 'create_model',
-                                                                                          'mlp_layer']))
-        options['mlp_layer'].add_key('n_out', dtype=int)
-        options['mlp_layer'].add_key('hidden_layer', dtype=list, required=True)
+        options['mlp_encoder'] = OptionClass(template=LightningFlexDeEnCoder.yaml_template(['Model', 'create_model',
+                                                                                            'mlp_encoder']))
+        options['mlp_encoder'].add_key('hidden_layer', dtype=list, required=True)
+        options['mlp_decoder'] = options['mlp_encoder']
 
         options['optimizer'] = OptionClass(template=LightningFlexDeEnCoder.yaml_template(['Model', 'params',
                                                                                           'optimizer']))
@@ -219,20 +251,23 @@ class LightningFlexDeEnCoder(LightningModelBase):
                               'load_model': {'path': 'name.ckpt'},
                               'create_model': {'input_dim': {'width': 'int', 'height': 'int',
                                                              'depth': 'int (only for 3d models)',
-                                                             'start_channels': int},
-                                               'encoder': [{'type': 'torch.nn module',
-                                                            'params': {'module_param_1': 'value',
-                                                                       'module_param_2': 'value'}},
-                                                           {'type': 'e. g. Conv2d',
-                                                            'params': {'kernel_size': 3, 'channels': 20}},
-                                                           {'type': 'e. g. MaxPool2d', 'params': {'kernel_size': 2}}],
-                                               'mlp_layer': {'n_out': 'int', 'hidden_layer': ['int', 'int', '...']},
-                                               'decoder': [{'type': 'torch.nn module',
-                                                            'params': {'module_param_1': 'value',
-                                                                       'module_param_2': 'value'}},
-                                                           {'type': 'e. g. ConvTranspose2d',
-                                                            'params': {'kernel_size': 3, 'channels': 20}},
-                                                           {'type': 'e. g. MaxUnpool2d', 'params': {'kernel_size': 2}}],
+                                                             'start_channels': 'int'},
+                                               'cnn_encoder': [{'type': 'torch.nn module',
+                                                                'params': {'module_param_1': 'value',
+                                                                           'module_param_2': 'value'}},
+                                                               {'type': 'e. g. Conv2d',
+                                                                'params': {'kernel_size': 3, 'channels': 20}},
+                                                               {'type': 'e. g. MaxPool2d',
+                                                                'params': {'kernel_size': 2}}],
+                                               'mlp_encoder': {'hidden_layer': ['int', 'int', '...']},
+                                               'mlp_decoder': {'hidden_layer': ['int', 'int', '...']},
+                                               'cnn_decoder': [{'type': 'torch.nn module',
+                                                                'params': {'module_param_1': 'value',
+                                                                           'module_param_2': 'value'}},
+                                                               {'type': 'e. g. ConvTranspose2d',
+                                                                'params': {'kernel_size': 3, 'channels': 20}},
+                                                               {'type': 'e. g. MaxUnpool2d',
+                                                                'params': {'kernel_size': 2}}],
                                                'output_activation': 'str (default: None)',
                                                'activation': 'str (default: ReLU)'},
                               'params': {'loss': 'str (default:MSELoss)',

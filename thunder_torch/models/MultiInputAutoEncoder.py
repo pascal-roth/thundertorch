@@ -219,6 +219,16 @@ class LightningFlexAutoEncoderMultiInput(LightningModelBase):
 
         _logger.info('Model build succeed!')
 
+        params = []
+        if hasattr(self, 'encoder_single'):
+            for i in range(len(self.encoder_single)):
+                params += list(self.encoder_single[i].parameters())
+        params += list(self.layers.parameters())
+        if hasattr(self, 'decoder_single'):
+            for i in range(len(self.decoder_single)):
+                params += list(self.decoder_single[i].parameters())
+        self.optimizer_parameters = params
+
     def forward(self, x: torch.Tensor) -> List[torch.Tensor]:
         """
         forward pass through the network
@@ -235,61 +245,6 @@ class LightningFlexAutoEncoderMultiInput(LightningModelBase):
         output_list = self.layers(input_list)
         x = [self.decoder_single[i](output_list[i]) for i in range(len(output_list))]
         return x
-
-    def configure_optimizers(self) -> Union[object, tuple]:
-        """
-        optimizer and lr scheduler
-
-        Returns
-        -------
-        optimizer       - PyTorch Optimizer function
-        scheduler       - PyTorch Scheduler function
-        """
-        for m in _modules_optim:
-            try:
-                _, optimizer_cls = dynamic_imp(m, self.hparams.optimizer['type'])
-                # optimizer_cls = getattr(importlib.import_module(m), self.hparams.optimizer['type'])
-                break
-            except AttributeError or ModuleNotFoundError:
-                _logger.debug('Optimizer of type {} NOT found in {}'.format(self.hparams.optimizer['type'], m))
-
-        params = []
-        if hasattr(self, 'encoder_single'):
-            for i in range(len(self.encoder_single)):
-                params += list(self.encoder_single[i].parameters())
-        params += list(self.layers.parameters())
-        if hasattr(self, 'decoder_single'):
-            for i in range(len(self.decoder_single)):
-                params += list(self.decoder_single[i].parameters())
-
-        try:
-            if 'params' in self.hparams.optimizer:
-                optimizer = optimizer_cls(params, **self.hparams.optimizer['params'])
-            else:
-                optimizer = optimizer_cls(params)
-        except NameError:
-            raise NameError(f'Optimizer "{self.hparams.optimizer["type"]}" cannot be found in given '
-                            f'sources: "{_modules_optim}"')
-
-        if self.hparams.scheduler['execute']:
-            for m in _modules_lr_scheduler:
-                try:
-                    _, scheduler_cls = dynamic_imp(m, self.hparams.scheduler['type'])
-                    scheduler = scheduler_cls(optimizer, **self.hparams.scheduler['params'])
-                    # scheduler = getattr(importlib.import_module(m), self.hparams.scheduler['type'])\
-                    #     (optimizer, **self.hparams.scheduler['params'])
-                    break
-                except AttributeError or ModuleNotFoundError:
-                    _logger.debug('LR Scheduler of type {} not found in {}'.format(self.hparams.scheduler['type'], m))
-
-            try:
-                return [optimizer], [scheduler]
-            except NameError:
-                raise NameError(f'LR Scheduler "{self.hparams.scheduler["type"]}" cannot be found in given '
-                                f'sources: "{_modules_lr_scheduler}"')
-
-        else:
-            return optimizer
 
     def training_step(self, batch: Tuple[torch.Tensor, torch.Tensor], batch_idx: int) -> dict:
         """

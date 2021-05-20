@@ -107,7 +107,7 @@ class LightningFlexNN(LightningModelBase):
                 assert in_dim == self.hparams.mlp_layer['n_in'], 'Entered input dimension of MLP Network not equal ' \
                                                                    'to the one calculated '
             elif in_dim is None and 'n_in' not in self.hparams.mlp_layer:
-                raise KeyError('Input dimension of MLP network is missing, please add "in_dim" key to "mlp_layer" dict')
+                raise KeyError('Input dimension of MLP network is missing, please add "n_in" key to "mlp_layer" dict')
             elif in_dim is not None and 'n_in' not in self.hparams.mlp_layer:
                 self.hparams.mlp_layer['n_in'] = in_dim
 
@@ -119,6 +119,9 @@ class LightningFlexNN(LightningModelBase):
             self.layers_list.append(getattr(torch.nn, self.hparams.output_activation)())
 
         self.layers = torch.nn.Sequential(*self.layers_list)
+
+        # define model parameters which should be optimized
+        self.optimizer_parameters = self.layers.parameters()
 
     @staticmethod
     def get_OptionClass() -> dict:

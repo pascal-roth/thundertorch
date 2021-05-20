@@ -128,17 +128,21 @@ class LightningModelBase(pl.LightningModule):
         out_dim             - output dimensions
         """
         # TODO: think about adding a bias flag in case a linear function should be learned
-        # Construct all MLP layers
-        self.layers_list.append(torch.nn.Linear(in_dim, hidden_layer[0]))
-        self.layers_list.append(self.activation_fn)
-
-        layer_sizes = zip(hidden_layer[:-1], hidden_layer[1:])
-
-        for h1, h2 in layer_sizes:
-            self.layers_list.append(torch.nn.Linear(h1, h2))
+        if hidden_layer:
+            # Construct all MLP layers
+            self.layers_list.append(torch.nn.Linear(in_dim, hidden_layer[0]))
             self.layers_list.append(self.activation_fn)
 
-        self.layers_list.append(torch.nn.Linear(hidden_layer[-1], out_dim))
+            layer_sizes = zip(hidden_layer[:-1], hidden_layer[1:])
+
+            for h1, h2 in layer_sizes:
+                self.layers_list.append(torch.nn.Linear(h1, h2))
+                self.layers_list.append(self.activation_fn)
+
+            self.layers_list.append(torch.nn.Linear(hidden_layer[-1], out_dim))
+        else:
+            # in the case no hidden layers are given
+            self.layers_list.append(torch.nn.Linear(in_dim, out_dim))
 
     def set_channels(self, in_channels: int, layer_dicts: List[dict]) -> Tuple[List[dict], int]:
 
@@ -245,9 +249,9 @@ class LightningModelBase(pl.LightningModule):
 
         try:
             if 'params' in self.hparams.optimizer:
-                optimizer = optimizer_cls(self.layers.parameters(), **self.hparams.optimizer['params'])
+                optimizer = optimizer_cls(self.optimizer_parameters, **self.hparams.optimizer['params'])
             else:
-                optimizer = optimizer_cls(self.layers.parameters())
+                optimizer = optimizer_cls(self.optimizer_parameters)
         except NameError:
             raise NameError(f'Optimizer "{self.hparams.optimizer["type"]}" cannot be found in given '
                             f'sources: "{_modules_optim}"')
