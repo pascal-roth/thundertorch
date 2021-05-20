@@ -312,7 +312,7 @@ class LightningFlexAutoEncoderMultiInput(LightningModelBase):
         """
         x, y = batch
         y_hat = self(x)
-        loss = torch.zeros(1)
+        loss = torch.zeros(1, device=self.device)
         for i in range(len(y_hat)):
             loss += self.loss_fn(y_hat[i], y[:, i, :, :, :, :])
         log = {'train_loss': loss}
@@ -328,7 +328,7 @@ class LightningFlexAutoEncoderMultiInput(LightningModelBase):
         """
         x, y = batch
         y_hat = self(x)
-        loss = torch.zeros(1)
+        loss = torch.zeros(1, device=self.device)
         for i in range(len(y_hat)):
             loss += self.loss_fn(y_hat[i], y[:, i, :, :, :, :])
         hiddens = {'inputs': x[:, 1, :, :, :, :].detach(), 'preds': y_hat[1].detach(),
@@ -342,7 +342,7 @@ class LightningFlexAutoEncoderMultiInput(LightningModelBase):
         """
         x, y = batch
         y_hat = self(x)
-        loss = torch.zeros(1)
+        loss = torch.zeros(1, device=self.device)
         for i in range(len(y_hat)):
             loss += self.loss_fn(y_hat[i], y[:, i, :, :, :, :])
         hiddens = {'inputs': x[:, 1, :, :, :, :].detach(), 'preds': y_hat[1].detach(),
