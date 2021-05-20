@@ -22,29 +22,33 @@ def train_config(argsConfig: dict, argsTrainer: dict) -> dict:
         # source_path = os.path.join(os.getcwd(), argsConfig['source_files'] + '.py')
         source_path = argsConfig['source_files']
 
-        # Check if module can be imported, exception would be raised within dynamic_imp
-        # source path must be full path with .py file extension
-        if source_path.endswith(".py"):
-            source_path = source_path[:-3]
+        if isinstance(source_path, str):
+            source_path = [source_path]
 
-        if os.path.exists(os.getcwd()+"/"+source_path+".py"):
-            source_path = os.getcwd() + "/" + source_path
-        elif not os.path.exists(source_path + ".py"):
-            raise FileNotFoundError(f"Source file for custom function or class does not exists.\nSearched for file: "
-                                    f"{source_path+'.py'}")
-        mod, _ = dynamic_imp(source_path)
+        for source_path_run in source_path:
+            # Check if module can be imported, exception would be raised within dynamic_imp
+            # source path must be full path with .py file extension
+            if source_path_run.endswith(".py"):
+                source_path_run = source_path_run[:-3]
 
-        if source_path in _modules_models:
-            _logger.debug(f'Individual Module {source_path} already included')
-        else:
-            _modules_models.append(source_path)
-            _modules_callbacks.append(source_path)
-            _modules_optim.append(source_path)
-            _modules_loss.append(source_path)
-            _modules_activation.append(source_path)
-            _modules_lr_scheduler.append(source_path)
-            _modules_loader.append(source_path)
-            _logger.debug(f'Individual Module {source_path} added')
+            if os.path.exists(os.getcwd()+"/"+source_path_run+".py"):
+                source_path_run = os.getcwd() + "/" + source_path_run
+            elif not os.path.exists(source_path_run + ".py"):
+                raise FileNotFoundError(f"Source file for custom function or class does not exists.\nSearched for file: "
+                                        f"{source_path_run+'.py'}")
+            mod, _ = dynamic_imp(source_path_run)
+
+            if source_path_run in _modules_models:
+                _logger.debug(f'Individual Module {source_path_run} already included')
+            else:
+                _modules_models.append(source_path_run)
+                _modules_callbacks.append(source_path_run)
+                _modules_optim.append(source_path_run)
+                _modules_loss.append(source_path_run)
+                _modules_activation.append(source_path_run)
+                _modules_lr_scheduler.append(source_path_run)
+                _modules_loader.append(source_path_run)
+                _logger.debug(f'Individual Module {source_path_run} added')
 
     # check for deterministic https://pytorch.org/docs/stable/notes/randomness.html
     if 'deterministic' in argsConfig and argsConfig['deterministic'] is True:

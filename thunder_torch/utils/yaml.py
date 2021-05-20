@@ -150,7 +150,7 @@ def check_argsConfig_single(argsConfig: dict) -> None:
     argsConfig    - Dict including the Config arguments of the single model yaml
     """
     options = {'config': OptionClass(template=config_yml_template([]))}
-    options['config'].add_key('source_files', dtype=str)
+    options['config'].add_key('source_files', dtype=[str, list])
     options['config'].add_key('deterministic', dtype=bool)
 
     OptionClass.checker(input_dict={'config': argsConfig}, option_classes=options)
@@ -229,9 +229,9 @@ def config_yml_template(key_list: list) -> str:
     """
     Config template for single model yaml
     """
-    template = {'config': {'source_files': 'individual module (individual function, model, loader, ... has to be '
-                                           'mentioned in __all__ in the __init__ of the module, so that it can be '
-                                           'loaded)',
+    template = {'config': {'source_files': 'single or list of individual module(s) (individual modules can be NN model'
+                                           ', dataloader, callback, optimizer, loss fct, activation fct or '
+                                           'lr-scheduler)',
                            'deterministic': 'True'}}
 
     template = get_by_path(template, key_list)
