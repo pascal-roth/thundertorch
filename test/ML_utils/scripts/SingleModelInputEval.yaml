@@ -54,11 +54,11 @@ Trainer:
     - type: EarlyStopping
       params:
         monitor: val_loss
-        patience: 12
+        patience: 15
         mode: min
 #    - type: lr_logger
-    - type: ModelCheckpoint
+    - idx: 1
       params:
         filepath: None
-        save_top_k: 1  # other params in documentation
+        save_top_k: 3  # other params in documentation
 #   logger: tensorboard

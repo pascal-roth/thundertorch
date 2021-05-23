@@ -255,16 +255,26 @@ def multimodel_training_yml_template(key_list: list, template: str = 'path.yaml 
                                                                       'features': ['feature_1', 'feature_2'],
                                                                       'labels': ['label_1', 'label_2']}},
                                  'Model': {'create_model': {'n_inp': 'int', 'n_out': 'int',
-                                                            'hidden_layer': ['int', 'int']}},
+                                                            'hidden_layer': ['int', 'int']},
+                                           'params': {'optimizer': {'type': 'SGD', 'params': {'lr': 0.001}}}},
                                  'Trainer': {'params': {'max_epochs': 'int'},
                                              'callbacks': [{'type': 'Checkpointing', 'params': {'filepath': 'path'}}]}},
                     'Model002': {'Template': template,
                                  'DataLoader': {'create_DataLoader': {'raw_data_path': 'different_path.csv',
                                                                       'features': ['feature_1', 'feature_2'],
                                                                       'labels': ['label_1', 'label_2']}},
-                                 'Model': {
-                                     'create_model': {'n_inp': 'int', 'n_out': 'int', 'hidden_layer': ['int', 'int']},
-                                     'params': {'optimizer': {'type': 'SGD', 'params': {'lr': 0.001}}}},
+                                 '###INFO###': 'When entries are structured as list of dicts in the template, the '
+                                               'list entry that should be changed can be determined by providing the '
+                                               'list index (key: "idx") or the type of list entry (key: "type"). Pls'
+                                               'keep attention, the first entry which has the mentioned type will be '
+                                               'manipulated! ',
+                                 'Model': {'layers': [{'type': 'torch.nn module',
+                                                       'idx': 'int',
+                                                       'params': {'module_param_1': 'value',
+                                                                  'module_param_2': 'value'}},
+                                                      {'idx': 0,
+                                                       'params': {'kernel_size': 3, 'channels': 20}},
+                                                      {'type': 'MaxPool2d', 'params': {'kernel_size': 2}}]},
                                  'Trainer': {'params': {'max_epochs': 'int'}}}}
 
     yml_template = get_by_path(yml_template, key_list)
@@ -461,8 +471,18 @@ def replace_keys(dictMultiModel: dict, dictSingleModel: dict) -> dict:
         elif isinstance(document, list) and all(isinstance(elem, dict) for elem in document):
             for list_dict in document:
                 dictSingleModel_list_dict = get_by_path(dictModel, key_list)
-                dictSingleModel_list_dict_nbr = next((i for i, item in enumerate(dictSingleModel_list_dict)
-                                                      if item["type"] == list_dict['type']))
+
+                if 'idx' in list_dict:
+                    dictSingleModel_list_dict_nbr = list_dict['idx']
+                elif 'type' in list_dict:
+                    dictSingleModel_list_dict_nbr = next((i for i, item in enumerate(dictSingleModel_list_dict)
+                                                          if item["type"] == list_dict['type']))
+                else:
+                    raise KeyError('Key Missing to determine which list entry should be manipulated, either include'
+                                   'list index with key "idx" or the type of the list entry with key "type" \n'
+                                   '(ATTENTION: When multiple list entries have the same type, the first entry will be '
+                                   'manipulated!)')
+
                 key_list.extend([dictSingleModel_list_dict_nbr, 'params'])
                 dictModel, key_list = recursion_search(document=list_dict['params'], key_list=key_list,
                                                        dictModel=dictModel)

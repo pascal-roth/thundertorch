@@ -17,6 +17,11 @@ from thunder_torch.utils.general import dynamic_imp, get_ckpt_path
 
 
 def train_config(argsConfig: dict, argsTrainer: dict) -> dict:
+    # check if argsConfig is NoneType (no keys have been given in yaml)
+    if argsConfig is None:
+        _logger.debug('ArgsConfig dict is empty!')
+        return argsTrainer
+
     # add source path for modules defined in __init__
     if 'source_files' in argsConfig:
         # source_path = os.path.join(os.getcwd(), argsConfig['source_files'] + '.py')
