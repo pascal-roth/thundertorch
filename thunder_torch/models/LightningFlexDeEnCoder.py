@@ -6,7 +6,7 @@
 import torch
 import yaml
 from argparse import Namespace
-from typing import List, Tuple, Optional
+from typing import List, Union, Optional
 
 from thunder_torch.models.ModelBase import LightningModelBase
 from thunder_torch.utils.option_class import OptionClass
@@ -188,8 +188,13 @@ class LightningFlexDeEnCoder(LightningModelBase):
             self.decoder = torch.nn.Sequential(*self.layers_list)
             self.layers_list = []
 
+    def get_optimizer_parameters(self) -> Union[torch.Generator, List[torch.Generator]]:
         # define model parameters which should be optimized
-        self.optimizer_parameters = list(self.encoder.parameters()) + list(self.decoder.parameters())
+        params = []
+        params += list(self.encoder.parameters())
+        params += list(self.decoder.parameters())
+        _logger.debug('Encoder and Decoder parameters selected to be optimized')
+        return params
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         x = self.encoder(x)

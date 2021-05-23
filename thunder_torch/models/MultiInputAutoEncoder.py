@@ -219,6 +219,7 @@ class LightningFlexAutoEncoderMultiInput(LightningModelBase):
 
         _logger.info('Model build succeed!')
 
+    def get_optimizer_parameters(self) -> Union[torch.Generator, List[torch.Generator]]:
         params = []
         if hasattr(self, 'encoder_single'):
             for i in range(len(self.encoder_single)):
@@ -227,7 +228,7 @@ class LightningFlexAutoEncoderMultiInput(LightningModelBase):
         if hasattr(self, 'decoder_single'):
             for i in range(len(self.decoder_single)):
                 params += list(self.decoder_single[i].parameters())
-        self.optimizer_parameters = params
+        return params
 
     def forward(self, x: torch.Tensor) -> List[torch.Tensor]:
         """

@@ -47,6 +47,8 @@ class LightningModelBase(pl.LightningModule):
         self.channel_computation = ['Conv1d', 'Conv1d', 'Conv3d', 'ConvTranspose1d', 'ConTranspose2d',
                                     'ConvTranspose3d']
 
+        self.optimizer_parameters: Union[torch.Generator, List[torch.Generator]]
+
     def construct_nn2d(self, layer_list: list) -> None:
         """
         Functionality to build any kind of torch.nn 2d layer (convolutional, pooling, padding, normalization, recurrent,
@@ -230,6 +232,9 @@ class LightningModelBase(pl.LightningModule):
 
         return x
 
+    def get_optimizer_parameters(self) -> Union[torch.Generator, List[torch.Generator]]:
+        return self.layers.parameters()
+
     def configure_optimizers(self) -> Union[object, tuple]:
         """
         optimizer and lr scheduler
@@ -249,9 +254,9 @@ class LightningModelBase(pl.LightningModule):
 
         try:
             if 'params' in self.hparams.optimizer:
-                optimizer = optimizer_cls(self.optimizer_parameters, **self.hparams.optimizer['params'])
+                optimizer = optimizer_cls(self.get_optimizer_parameters(), **self.hparams.optimizer['params'])
             else:
-                optimizer = optimizer_cls(self.optimizer_parameters)
+                optimizer = optimizer_cls(self.get_optimizer_parameters())
         except NameError:
             raise NameError(f'Optimizer "{self.hparams.optimizer["type"]}" cannot be found in given '
                             f'sources: "{_modules_optim}"')

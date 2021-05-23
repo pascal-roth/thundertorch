@@ -169,19 +169,19 @@ def test_replace_keys(path: Path) -> None:
     yamlTemplate = parse_yaml(path / 'scripts/SingleModelInputEval.yaml')
 
     # check general ability to replace keys
-    yaml_file = yaml_file.pop('model001')
-    _ = yaml_file.pop('template')
-    yaml_file['dataloader']['create_dataloader']['features'] = ['T_0', 'PV']
-    yaml_file = replace_keys(yaml_file, yamlTemplate)
-    assert yaml_file['dataloader']['create_dataloader']['features'] == ['T_0', 'PV'], 'Replacement of keys fails'
+    yaml_file_001 = yaml_file.pop('model001')
+    _ = yaml_file_001.pop('template')
+    yaml_file_001['dataloader']['create_dataloader']['features'] = ['T_0', 'PV']
+    yaml_file_001 = replace_keys(yaml_file_001, yamlTemplate)
+    assert yaml_file_001['dataloader']['create_dataloader']['features'] == ['T_0', 'PV'], 'Replacement of keys fails'
 
     # check ability to work with "idx" and "type" key when lists are manipulated
-    yaml_file = yaml_file.pop('model002')
-    _ = yaml_file.pop('template')
-    yaml_file = replace_keys(yaml_file, yamlTemplate)
-    assert yaml_file['trainer']['callbacks'][0]['params']['patience'] == 15, \
+    yaml_file_002 = yaml_file.pop('model002')
+    _ = yaml_file_002.pop('template')
+    yaml_file_002 = replace_keys(yaml_file_002, yamlTemplate)
+    assert yaml_file_002['trainer']['callbacks'][0]['params']['patience'] == 15, \
         'Manipulation of list entry with "type" key fails'
-    assert yaml_file['trainer']['callbacks'][1]['params']['save_top_k'] == 3, \
+    assert yaml_file_002['trainer']['callbacks'][1]['params']['save_top_k'] == 3, \
         'Manipulation of list entry with "idx" key fails'
 
     with pytest.raises(KeyError):  # error in the key_path to the highest level key

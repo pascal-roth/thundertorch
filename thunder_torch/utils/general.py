@@ -13,6 +13,7 @@ from tqdm import tqdm
 import pandas as pd
 from sklearn.preprocessing import MinMaxScaler
 from pytorch_lightning import LightningModule
+from pathlib import Path, PosixPath
 
 
 def parse_arguments() -> argparse.Namespace:
@@ -43,7 +44,10 @@ def logger_level(argument: argparse.Namespace) -> None:
 
 def get_ckpt_path(path: str) -> str:
     if os.path.isfile(path):
-        ckpt_path = path
+        if path.endswith('.ckpt'):
+            ckpt_path = path
+        else:
+            ckpt_path = path + '.ckpt'
         _logger.debug('Direct path to ckpt is given')
 
     elif os.path.isdir(path):
@@ -65,7 +69,7 @@ def get_ckpt_path(path: str) -> str:
     return ckpt_path
 
 
-def load_model_from_checkpoint(checkpoint_path: str) -> LightningModule:
+def load_model_from_checkpoint(checkpoint_path: Union[str, Path, PosixPath]) -> LightningModule:
     """
     Loads a model from a given checkpoint path even if the model class is not known prior by the code
     Unfortunately, this cannot be implemented in the ModelBase class without a lot of effort and therefore
@@ -81,8 +85,11 @@ def load_model_from_checkpoint(checkpoint_path: str) -> LightningModule:
     model_class:
         loaded model based off 'model_type' hyperparameter of checkpoint
     """
-    assert isinstance(checkpoint_path, str), f'checkpoint path has to be of type str, but {type(checkpoint_path)} ' \
-                                             f'was given'
+    if any(isinstance(checkpoint_path, path_type) for path_type in [str, Path, PosixPath]):
+        checkpoint_path = str(checkpoint_path)
+    else:
+        raise TypeError(f'checkpoint path has to be of type [str, Path, PosixPath], but {type(checkpoint_path)} '
+                        f'was given')
 
     ckpt_path = get_ckpt_path(checkpoint_path)
     c = torch.load(ckpt_path, torch.device("cpu"))

@@ -120,9 +120,6 @@ class LightningFlexNN(LightningModelBase):
 
         self.layers = torch.nn.Sequential(*self.layers_list)
 
-        # define model parameters which should be optimized
-        self.optimizer_parameters = self.layers.parameters()
-
     @staticmethod
     def get_OptionClass() -> dict:
         options = {'hparams': OptionClass(template=LightningFlexNN.yaml_template(['Model', 'params']))}

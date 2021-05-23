@@ -69,9 +69,6 @@ class LightningFlexMLP(LightningModelBase):
 
         self.layers = torch.nn.Sequential(*self.layers_list)
 
-        # define model parameters which should be optimized
-        self.optimizer_parameters = self.layers.parameters()
-
     # def training_step(self, batch, batch_idx) -> dict:
     #     x, y = batch
     #     y_hat = self(x)
