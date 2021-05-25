@@ -116,9 +116,8 @@ class LightningFlexDeEnCoder(LightningModelBase):
                 in_encoder_dim = self.hparams.input_dim
 
             out_encoder_dim = self.hparams.mlp_encoder['hidden_layer'][-1]
-            self.hparams.mlp_encoder['hidden_layer'] = self.hparams.mlp_encoder['hidden_layer'][:-1]
 
-            self.construct_mlp(in_encoder_dim, self.hparams.mlp_encoder['hidden_layer'], out_encoder_dim)
+            self.construct_mlp(in_encoder_dim, self.hparams.mlp_encoder['hidden_layer'][:-1], out_encoder_dim)
             self.layers_list.append(self.activation_fn)
         else:
             self.mlp_encoder_applied = False
@@ -134,12 +133,13 @@ class LightningFlexDeEnCoder(LightningModelBase):
             if self.mlp_encoder_applied:
                 in_decoder_dim = out_encoder_dim
                 out_decoder_dim = in_encoder_dim
+                hiddens = self.hparams.mlp_decoder['hidden_layer']
             else:
                 in_decoder_dim = self.hparams.input_dim
                 out_decoder_dim = self.hparams.mlp_decoder['hidden_layer'][-1]
-                self.hparams.mlp_decoder['hidden_layer'] = self.hparams.mlp_decoder['hidden_layer'][:-1]
+                hiddens = self.hparams.mlp_decoder['hidden_layer'][:-1]
 
-            self.construct_mlp(in_decoder_dim, self.hparams.mlp_decoder['hidden_layer'], out_decoder_dim)
+            self.construct_mlp(in_decoder_dim, hiddens, out_decoder_dim)
             self.layers_list.append(self.activation_fn)
 
         else:
@@ -229,6 +229,7 @@ class LightningFlexDeEnCoder(LightningModelBase):
                                                                                         'cnn_encoder']))
         options['cnn_encoder'].add_key('type', dtype=str, required=True, attr_of='torch.nn')
         options['cnn_encoder'].add_key('params', dtype=dict, param_dict=True)
+        options['cnn_encoder'].add_key('activation', dtype=bool)
         options['cnn_decoder'] = options['cnn_encoder']
 
         options['mlp_encoder'] = OptionClass(template=LightningFlexDeEnCoder.yaml_template(['Model', 'create_model',
