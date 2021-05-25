@@ -59,7 +59,7 @@ class LightningModelBase(pl.LightningModule):
         # Construct all conv layers
         for layer_dict in layer_list:
             if 'params' in layer_dict:
-                activation = layer_dict['params'].pop('activation', True)
+                activation = layer_dict.get('activation', True)
                 self.layers_list.append(getattr(torch.nn, layer_dict['type'])(**layer_dict['params']))
             else:
                 activation = True
@@ -92,7 +92,7 @@ class LightningModelBase(pl.LightningModule):
         # Construct all conv layers
         for layer_dict in layer_list:
             if 'params' in layer_dict:
-                activation = layer_dict['params'].pop('activation', True)
+                activation = layer_dict.get('activation', True)
                 self.layers_list.append(getattr(torch.nn, layer_dict['type'])(**layer_dict['params']))
             else:
                 activation = True
