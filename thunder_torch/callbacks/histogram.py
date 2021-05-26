@@ -158,6 +158,9 @@ class Histogram(Callback):
             targets = trainer.hiddens["targets"]
             preds = trainer.hiddens["preds"]
 
+            if len(preds.shape) != 1:
+                preds = torch.squeeze(preds)
+
             if self.errors_train is None:
                 self.errors_train = ((preds-targets)/(targets+1e-09)) * 100
             else:
