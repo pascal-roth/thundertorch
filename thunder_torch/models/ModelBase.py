@@ -288,10 +288,11 @@ class LightningModelBase(pl.LightningModule):
         """
         x, y = batch
         y_hat = self(x)
-        try:
-            loss = self.loss_fn(y_hat, y)
-        except RuntimeError:  # TODO: makes target to int, really useful ?
-            loss = self.loss_fn(y_hat, y.long())
+        loss = self.loss_fn(y_hat, y)
+        # try:
+        #     loss = self.loss_fn(y_hat, y)
+        # except RuntimeError:  # TODO: makes target to int, really useful ?
+        #     loss = self.loss_fn(y_hat, y.long())
         log = {'train_loss': loss}
         hiddens = {'inputs': x.detach(), 'preds': y_hat.detach(), 'targets': y.detach()}
         results = {'loss': loss, 'log': log, 'hiddens': hiddens}
@@ -304,10 +305,11 @@ class LightningModelBase(pl.LightningModule):
         """
         x, y = batch
         y_hat = self(x)
-        try:
-            loss = self.loss_fn(y_hat, y)
-        except RuntimeError:
-            loss = self.loss_fn(y_hat, y.long())
+        loss = self.loss_fn(y_hat, y)
+        # try:
+        #     loss = self.loss_fn(y_hat, y)
+        # except RuntimeError:
+        #     loss = self.loss_fn(y_hat, y.long())
         hiddens = {'inputs': x.detach(), 'preds': y_hat.detach(), 'targets': y.detach()}
         return {'val_loss': loss, 'hiddens': hiddens}
 
@@ -332,10 +334,11 @@ class LightningModelBase(pl.LightningModule):
         """
         x, y = batch
         y_hat = self(x)
-        try:
-            loss = self.loss_fn(y_hat, y)
-        except RuntimeError:
-            loss = self.loss_fn(y_hat, y.long())
+        loss = self.loss_fn(y_hat, y)
+        # try:
+        #     loss = self.loss_fn(y_hat, y)
+        # except RuntimeError:
+        #     loss = self.loss_fn(y_hat, y.long())
         hiddens = {'inputs': x.detach(), 'preds': y_hat.detach(), 'targets': y.detach()}
         return {'test_loss': loss, 'hiddens': hiddens}
 

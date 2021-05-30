@@ -131,9 +131,12 @@ class LightningFlexAutoEncoderMultiInput(LightningModelBase):
 
             elif self.hparams.encoder_combined[0]['type'] == 'Conv2d':
                 self.construct_nn2d(layer_list=self.hparams.encoder_combined)
+                in_encoder_dim = self.final_channel * self.height * self.width
 
             elif self.hparams.encoder_combined[0]['type'] == 'Conv3d':
                 self.construct_nn3d(layer_list=self.hparams.encoder_combined)
+                in_encoder_dim = self.final_channel * self.height * self.width * self.depth
+
         else:
             raise KeyError('For this particular network, the definition of an encoder for the combined input is '
                            'necessary (key: "encoder_combined")')
@@ -155,6 +158,37 @@ class LightningFlexAutoEncoderMultiInput(LightningModelBase):
         else:
             self.applied_mlp = False
             _logger.info('No MLP between De and Encoder')
+
+        if hasattr(self.hparams, 'mlp_encoder'):
+            self.mlp_encoder_applied = True
+
+            self.layers_list.append(torch.nn.Flatten())  # type: ignore[attr-defined]
+
+            out_encoder_dim = self.hparams.mlp_encoder['hidden_layer'][-1]
+
+            self.construct_mlp(in_encoder_dim, self.hparams.mlp_encoder['hidden_layer'][:-1], out_encoder_dim)
+            self.layers_list.append(self.activation_fn)
+        else:
+            self.mlp_encoder_applied = False
+
+        self.encoder = torch.nn.Sequential(*self.layers_list)
+        self.layers_list = []
+
+        if hasattr(self.hparams, 'mlp_decoder'):
+            self.mlp_decoder_applied = True
+
+            if self.mlp_encoder_applied:
+                in_decoder_dim = out_encoder_dim
+                out_decoder_dim = in_encoder_dim
+                hiddens = self.hparams.mlp_decoder['hidden_layer']
+            else:
+                raise KeyError('MLP Decoder cannot be defined without an MLP Encoder')
+
+            self.construct_mlp(in_decoder_dim, hiddens, out_decoder_dim)
+            self.layers_list.append(self.activation_fn)
+
+        else:
+            self.mlp_decoder_applied = False
 
         # Decoder Layers for the combined input ########################################################################
         if hasattr(self.hparams, 'decoder_combined'):

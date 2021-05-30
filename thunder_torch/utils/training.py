@@ -178,6 +178,9 @@ def train_model(model: pl.LightningModule, dataLoader: Any, argsTrainer: dict) -
             argsTrainer['params']['resume_from_checkpoint'] is not None:
         argsTrainer['params']['resume_from_checkpoint'] = get_ckpt_path(argsTrainer['params']['resume_from_checkpoint'])
 
+    if 'run_epochs' in argsTrainer['params']:
+        argsTrainer['params']['max_epochs'] = get_epochs(argsTrainer)
+
     # define trainer and start training, testing
     trainer = pl.Trainer(**argsTrainer['params'])
     execute_training(model, dataLoader, trainer)
@@ -253,6 +256,26 @@ def train_logger(argsTrainer: dict) -> list:
         loggers.append(logger_fn)
 
     return loggers
+
+
+def get_epochs(argsTrainer: dict) -> int:
+    """
+    If model loaded from checkpoint and should be trained for a specific number of epochs without knowing at which epoch
+    the checkpoint has been saved, the key 'run_epochs' can be used which is added to the ckpt number of epochs and then
+    defined as max_epochs for the training. In the case that training is not restored form a checkpoint, run_epochs is
+    equal to max_epochs
+
+    Parameters
+    ----------
+    argsTrainer             - dict with trainer arguments
+
+    """
+    if 'resume_from_checkpoint' not in argsTrainer['params']:
+        return argsTrainer['params']['run_epochs']
+
+    checkpoint = torch.load(argsTrainer['params']['resume_from_checkpoint'], map_location=lambda storage, loc: storage)
+    current_epoch = checkpoint['epoch']
+    return argsTrainer['params']['run_epochs'] + current_epoch
 
 
 def execute_training(model: pl.LightningModule, dataLoader: Any, trainer: pl.Trainer) -> None:
