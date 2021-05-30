@@ -77,8 +77,8 @@ class LightningFlexDeEnCoder(LightningModelBase):
         # add hparams keyword so that model can be easly restored (see utils/general.py::load_model_from_checkpoint)
         self.hparams.model_type = 'LightningFlexDeEnCoder'
 
-        in_encoder_dim = None
-        out_encoder_dim = None
+        in_encoder_dim: int
+        out_encoder_dim: int
 
         if hasattr(self.hparams, 'cnn_encoder'):
             self.cnn_encoder_applied = True
@@ -87,7 +87,7 @@ class LightningFlexDeEnCoder(LightningModelBase):
 
             if self.hparams.cnn_encoder[0]['type'] == 'Conv1d':
                 self.height = self.hparams.input_dim['height']
-                assert NotImplementedError('Support for 1d Conv layers not implemented at the moment')
+                raise NotImplementedError('Support for 1d Conv layers not implemented at the moment')
                 # TODO: implement support
 
             elif self.hparams.cnn_encoder[0]['type'] == 'Conv2d':
@@ -188,7 +188,7 @@ class LightningFlexDeEnCoder(LightningModelBase):
             self.decoder = torch.nn.Sequential(*self.layers_list)
             self.layers_list = []
 
-    def get_optimizer_parameters(self) -> Union[torch.Generator, List[torch.Generator]]:
+    def get_optimizer_parameters(self) -> Union[torch.Generator, List[torch.nn.Parameter]]:
         # define model parameters which should be optimized
         params = []
         params += list(self.encoder.parameters())
@@ -226,7 +226,7 @@ class LightningFlexDeEnCoder(LightningModelBase):
         options['input_dim'].add_key('start_channels', dtype=int, required=True)
 
         options['cnn_encoder'] = OptionClass(template=LightningFlexDeEnCoder.yaml_template(['Model', 'create_model',
-                                                                                        'cnn_encoder']))
+                                                                                            'cnn_encoder']))
         options['cnn_encoder'].add_key('type', dtype=str, required=True, attr_of='torch.nn')
         options['cnn_encoder'].add_key('params', dtype=dict, param_dict=True)
         options['cnn_encoder'].add_key('activation', dtype=bool)

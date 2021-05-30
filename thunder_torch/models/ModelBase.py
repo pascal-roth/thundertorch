@@ -232,7 +232,7 @@ class LightningModelBase(pl.LightningModule):
 
         return x
 
-    def get_optimizer_parameters(self) -> Union[torch.Generator, List[torch.Generator]]:
+    def get_optimizer_parameters(self) -> Union[torch.Generator, List[torch.nn.Parameter]]:
         return self.layers.parameters()
 
     def configure_optimizers(self) -> Union[object, tuple]:

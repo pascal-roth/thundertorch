@@ -14,7 +14,6 @@ from thunder_torch import _modules_activation, _modules_loss, _modules_lr_schedu
 from thunder_torch.models._utils import Reshape, Cat, Split
 import thunder_torch as tt
 from thunder_torch import _logger
-from thunder_torch.utils.general import dynamic_imp
 
 
 # flexible MLP class
@@ -219,7 +218,7 @@ class LightningFlexAutoEncoderMultiInput(LightningModelBase):
 
         _logger.info('Model build succeed!')
 
-    def get_optimizer_parameters(self) -> Union[torch.Generator, List[torch.Generator]]:
+    def get_optimizer_parameters(self) -> Union[torch.Generator, List[torch.nn.Parameter]]:
         params = []
         if hasattr(self, 'encoder_single'):
             for i in range(len(self.encoder_single)):

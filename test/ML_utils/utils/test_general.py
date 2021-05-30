@@ -19,7 +19,7 @@ from thunder_torch.utils.general import load_model_from_checkpoint, dynamic_imp,
 
 def test_load_model_from_checkpoint(tmp_path: PosixPath, create_TabularLoader: TabularLoader,
                                     create_LightningFlexMLP: LightningFlexMLP,
-                                    create_random_df: pd.DataFrame):
+                                    create_random_df: pd.DataFrame) -> None:
     # define model
     model = create_LightningFlexMLP
 

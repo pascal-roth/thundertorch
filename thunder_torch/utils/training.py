@@ -7,7 +7,7 @@ import argparse
 import os
 import pytorch_lightning as pl
 import torch
-from typing import Union, Any
+from typing import Union, Any, Callable
 
 from thunder_torch import _logger  # Logger that are defined in __all__ in the __init__ file
 from thunder_torch import callbacks  # Callbacks that are defined in __all__ in the __init__ file
@@ -39,8 +39,8 @@ def train_config(argsConfig: dict, argsTrainer: dict) -> dict:
             if os.path.exists(os.getcwd()+"/"+source_path_run+".py"):
                 source_path_run = os.getcwd() + "/" + source_path_run
             elif not os.path.exists(source_path_run + ".py"):
-                raise FileNotFoundError(f"Source file for custom function or class does not exists.\nSearched for file: "
-                                        f"{source_path_run+'.py'}")
+                raise FileNotFoundError(f"Source file for custom function or class does not exists.\n"
+                                        f"Searched for file: {source_path_run+'.py'}")
             mod, _ = dynamic_imp(source_path_run)
 
             if source_path_run in _modules_models:
@@ -204,7 +204,7 @@ def train_callbacks(argsTrainer: dict) -> dict:
             checkpoint = callbacks.Checkpointing(**argsTrainer['callbacks'][i]['params'])
             argsTrainer['params']['checkpoint_callback'] = checkpoint
         else:
-            callback_cls = None
+            callback_cls: Callable
             # Check from which destination the callback class is loaded
             for m in _modules_callbacks:
                 try:
