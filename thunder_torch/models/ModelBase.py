@@ -184,6 +184,7 @@ class LightningModelBase(pl.LightningModule):
 
         if not hasattr(self.hparams, 'batch'):
             self.hparams.batch = 64
+
         if not hasattr(self.hparams, 'model_type'):
             class_name = str(self.__class__)
             class_name_split = class_name.split("'")[1]

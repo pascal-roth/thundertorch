@@ -118,7 +118,7 @@ class Histogram(Callback):
     def _plot_histogram(self, rel_errors: np.ndarray, name: str, title: str) -> None:
 
         # for multiple outputs decide if one plot for each output or the average error should be generated
-        if rel_errors.shape[1] != 1:
+        if len(rel_errors.shape) > 1 and rel_errors.shape[1] != 1:
 
             dim2_shape = 1
             for i in range(1, len(rel_errors.shape), 1):
@@ -158,8 +158,8 @@ class Histogram(Callback):
             targets = trainer.hiddens["targets"]
             preds = trainer.hiddens["preds"]
 
-            if len(preds.shape) != 1:
-                preds = torch.squeeze(preds)
+            # if len(preds.shape) != 1:
+            #     preds = torch.squeeze(preds)
 
             if self.errors_train is None:
                 self.errors_train = ((preds-targets)/(targets+1e-09)) * 100
