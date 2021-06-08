@@ -74,9 +74,6 @@ class LightningFlexAutoEncoderMultiInput(LightningModelBase):
         self.channel_computation = ['Conv1d', 'Conv1d', 'Conv3d', 'ConvTranspose1d', 'ConTranspose2d',
                                     'ConvTranspose3d']
 
-        # add hparams keyword so that model can be easly restored (see utils/general.py::load_model_from_checkpoint)
-        self.hparams.model_type = 'LightningFlexAutoEncoderMultiTimeStep'
-
         # Encoder Layers for the single inputs ########################################################################
         if hasattr(self.hparams, 'encoder_single'):
             self.applied_encoder_single = True

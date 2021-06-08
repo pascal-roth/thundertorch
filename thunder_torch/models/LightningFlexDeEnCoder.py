@@ -74,11 +74,8 @@ class LightningFlexDeEnCoder(LightningModelBase):
         self.channel_computation = ['Conv1d', 'Conv1d', 'Conv3d', 'ConvTranspose1d', 'ConTranspose2d',
                                     'ConvTranspose3d']
 
-        # add hparams keyword so that model can be easly restored (see utils/general.py::load_model_from_checkpoint)
-        self.hparams.model_type = 'LightningFlexDeEnCoder'
-
-        in_encoder_dim: int
-        out_encoder_dim: int
+        in_encoder_dim = None
+        out_encoder_dim = None
 
         if hasattr(self.hparams, 'cnn_encoder'):
             self.cnn_encoder_applied = True
