@@ -4,22 +4,56 @@
 
 # import packages
 import argparse
+import os
+import torch
 import pytest
-import pandas as pd
 import pytorch_lightning as pl
 from pathlib import PosixPath
-
-from .MinimalLightningModel import MinimalLightningModule
 
 from thunder_torch.loader import TabularLoader
 from thunder_torch.models import LightningFlexMLP
 from thunder_torch.callbacks import Checkpointing
-from thunder_torch.utils.general import load_model_from_checkpoint, dynamic_imp, run_model
+from thunder_torch.utils.general import load_model_from_checkpoint, get_ckpt_path, dynamic_imp, run_model
 
 
+@pytest.mark.dependency()
+def test_get_ckpt_path(tmp_path: PosixPath, create_TabularLoader: TabularLoader,
+                       create_LightningFlexMLP: LightningFlexMLP) -> None:
+    # define model
+    model = create_LightningFlexMLP
+
+    # train model for one epoch and save checkpoint
+    os.makedirs(tmp_path / 'test_general_get_ckpt_path')
+    checkpoint_callback = Checkpointing(filepath=tmp_path / 'test_general_get_ckpt_path/ckpt_path')
+    trainer = pl.Trainer(max_epochs=1, checkpoint_callback=checkpoint_callback, logger=False)
+    trainer.fit(model, train_dataloader=create_TabularLoader.train_dataloader(),
+                val_dataloaders=create_TabularLoader.val_dataloader())
+
+    # check if exact path is given path when entered to network
+    path1 = get_ckpt_path(tmp_path / 'test_general_get_ckpt_path/ckpt_path.ckpt')
+    assert path1 == str(tmp_path / 'test_general_get_ckpt_path/ckpt_path.ckpt')
+
+    # check if path to network is constructed if directory is given
+    path2 = get_ckpt_path(tmp_path / 'test_general_get_ckpt_path')
+    assert path2 == str(tmp_path / 'test_general_get_ckpt_path/ckpt_path.ckpt')
+
+    # entered path does not exists
+    with pytest.raises(AttributeError):
+        get_ckpt_path(tmp_path / 'some_random_path.ckpt')
+
+    # two checkpoint files in given directory
+    with pytest.raises(AssertionError):
+        checkpoint_callback = Checkpointing(filepath=tmp_path / 'test_general_get_ckpt_path/ckpt_path2')
+        trainer = pl.Trainer(max_epochs=1, checkpoint_callback=checkpoint_callback, logger=False)
+        trainer.fit(model, train_dataloader=create_TabularLoader.train_dataloader(),
+                    val_dataloaders=create_TabularLoader.val_dataloader())
+
+        get_ckpt_path(tmp_path / 'test_general_get_ckpt_path')
+
+
+@pytest.mark.dependency(depends=['test_get_ckpt_path'])
 def test_load_model_from_checkpoint(tmp_path: PosixPath, create_TabularLoader: TabularLoader,
-                                    create_LightningFlexMLP: LightningFlexMLP,
-                                    create_random_df: pd.DataFrame) -> None:
+                                    create_LightningFlexMLP: LightningFlexMLP) -> None:
     # define model
     model = create_LightningFlexMLP
 
@@ -48,4 +82,22 @@ def test_load_model_from_checkpoint(tmp_path: PosixPath, create_TabularLoader: T
         trainer.fit(model, train_dataloader=create_TabularLoader.train_dataloader(),
                     val_dataloaders=create_TabularLoader.val_dataloader())
 
-        model2_restored = load_model_from_checkpoint(tmp_path / 'test_general_load_from_ckpt_fail.ckpt')
+        load_model_from_checkpoint(tmp_path / 'test_general_load_from_ckpt_fail.ckpt')
+
+
+def test_dynamic_imp(tmp_path: PosixPath, create_TabularLoader: TabularLoader,
+                     create_LightningFlexMLP: LightningFlexMLP) -> None:
+
+    _, model_cls = dynamic_imp("test/ML_utils/utils/imported.py", "LightningFlexMLPImported")
+    model = model_cls(argparse.Namespace(**{"inputs": 2, "outputs": 2, "number_hidden_layers": [300, 300]}))
+
+    assert isinstance(model, pl.LightningModule), "model import failed"
+    assert model.dtype == torch.float64,  "model import failed"
+
+    # trigger error when wrong path to python file given
+    with pytest.raises(ImportError):
+        dynamic_imp("test/ML_utils/utils/some_random_name.py", "LightningFlexMLPImported")
+
+    # trigger error when wrong path to python file given
+    with pytest.raises(ImportError):
+        dynamic_imp("test/ML_utils/utils/imported.py", "some_random_name")

@@ -216,7 +216,6 @@ def train_callbacks(argsTrainer: dict) -> dict:
                     break
                 except AttributeError:
                     _logger.debug('Callback of type {} NOT found in {}'.format(argsTrainer['callbacks'][i]['type'], m))
-                # assert False, f"{argsTrainer['callbacks'][i]['type']} could not be found in {_modules_callbacks}"
 
             try:
                 if 'params' in argsTrainer['callbacks'][i]:
@@ -224,6 +223,7 @@ def train_callbacks(argsTrainer: dict) -> dict:
                 else:
                     callback = callback_cls()
                 callback_list.append(callback)
+                callback_cls = None
             except NameError:
                 raise NameError(f'Callback "{argsTrainer["callbacks"][i]["type"]}" cannot be found in given '
                                 f'sources: "{_modules_callbacks}"')

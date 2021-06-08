@@ -7,7 +7,8 @@ from thunder_torch.metrics.metric import Metric
 class RelError(Metric):
 
     def __init__(self, compute_on_step: bool = True, dist_sync_on_step: bool = False,
-                 process_group: Optional[Any] = None, dist_sync_fn: Callable = None, error_fct: Optional[str] = None) -> None:
+                 process_group: Optional[Any] = None, dist_sync_fn: Callable = None,
+                 error_fct: Optional[str] = None) -> None:
 
         super().__init__(
             compute_on_step=compute_on_step,

@@ -422,7 +422,7 @@ def get_by_path(root: dict, items: list) -> Any:
 def set_by_path(root: dict, items: list, value: Any) -> dict:
     """Set a value in a nested object in root by item sequence."""
     get_by_path(root, items[:-1])[items[-1]] = value
-    return root  # TODO control if it is working and really replacing the keys as intended
+    return root
 
 
 def del_by_path(root: dict, items: list) -> None:
@@ -475,8 +475,14 @@ def replace_keys(dictMultiModel: dict, dictSingleModel: dict) -> dict:
                 if 'idx' in list_dict:
                     dictSingleModel_list_dict_nbr = list_dict['idx']
                 elif 'type' in list_dict:
-                    dictSingleModel_list_dict_nbr = next((i for i, item in enumerate(dictSingleModel_list_dict)
-                                                          if item["type"] == list_dict['type']))
+                    try:
+                        dictSingleModel_list_dict_nbr = next((i for i, item in enumerate(dictSingleModel_list_dict)
+                                                              if item["type"] == list_dict['type']))
+                    except StopIteration:
+                        length_dict_list = len(dictSingleModel_list_dict)
+                        raise KeyError(f'Type {list_dict["type"]} not included in list which should be manipulated. '
+                                       f'Included keys are '
+                                       f'{[dictSingleModel_list_dict[i]["type"] for i in range(length_dict_list)]}')
                 else:
                     raise KeyError('Key Missing to determine which list entry should be manipulated, either include'
                                    'list index with key "idx" or the type of the list entry with key "type" \n'

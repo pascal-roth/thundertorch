@@ -51,7 +51,8 @@ coverage:
   allow_failure: true
   script:
     - pip install coverage
-    - pytest --cov=thunder_torch # --cov-report term-missing
+    - pip install pytest-cov
+    - pytest --cov=thunder_torch --cov-report term-missing
     - bash <(curl -s https://codecov.io/bash) -t '590691ac-7f2a-49a2-bfaf-ca7ed19edfe2'
 
 

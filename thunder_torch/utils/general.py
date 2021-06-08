@@ -42,7 +42,10 @@ def logger_level(argument: argparse.Namespace) -> None:
         _logger.setLevel(logging.DEBUG)
 
 
-def get_ckpt_path(path: str) -> str:
+def get_ckpt_path(path: Union[str, os.PathLike]) -> str:
+    if not isinstance(path, str):
+        path = str(path)
+
     if os.path.isfile(path):
         if path.endswith('.ckpt'):
             ckpt_path = path
