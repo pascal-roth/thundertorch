@@ -163,7 +163,7 @@ def test_get_argsModels(path: Path) -> None:
         get_argsModel(argsMulti)
 
 
-#@pytest.mark.dependency(depends=['test_lower_keys'])
+@pytest.mark.dependency(depends=['test_lower_keys'])
 def test_replace_keys(path: Path) -> None:
     yaml_file = parse_yaml(path / 'scripts/MultiModelInputEval.yaml')
     yamlTemplate = parse_yaml(path / 'scripts/SingleModelInputEval.yaml')

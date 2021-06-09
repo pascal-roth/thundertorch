@@ -8,13 +8,18 @@ import os
 import torch
 import pytest
 import pytorch_lightning as pl
-from pathlib import PosixPath
+from pathlib import PosixPath, Path
 
 from thunder_torch.loader import TabularLoader
 from thunder_torch.models import LightningFlexMLP
 from thunder_torch.callbacks import Checkpointing
 from thunder_torch.utils.general import load_model_from_checkpoint, get_ckpt_path, dynamic_imp, run_model
 
+
+@pytest.fixture(scope='module')
+def path() -> Path:
+    path = Path(__file__).resolve()
+    return path.parents[0]
 
 @pytest.mark.dependency()
 def test_get_ckpt_path(tmp_path: PosixPath, create_TabularLoader: TabularLoader,
@@ -86,18 +91,18 @@ def test_load_model_from_checkpoint(tmp_path: PosixPath, create_TabularLoader: T
 
 
 def test_dynamic_imp(tmp_path: PosixPath, create_TabularLoader: TabularLoader,
-                     create_LightningFlexMLP: LightningFlexMLP) -> None:
+                     create_LightningFlexMLP: LightningFlexMLP, path: Path) -> None:
 
-    _, model_cls = dynamic_imp("test/ML_utils/utils/imported.py", "LightningFlexMLPImported")
+    _, model_cls = dynamic_imp(str(path / "imported"), "LightningFlexMLPImported")
     model = model_cls(argparse.Namespace(**{"inputs": 2, "outputs": 2, "number_hidden_layers": [300, 300]}))
 
     assert isinstance(model, pl.LightningModule), "model import failed"
-    assert model.dtype == torch.float64,  "model import failed"
+    assert model.hparams.inputs == 2,  "model import failed"
 
     # trigger error when wrong path to python file given
     with pytest.raises(ImportError):
-        dynamic_imp("test/ML_utils/utils/some_random_name.py", "LightningFlexMLPImported")
+        dynamic_imp("some_random_name.py", "LightningFlexMLPImported")
 
     # trigger error when wrong path to python file given
-    with pytest.raises(ImportError):
-        dynamic_imp("test/ML_utils/utils/imported.py", "some_random_name")
+    with pytest.raises(AttributeError):
+        dynamic_imp(str(path / "imported"), "some_random_name")

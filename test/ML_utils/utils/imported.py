@@ -3,15 +3,16 @@ from typing import Optional
 from argparse import Namespace
 from thunder_torch.models.ModelBase import LightningModelBase
 
+
 class LightningFlexMLPImported(LightningModelBase):
     """
     Example for a self written model that is imported
 
     Hyperparameters of the model
     ----------------------------
-    - inputs:                int         Input dimension (required)
-    - outputs:                int         Output dimension (required)
-    - number_hidden_layers:         list        List of hidden layers with number of hidden neurons as layer entry (required)
+    - inputs:               int         Input dimension (required)
+    - outputs:              int         Output dimension (required)
+    - number_hidden_layers: list        List of hidden layers with number of hidden neurons as layer entry (required)
     - activation:           str         activation fkt that is included in torch.nn (default: ReLU)
     - loss:                 str         loss fkt that is included in torch.nn (default: MSELoss)
     - optimizer:            dict        dict including optimizer fkt type and possible parameters, optimizer has to be
