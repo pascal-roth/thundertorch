@@ -170,12 +170,13 @@ def dynamic_imp(module_path: str, class_name: Optional[str] = None) -> tuple:
 
 
 def run_model(data: pd.DataFrame, checkpoint: Union[str, LightningModule], batch: int = 1000, noise_index: int = 0,
-              noise: Optional[float] = None) -> pd.DataFrame:
+              noise: Optional[float] = None, no_labels: bool = False) -> pd.DataFrame:
     """
     Function to run a model created by this toolbox
 
     Parameters
     ----------
+    no_labels: True if given data has no labels
     data: DataFrame from which the input data for the model is taken
     checkpoint: checkpoint path of model or with the toolbox created LightningModel
     batch: Batch size to handle large inputs
@@ -210,7 +211,11 @@ def run_model(data: pd.DataFrame, checkpoint: Union[str, LightningModule], batch
     featureScaler = model.hparams.lparams.x_scaler
     labelScaler = model.hparams.lparams.y_scaler
 
-    df = data[features+labels].copy()
+    if no_labels:
+        df = data[features].copy()
+    else:
+        df = data[features+labels].copy()
+
     index_chunks = chunked(df.index, batch)
 
     for ii in tqdm(index_chunks):
