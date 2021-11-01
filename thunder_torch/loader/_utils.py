@@ -71,8 +71,6 @@ def data_split_percentage(x_samples: pd.DataFrame, y_samples: pd.DataFrame, spli
         assert key in x_samples.columns, f'Feature "{key}" not included in the data features "{x_samples.columns}"'
         key_options = x_samples['{}'.format(key)].drop_duplicates()
 
-        key_options = x_samples['{}'.format(key)].drop_duplicates()
-
         assert value < 1, 'Percentage exceeds 100%!'
         key_list = random.sample(list(key_options.values), k=int(np.round(value * len(key_options))))
         assert len(key_list) > 0, 'Percentage to low that one value of {} is selected'.format(key)
