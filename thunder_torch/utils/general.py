@@ -3,6 +3,7 @@ import argparse
 import torch
 import importlib
 from thunder_torch import _logger
+import os
 import logging
 from thunder_torch import _modules_models
 from typing import Optional, Union
@@ -12,6 +13,7 @@ from tqdm import tqdm
 import pandas as pd
 from sklearn.preprocessing import MinMaxScaler
 from pytorch_lightning import LightningModule
+from pathlib import Path, PosixPath
 
 
 def parse_arguments() -> argparse.Namespace:
@@ -40,7 +42,37 @@ def logger_level(argument: argparse.Namespace) -> None:
         _logger.setLevel(logging.DEBUG)
 
 
-def load_model_from_checkpoint(checkpoint_path: str) -> LightningModule:
+def get_ckpt_path(path: Union[str, os.PathLike]) -> str:
+    if not isinstance(path, str):
+        path = str(path)
+
+    if os.path.isfile(path):
+        if path.endswith('.ckpt'):
+            ckpt_path = path
+        else:
+            ckpt_path = path + '.ckpt'
+        _logger.debug('Direct path to ckpt is given')
+
+    elif os.path.isdir(path):
+        checkpoints = []
+
+        for file in os.listdir(path):
+            if file.endswith(".ckpt"):
+                checkpoints.append(os.path.join(path, file))
+
+        assert len(checkpoints) == 1, f'Either no or multiple checkpoint files are included in the given ' \
+                                      f'directory: {path}. Specify intended ckpt!'
+
+        ckpt_path = checkpoints[0]
+        _logger.debug('Directory with single ckpt is given')
+
+    else:
+        raise AttributeError(f'Entered path {path} does not exists!')
+
+    return ckpt_path
+
+
+def load_model_from_checkpoint(checkpoint_path: Union[str, Path, PosixPath]) -> LightningModule:
     """
     Loads a model from a given checkpoint path even if the model class is not known prior by the code
     Unfortunately, this cannot be implemented in the ModelBase class without a lot of effort and therefore
@@ -56,8 +88,14 @@ def load_model_from_checkpoint(checkpoint_path: str) -> LightningModule:
     model_class:
         loaded model based off 'model_type' hyperparameter of checkpoint
     """
+    if any(isinstance(checkpoint_path, path_type) for path_type in [str, Path, PosixPath]):
+        checkpoint_path = str(checkpoint_path)
+    else:
+        raise TypeError(f'checkpoint path has to be of type [str, Path, PosixPath], but {type(checkpoint_path)} '
+                        f'was given')
 
-    c = torch.load(checkpoint_path, torch.device("cpu"))
+    ckpt_path = get_ckpt_path(checkpoint_path)
+    c = torch.load(ckpt_path, torch.device("cpu"))
     if "model_type" not in c["hparams"].keys():
         exit("ERROR in load_model_from_checkpoint: "
              "Cannot use this function since there is no 'model_type' key available in hparams.")
@@ -76,10 +114,16 @@ def load_model_from_checkpoint(checkpoint_path: str) -> LightningModule:
         # assert False, f'{model_type} could not be found in {_modules_models}'
 
     try:
+<<<<<<< HEAD
         return model_class.load_from_checkpoint(checkpoint_path)
     except NameError:
         raise NameError(f'Your defined model type: {model_type} cannot be found in the given resources '
                         f'{_modules_models}')
+=======
+        return model_class.load_from_checkpoint(ckpt_path)
+    except NameError:
+        raise NameError(f'Model "{model_type}" cannot be found in given sources: "{_modules_models}"')
+>>>>>>> devel
 
 
 def dynamic_imp(module_path: str, class_name: Optional[str] = None) -> tuple:
@@ -122,8 +166,9 @@ def dynamic_imp(module_path: str, class_name: Optional[str] = None) -> tuple:
             # dynamically ans takes the filepath
             # module and description as parameter
             mypackage = imp.load_module(module_path, fp, path, desc)  # type: ignore[arg-type]
-            if myclass:
-                myclass = imp.load_module(f"{module_path}.{class_name}", fp, path, desc)  # type: ignore[arg-type]
+            if class_name:
+                # myclass = imp.load_module(f"{module_path}.{class_name}", fp, path, desc)  # type: ignore[arg-type]
+                myclass = getattr(mypackage, class_name)
 
         except ImportError:
             raise ImportError(f"Neither importlib nor imp could not load '{class_name}' from '{module_path}'")
@@ -132,12 +177,13 @@ def dynamic_imp(module_path: str, class_name: Optional[str] = None) -> tuple:
 
 
 def run_model(data: pd.DataFrame, checkpoint: Union[str, LightningModule], batch: int = 1000, noise_index: int = 0,
-              noise: Optional[float] = None) -> pd.DataFrame:
+              noise: Optional[float] = None, no_labels: bool = False) -> pd.DataFrame:
     """
     Function to run a model created by this toolbox
 
     Parameters
     ----------
+    no_labels: True if given data has no labels
     data: DataFrame from which the input data for the model is taken
     checkpoint: checkpoint path of model or with the toolbox created LightningModel
     batch: Batch size to handle large inputs
@@ -172,7 +218,11 @@ def run_model(data: pd.DataFrame, checkpoint: Union[str, LightningModule], batch
     featureScaler = model.hparams.lparams.x_scaler
     labelScaler = model.hparams.lparams.y_scaler
 
-    df = data[features+labels].copy()
+    if no_labels:
+        df = data[features].copy()
+    else:
+        df = data[features+labels].copy()
+
     index_chunks = chunked(df.index, batch)
 
     for ii in tqdm(index_chunks):

@@ -7,7 +7,8 @@ from thunder_torch.metrics.metric import Metric
 class RelError(Metric):
 
     def __init__(self, compute_on_step: bool = True, dist_sync_on_step: bool = False,
-                 process_group: Optional[Any] = None, dist_sync_fn: Callable = None,) -> None:
+                 process_group: Optional[Any] = None, dist_sync_fn: Callable = None,
+                 error_fct: Optional[str] = None) -> None:
 
         super().__init__(
             compute_on_step=compute_on_step,
@@ -24,6 +25,8 @@ class RelError(Metric):
         self.rel_error: torch.Tensor
         self.abs_error: torch.Tensor
 
+        self.error_fct = error_fct
+
     def update(self, preds: torch.Tensor, target: torch.Tensor) -> None:   # type: ignore[override]
         """
         Update state with predictions and targets.
@@ -32,7 +35,12 @@ class RelError(Metric):
             preds: Predictions from model
             target: Ground truth values
         """
-        self.rel_error += torch.sum(torch.abs(((preds-target)/(target+1e-06)) * 100))
+        if self.error_fct == 'RMS':
+            rms = torch.sqrt(torch.mean(torch.mul(target, target)))
+            self.rel_error += torch.sum(torch.abs(((preds - target) / (rms + 1e-06)) * 100))
+        else:
+            self.rel_error += torch.sum(torch.abs(((preds-target)/(target+1e-06)) * 100))
+
         self.abs_error += torch.sum(torch.abs(preds-target))
         self.total += target.numel()
 

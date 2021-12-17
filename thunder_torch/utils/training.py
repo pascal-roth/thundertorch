@@ -7,44 +7,53 @@ import argparse
 import os
 import pytorch_lightning as pl
 import torch
-from typing import Union, Any
+from typing import Union, Any, Callable
 
 from thunder_torch import _logger  # Logger that are defined in __all__ in the __init__ file
 from thunder_torch import callbacks  # Callbacks that are defined in __all__ in the __init__ file
 from thunder_torch import _modules_models, _modules_loader, _modules_callbacks, _modules_loss, \
     _modules_optim, _modules_activation, _modules_lr_scheduler
-from thunder_torch.utils.general import dynamic_imp
+from thunder_torch.utils.general import dynamic_imp, get_ckpt_path
 
 
 def train_config(argsConfig: dict, argsTrainer: dict) -> dict:
+    # check if argsConfig is NoneType (no keys have been given in yaml)
+    if argsConfig is None:
+        _logger.debug('ArgsConfig dict is empty!')
+        return argsTrainer
+
     # add source path for modules defined in __init__
     if 'source_files' in argsConfig:
         # source_path = os.path.join(os.getcwd(), argsConfig['source_files'] + '.py')
         source_path = argsConfig['source_files']
 
-        # Check if module can be imported, exception would be raised within dynamic_imp
-        # source path must be full path with .py file extension
-        if source_path.endswith(".py"):
-            source_path = source_path[:-3]
+        if isinstance(source_path, str):
+            source_path = [source_path]
 
-        if os.path.exists(os.getcwd()+"/"+source_path+".py"):
-            source_path = os.getcwd() + "/" + source_path
-        elif not os.path.exists(source_path + ".py"):
-            raise FileNotFoundError(f"Source file for custom function or class does not exists.\nSearched for file: "
-                                    f"{source_path+'.py'}")
-        mod, _ = dynamic_imp(source_path)
+        for source_path_run in source_path:
+            # Check if module can be imported, exception would be raised within dynamic_imp
+            # source path must be full path with .py file extension
+            if source_path_run.endswith(".py"):
+                source_path_run = source_path_run[:-3]
 
-        if source_path in _modules_models:
-            _logger.debug(f'Individual Module {source_path} already included')
-        else:
-            _modules_models.append(source_path)
-            _modules_callbacks.append(source_path)
-            _modules_optim.append(source_path)
-            _modules_loss.append(source_path)
-            _modules_activation.append(source_path)
-            _modules_lr_scheduler.append(source_path)
-            _modules_loader.append(source_path)
-            _logger.debug(f'Individual Module {source_path} added')
+            if os.path.exists(os.getcwd()+"/"+source_path_run+".py"):
+                source_path_run = os.getcwd() + "/" + source_path_run
+            elif not os.path.exists(source_path_run + ".py"):
+                raise FileNotFoundError(f"Source file for custom function or class does not exists.\n"
+                                        f"Searched for file: {source_path_run+'.py'}")
+            mod, _ = dynamic_imp(source_path_run)
+
+            if source_path_run in _modules_models:
+                _logger.debug(f'Individual Module {source_path_run} already included')
+            else:
+                _modules_models.append(source_path_run)
+                _modules_callbacks.append(source_path_run)
+                _modules_optim.append(source_path_run)
+                _modules_loss.append(source_path_run)
+                _modules_activation.append(source_path_run)
+                _modules_lr_scheduler.append(source_path_run)
+                _modules_loader.append(source_path_run)
+                _logger.debug(f'Individual Module {source_path_run} added')
 
     # check for deterministic https://pytorch.org/docs/stable/notes/randomness.html
     if 'deterministic' in argsConfig and argsConfig['deterministic'] is True:
@@ -52,30 +61,6 @@ def train_config(argsConfig: dict, argsTrainer: dict) -> dict:
         argsTrainer['params']['deterministic'] = True
 
     return argsTrainer
-
-
-def get_ckpt_path(path: str) -> str:
-    if os.path.isfile(path):
-        ckpt_path = path
-        _logger.debug('Direct path to ckpt is given')
-
-    elif os.path.isdir(path):
-        checkpoints = []
-
-        for file in os.listdir(path):
-            if file.endswith(".ckpt"):
-                checkpoints.append(os.path.join(path, file))
-
-        assert len(checkpoints) == 1, f'Either no or multiple checkpoint files are included in the given ' \
-                                      f'directory: {path}. Specify intended ckpt!'
-
-        ckpt_path = checkpoints[0]
-        _logger.debug('Directory with single ckpt is given')
-
-    else:
-        raise AttributeError(f'Entered path {path} does not exists!')
-
-    return ckpt_path
 
 
 def get_model(argsModel: Union[dict, argparse.Namespace]) -> pl.LightningModule:
@@ -111,11 +96,19 @@ def get_model(argsModel: Union[dict, argparse.Namespace]) -> pl.LightningModule:
         elif hasattr(argsModel, 'create_model'):
             model = model_cls(argparse.Namespace(**argsModel.create_model))
             _logger.debug('Model successfully created')
+<<<<<<< HEAD
         else:
             raise KeyError('Model not generated! Either include load_model or create_model dict!')
     except NameError:
         raise NameError(f'Your defined model type: {argsModel.type} cannot be found in the given resources '
                         f'{_modules_models}')
+=======
+
+        else:
+            raise KeyError('Model not generated! Either include load_model or create_model dict!')
+    except NameError:
+        raise NameError(f'Model "{argsModel.type}" cannot be found in given sources: "{_modules_models}"')
+>>>>>>> devel
 
     if hasattr(argsModel, 'params'):
         model.hparams_update(update_dict=argsModel.params)
@@ -145,6 +138,10 @@ def get_dataLoader(argsLoader: dict, model: pl.LightningModule = None) -> Any:
             break
         except AttributeError or ModuleNotFoundError:
             _logger.debug('Model Class of type {} has NOT been loaded from {}'.format(argsLoader['type'], m))
+<<<<<<< HEAD
+=======
+        # assert False, f"{argsLoader['type']} could not be found in {_modules_loader}"
+>>>>>>> devel
 
     try:
         if model:
@@ -157,8 +154,13 @@ def get_dataLoader(argsLoader: dict, model: pl.LightningModule = None) -> Any:
             dataLoader = loader_cls.read_from_yaml(argsLoader)
             _logger.info('DataLoader generated without model information and Loader params not included in model')
     except NameError:
+<<<<<<< HEAD
         raise NameError(f'Your defined dataloader type: {argsLoader["type"]} cannot be found in the given resources '
                         f'{_modules_loader}')
+=======
+        raise NameError(f'DataLoader "{argsLoader["type"]}" cannot be found in given '
+                        f'sources: "{_modules_loader}"')
+>>>>>>> devel
 
     return dataLoader
 
@@ -192,6 +194,9 @@ def train_model(model: pl.LightningModule, dataLoader: Any, argsTrainer: dict) -
             argsTrainer['params']['resume_from_checkpoint'] is not None:
         argsTrainer['params']['resume_from_checkpoint'] = get_ckpt_path(argsTrainer['params']['resume_from_checkpoint'])
 
+    if 'run_epochs' in argsTrainer['params']:
+        argsTrainer['params']['max_epochs'] = get_epochs(argsTrainer)
+
     # define trainer and start training, testing
     trainer = pl.Trainer(**argsTrainer['params'])
     execute_training(model, dataLoader, trainer)
@@ -218,6 +223,7 @@ def train_callbacks(argsTrainer: dict) -> dict:
             checkpoint = callbacks.Checkpointing(**argsTrainer['callbacks'][i]['params'])
             argsTrainer['params']['checkpoint_callback'] = checkpoint
         else:
+            callback_cls: Callable
             # Check from which destination the callback class is loaded
             for m in _modules_callbacks:
                 try:
@@ -226,13 +232,13 @@ def train_callbacks(argsTrainer: dict) -> dict:
                     break
                 except AttributeError:
                     _logger.debug('Callback of type {} NOT found in {}'.format(argsTrainer['callbacks'][i]['type'], m))
-                # assert False, f"{argsTrainer['callbacks'][i]['type']} could not be found in {_modules_callbacks}"
 
             try:
                 if 'params' in argsTrainer['callbacks'][i]:
                     callback = callback_cls(**argsTrainer['callbacks'][i]['params'])
                 else:
                     callback = callback_cls()
+<<<<<<< HEAD
             except NameError:
                 raise NameError(
                     f'Your defined callback type: {argsTrainer["callbacks"][i]["type"]} cannot be found in the '
@@ -241,6 +247,13 @@ def train_callbacks(argsTrainer: dict) -> dict:
             callback_cls = None
 
             callback_list.append(callback)
+=======
+                callback_list.append(callback)
+                callback_cls = None
+            except NameError:
+                raise NameError(f'Callback "{argsTrainer["callbacks"][i]["type"]}" cannot be found in given '
+                                f'sources: "{_modules_callbacks}"')
+>>>>>>> devel
 
     if callback_list:
         argsTrainer['params']['callbacks'] = callback_list
@@ -270,6 +283,26 @@ def train_logger(argsTrainer: dict) -> list:
         loggers.append(logger_fn)
 
     return loggers
+
+
+def get_epochs(argsTrainer: dict) -> int:
+    """
+    If model loaded from checkpoint and should be trained for a specific number of epochs without knowing at which epoch
+    the checkpoint has been saved, the key 'run_epochs' can be used which is added to the ckpt number of epochs and then
+    defined as max_epochs for the training. In the case that training is not restored form a checkpoint, run_epochs is
+    equal to max_epochs
+
+    Parameters
+    ----------
+    argsTrainer             - dict with trainer arguments
+
+    """
+    if 'resume_from_checkpoint' not in argsTrainer['params']:
+        return argsTrainer['params']['run_epochs']
+
+    checkpoint = torch.load(argsTrainer['params']['resume_from_checkpoint'], map_location=lambda storage, loc: storage)
+    current_epoch = checkpoint['epoch']
+    return argsTrainer['params']['run_epochs'] + current_epoch
 
 
 def execute_training(model: pl.LightningModule, dataLoader: Any, trainer: pl.Trainer) -> None:

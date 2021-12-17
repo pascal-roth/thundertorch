@@ -42,9 +42,14 @@ class LightningModelBase(pl.LightningModule):
         self.height:        int
         self.width:         int
         self.depth:         int
-        self.layer_activation = (torch.nn.Conv1d, torch.nn.Conv2d, torch.nn.Conv3d, torch.nn.Linear,)
+        self.layer_activation = (torch.nn.Conv1d, torch.nn.Conv2d, torch.nn.Conv3d, torch.nn.Linear,
+                                 torch.nn.ConvTranspose1d, torch.nn.ConvTranspose2d, torch.nn.ConvTranspose3d,)
+        self.channel_computation = ['Conv1d', 'Conv1d', 'Conv3d', 'ConvTranspose1d', 'ConTranspose2d',
+                                    'ConvTranspose3d']
 
-    def construct_nn2d(self, layer_list: dict) -> None:
+        self.optimizer_parameters: Union[torch.Generator, List[torch.Generator]]
+
+    def construct_nn2d(self, layer_list: list) -> None:
         """
         Functionality to build any kind of torch.nn 2d layer (convolutional, pooling, padding, normalization, recurrent,
         dropout, linear ...)
@@ -56,8 +61,10 @@ class LightningModelBase(pl.LightningModule):
         # Construct all conv layers
         for layer_dict in layer_list:
             if 'params' in layer_dict:
+                activation = layer_dict.get('activation', True)
                 self.layers_list.append(getattr(torch.nn, layer_dict['type'])(**layer_dict['params']))
             else:
+                activation = True
                 self.layers_list.append(getattr(torch.nn, layer_dict['type'])())
 
             if all(hasattr(self.layers_list[-1], elem) for elem in ['padding', 'stride', 'kernel_size']):
@@ -72,10 +79,10 @@ class LightningModelBase(pl.LightningModule):
                     self.width = int((self.width + 2 * self.layers_list[-1].padding) /
                                      self.layers_list[-1].stride) - (self.width % self.layers_list[-1].kernel_size)
 
-            if isinstance(self.layers_list[-1], self.layer_activation):
+            if isinstance(self.layers_list[-1], self.layer_activation) and activation:
                 self.layers_list.append(self.activation_fn)
 
-    def construct_nn3d(self, layer_list: dict) -> None:
+    def construct_nn3d(self, layer_list: list) -> None:
         """
         Functionality to build any kind of torch.nn 3d layer (convolutional, pooling, padding, normalization, recurrent,
         dropout, linear ...)
@@ -87,8 +94,10 @@ class LightningModelBase(pl.LightningModule):
         # Construct all conv layers
         for layer_dict in layer_list:
             if 'params' in layer_dict:
+                activation = layer_dict.get('activation', True)
                 self.layers_list.append(getattr(torch.nn, layer_dict['type'])(**layer_dict['params']))
             else:
+                activation = True
                 self.layers_list.append(getattr(torch.nn, layer_dict['type'])())
 
             if all(hasattr(self.layers_list[-1], elem) for elem in ['padding', 'stride', 'kernel_size']):
@@ -107,7 +116,7 @@ class LightningModelBase(pl.LightningModule):
                     self.depth = int((self.depth + 2 * self.layers_list[-1].padding) /
                                      self.layers_list[-1].stride) - (self.width % self.layers_list[-1].kernel_size)
 
-            if isinstance(self.layers_list[-1], self.layer_activation):
+            if isinstance(self.layers_list[-1], self.layer_activation) and activation:
                 self.layers_list.append(self.activation_fn)
 
     def construct_mlp(self, in_dim: int, hidden_layer: List[int], out_dim: int) -> None:
@@ -121,17 +130,36 @@ class LightningModelBase(pl.LightningModule):
         out_dim             - output dimensions
         """
         # TODO: think about adding a bias flag in case a linear function should be learned
-        # Construct all MLP layers
-        self.layers_list.append(torch.nn.Linear(in_dim, hidden_layer[0]))
-        self.layers_list.append(self.activation_fn)
-
-        layer_sizes = zip(hidden_layer[:-1], hidden_layer[1:])
-
-        for h1, h2 in layer_sizes:
-            self.layers_list.append(torch.nn.Linear(h1, h2))
+        if hidden_layer:
+            # Construct all MLP layers
+            self.layers_list.append(torch.nn.Linear(in_dim, hidden_layer[0]))
             self.layers_list.append(self.activation_fn)
 
-        self.layers_list.append(torch.nn.Linear(hidden_layer[-1], out_dim))
+            layer_sizes = zip(hidden_layer[:-1], hidden_layer[1:])
+
+            for h1, h2 in layer_sizes:
+                self.layers_list.append(torch.nn.Linear(h1, h2))
+                self.layers_list.append(self.activation_fn)
+
+            self.layers_list.append(torch.nn.Linear(hidden_layer[-1], out_dim))
+        else:
+            # in the case no hidden layers are given
+            self.layers_list.append(torch.nn.Linear(in_dim, out_dim))
+
+    def set_channels(self, in_channels: int, layer_dicts: List[dict]) -> Tuple[List[dict], int]:
+
+        for i, layer_dict in enumerate(layer_dicts):
+            if any(layer_dict['type'] == item for item in self.channel_computation) \
+                    and all(elem not in layer_dict['params'] for elem in ['in_channels', 'out_channels']):
+                out_channels = layer_dict['params'].pop('channels')
+                layer_dicts[i]['params']['in_channels'] = in_channels
+                layer_dicts[i]['params']['out_channels'] = out_channels
+                in_channels = out_channels
+            elif layer_dict['type'] == 'Conv3d' and all(elem in layer_dict['params']
+                                                        for elem in ['in_channels', 'out_channels']):
+                in_channels = layer_dicts[i]['params']['out_channels']
+
+        return layer_dicts, in_channels
 
     def check_hparams(self) -> None:
         options = self.get_OptionClass()
@@ -156,6 +184,7 @@ class LightningModelBase(pl.LightningModule):
 
         if not hasattr(self.hparams, 'batch'):
             self.hparams.batch = 64
+
         if not hasattr(self.hparams, 'model_type'):
             class_name = str(self.__class__)
             class_name_split = class_name.split("'")[1]
@@ -204,6 +233,9 @@ class LightningModelBase(pl.LightningModule):
 
         return x
 
+    def get_optimizer_parameters(self) -> Union[torch.Generator, List[torch.nn.Parameter]]:
+        return self.layers.parameters()
+
     def configure_optimizers(self) -> Union[object, tuple]:
         """
         optimizer and lr scheduler
@@ -223,6 +255,7 @@ class LightningModelBase(pl.LightningModule):
 
         try:
             if 'params' in self.hparams.optimizer:
+<<<<<<< HEAD
                 optimizer = optimizer_cls(self.layers.parameters(), **self.hparams.optimizer['params'])
             else:
                 optimizer = optimizer_cls(self.layers.parameters())
@@ -230,6 +263,14 @@ class LightningModelBase(pl.LightningModule):
             raise NameError(
                 f'Your defined optimizer type: {self.hparams.optimizer["type"]} cannot be found in the '
                 f'given resources {_modules_optim}')
+=======
+                optimizer = optimizer_cls(self.get_optimizer_parameters(), **self.hparams.optimizer['params'])
+            else:
+                optimizer = optimizer_cls(self.get_optimizer_parameters())
+        except NameError:
+            raise NameError(f'Optimizer "{self.hparams.optimizer["type"]}" cannot be found in given '
+                            f'sources: "{_modules_optim}"')
+>>>>>>> devel
 
         if self.hparams.scheduler['execute']:
             for m in _modules_lr_scheduler:
@@ -245,8 +286,13 @@ class LightningModelBase(pl.LightningModule):
             try:
                 return [optimizer], [scheduler]
             except NameError:
+<<<<<<< HEAD
                 raise NameError(f'Your defined scheduler type: {self.hparams.scheduler["type"]} cannot be found '
                                 f'in the given resources {_modules_lr_scheduler}')
+=======
+                raise NameError(f'LR Scheduler "{self.hparams.scheduler["type"]}" cannot be found in given '
+                                f'sources: "{_modules_lr_scheduler}"')
+>>>>>>> devel
 
         else:
             return optimizer
@@ -258,10 +304,11 @@ class LightningModelBase(pl.LightningModule):
         """
         x, y = batch
         y_hat = self(x)
-        try:
-            loss = self.loss_fn(y_hat, y)
-        except RuntimeError:  # TODO: makes target to int, really useful ?
-            loss = self.loss_fn(y_hat, y.long())
+        loss = self.loss_fn(y_hat, y)
+        # try:
+        #     loss = self.loss_fn(y_hat, y)
+        # except RuntimeError:  # TODO: makes target to int, really useful ?
+        #     loss = self.loss_fn(y_hat, y.long())
         log = {'train_loss': loss}
         hiddens = {'inputs': x.detach(), 'preds': y_hat.detach(), 'targets': y.detach()}
         results = {'loss': loss, 'log': log, 'hiddens': hiddens}
@@ -274,10 +321,11 @@ class LightningModelBase(pl.LightningModule):
         """
         x, y = batch
         y_hat = self(x)
-        try:
-            loss = self.loss_fn(y_hat, y)
-        except RuntimeError:
-            loss = self.loss_fn(y_hat, y.long())
+        loss = self.loss_fn(y_hat, y)
+        # try:
+        #     loss = self.loss_fn(y_hat, y)
+        # except RuntimeError:
+        #     loss = self.loss_fn(y_hat, y.long())
         hiddens = {'inputs': x.detach(), 'preds': y_hat.detach(), 'targets': y.detach()}
         return {'val_loss': loss, 'hiddens': hiddens}
 
@@ -302,10 +350,11 @@ class LightningModelBase(pl.LightningModule):
         """
         x, y = batch
         y_hat = self(x)
-        try:
-            loss = self.loss_fn(y_hat, y)
-        except RuntimeError:
-            loss = self.loss_fn(y_hat, y.long())
+        loss = self.loss_fn(y_hat, y)
+        # try:
+        #     loss = self.loss_fn(y_hat, y)
+        # except RuntimeError:
+        #     loss = self.loss_fn(y_hat, y.long())
         hiddens = {'inputs': x.detach(), 'preds': y_hat.detach(), 'targets': y.detach()}
         return {'test_loss': loss, 'hiddens': hiddens}
 

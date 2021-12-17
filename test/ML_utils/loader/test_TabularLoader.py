@@ -45,7 +45,7 @@ def test_init(create_random_df: pd.DataFrame) -> None:
         TabularLoader(example_df, features=['T_0', 'some other str'], labels=['yCO2', 'wH2O'])
 
 
-#@pytest.mark.dependency(depends=['test_init'])
+@pytest.mark.dependency(depends=['test_init'])
 def test_add_val_data(create_random_df: pd.DataFrame, create_example_TabularLoader: TabularLoader,
                       tmp_path: PosixPath) -> None:
     # check if validation set is loaded correctly

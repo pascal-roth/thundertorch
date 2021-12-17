@@ -7,6 +7,7 @@ import os
 import torch
 import yaml
 import pandas as pd
+import numpy as np
 from sklearn import preprocessing
 from argparse import Namespace
 from typing import Union, Optional, List, Any, TypeVar, Type
@@ -39,7 +40,11 @@ class TabularLoader(DataLoaderBase):
     thunder_torch.utils.utils_execute.get_dataLoader)
     """
 
-    def __init__(self, df_samples: pd.DataFrame, features: List[str], labels: List[str],
+    def __init__(self, df_samples: Optional[pd.DataFrame] = None, features: Optional[List[str]] = None,
+                 labels: Optional[List[str]] = None,
+                 train_samples: Optional[np.ndarray] = None, train_labels: Optional[np.ndarray] = None,
+                 val_samples: Optional[np.ndarray] = None, val_labels: Optional[np.ndarray] = None,
+                 test_samples: Optional[np.ndarray] = None, test_labels: Optional[np.ndarray] = None,
                  x_scaler: Optional[preprocessing.MinMaxScaler] = None,
                  y_scaler: Optional[preprocessing.MinMaxScaler] = None, batch: int = 64, num_workers: int = 10,
                  data_path: Optional[Union[str, Path, PosixPath]] = None, val_split: Optional[dict] = None,
@@ -53,6 +58,9 @@ class TabularLoader(DataLoaderBase):
         df_samples          - pd.DataFrame of samples
         features            - list of str: including features
         labels              - list of str: including labels
+        train_samples       - np.ndarray containing the training samples
+        val_samples         - np.ndarray containing the validation samples
+        test_samples        - np.ndarray containing the testing samples
         x_scaler:           - sklearn.preprocessing MinMaxScaler for input samples
         y_scaler:           - sklearn.preprocessing MinMaxScaler for target samples
         batch:              - batch_size of the PyTorch DataLoader
@@ -66,28 +74,40 @@ class TabularLoader(DataLoaderBase):
         super().__init__()
 
         self.lparams = Namespace()
-        self.lparams.features = features
-        self.lparams.labels = labels
+
+        if all(elem is None for elem in [df_samples, features, labels]):
+            self.x_train = train_samples
+            self.y_train = train_labels
+        else:
+            self.lparams.features = features
+            self.lparams.labels = labels
+            self.x_train = df_samples[features]
+            self.y_train = df_samples[labels]
+            self.__check_lparams()
+
         self.lparams.x_scaler = x_scaler
         self.lparams.y_scaler = y_scaler
         self.lparams.batch = batch
         self.lparams.num_workers = num_workers
         self.lparams.data_path = data_path
         self.lparams.fast_loader = fastLoader
-        self.__check_lparams()
-
-        self.x_train = df_samples[features]
-        self.y_train = df_samples[labels]
         self.get_scaler()
 
         if val_split:
             self.val_split(**val_split)
         elif val_path:
             self.add_val_data(**val_path)
+        elif all(elem is not None for elem in [val_samples, val_labels]):
+            self.x_val = val_samples
+            self.y_val = val_labels
+
         if test_split:
             self.test_split(**test_split)
         elif test_path:
             self.add_test_data(**test_path)
+        elif all(elem is not None for elem in [test_samples, test_labels]):
+            self.x_test = test_samples
+            self.y_test = test_labels
 
     def __check_lparams(self) -> None:
         assert all(isinstance(elem, str) for elem in self.lparams.features), "Given features is not a list of strings!"

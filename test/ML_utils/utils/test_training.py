@@ -7,12 +7,10 @@ from pathlib import Path, PosixPath
 
 import pandas as pd
 import pytest
-import argparse
-import pytorch_lightning as pl
 
 from thunder_torch.utils.training import *
 from thunder_torch.loader import TabularLoader
-from thunder_torch.models import LightningFlexMLP, LightningModelBase
+from thunder_torch.models import LightningFlexMLP
 from thunder_torch.utils import parse_yaml
 from thunder_torch import callbacks
 
@@ -31,6 +29,7 @@ def test_config_source_files(tmp_path: PosixPath) -> None:
         train_config(argsConfig, argsTrainer={})
 
 
+@pytest.mark.dependency(name="test_config_deterministic")
 def test_config_deterministic(create_TabularLoader: TabularLoader, create_LightningFlexMLP: LightningFlexMLP) -> None:
     argsConfig = {'deterministic': True}
     argsTrainer = {'params': {'max_epochs': 2, 'logger': False}}
