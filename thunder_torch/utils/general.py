@@ -114,16 +114,9 @@ def load_model_from_checkpoint(checkpoint_path: Union[str, Path, PosixPath]) -> 
         # assert False, f'{model_type} could not be found in {_modules_models}'
 
     try:
-<<<<<<< HEAD
-        return model_class.load_from_checkpoint(checkpoint_path)
-    except NameError:
-        raise NameError(f'Your defined model type: {model_type} cannot be found in the given resources '
-                        f'{_modules_models}')
-=======
         return model_class.load_from_checkpoint(ckpt_path)
     except NameError:
         raise NameError(f'Model "{model_type}" cannot be found in given sources: "{_modules_models}"')
->>>>>>> devel
 
 
 def dynamic_imp(module_path: str, class_name: Optional[str] = None) -> tuple:

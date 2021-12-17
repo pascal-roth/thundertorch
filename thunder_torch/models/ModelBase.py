@@ -255,22 +255,12 @@ class LightningModelBase(pl.LightningModule):
 
         try:
             if 'params' in self.hparams.optimizer:
-<<<<<<< HEAD
-                optimizer = optimizer_cls(self.layers.parameters(), **self.hparams.optimizer['params'])
-            else:
-                optimizer = optimizer_cls(self.layers.parameters())
-        except NameError:
-            raise NameError(
-                f'Your defined optimizer type: {self.hparams.optimizer["type"]} cannot be found in the '
-                f'given resources {_modules_optim}')
-=======
                 optimizer = optimizer_cls(self.get_optimizer_parameters(), **self.hparams.optimizer['params'])
             else:
                 optimizer = optimizer_cls(self.get_optimizer_parameters())
         except NameError:
             raise NameError(f'Optimizer "{self.hparams.optimizer["type"]}" cannot be found in given '
                             f'sources: "{_modules_optim}"')
->>>>>>> devel
 
         if self.hparams.scheduler['execute']:
             for m in _modules_lr_scheduler:
@@ -286,13 +276,8 @@ class LightningModelBase(pl.LightningModule):
             try:
                 return [optimizer], [scheduler]
             except NameError:
-<<<<<<< HEAD
-                raise NameError(f'Your defined scheduler type: {self.hparams.scheduler["type"]} cannot be found '
-                                f'in the given resources {_modules_lr_scheduler}')
-=======
                 raise NameError(f'LR Scheduler "{self.hparams.scheduler["type"]}" cannot be found in given '
                                 f'sources: "{_modules_lr_scheduler}"')
->>>>>>> devel
 
         else:
             return optimizer

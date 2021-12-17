@@ -96,19 +96,11 @@ def get_model(argsModel: Union[dict, argparse.Namespace]) -> pl.LightningModule:
         elif hasattr(argsModel, 'create_model'):
             model = model_cls(argparse.Namespace(**argsModel.create_model))
             _logger.debug('Model successfully created')
-<<<<<<< HEAD
-        else:
-            raise KeyError('Model not generated! Either include load_model or create_model dict!')
-    except NameError:
-        raise NameError(f'Your defined model type: {argsModel.type} cannot be found in the given resources '
-                        f'{_modules_models}')
-=======
 
         else:
             raise KeyError('Model not generated! Either include load_model or create_model dict!')
     except NameError:
         raise NameError(f'Model "{argsModel.type}" cannot be found in given sources: "{_modules_models}"')
->>>>>>> devel
 
     if hasattr(argsModel, 'params'):
         model.hparams_update(update_dict=argsModel.params)
@@ -138,10 +130,7 @@ def get_dataLoader(argsLoader: dict, model: pl.LightningModule = None) -> Any:
             break
         except AttributeError or ModuleNotFoundError:
             _logger.debug('Model Class of type {} has NOT been loaded from {}'.format(argsLoader['type'], m))
-<<<<<<< HEAD
-=======
         # assert False, f"{argsLoader['type']} could not be found in {_modules_loader}"
->>>>>>> devel
 
     try:
         if model:
@@ -154,13 +143,8 @@ def get_dataLoader(argsLoader: dict, model: pl.LightningModule = None) -> Any:
             dataLoader = loader_cls.read_from_yaml(argsLoader)
             _logger.info('DataLoader generated without model information and Loader params not included in model')
     except NameError:
-<<<<<<< HEAD
-        raise NameError(f'Your defined dataloader type: {argsLoader["type"]} cannot be found in the given resources '
-                        f'{_modules_loader}')
-=======
         raise NameError(f'DataLoader "{argsLoader["type"]}" cannot be found in given '
                         f'sources: "{_modules_loader}"')
->>>>>>> devel
 
     return dataLoader
 
@@ -238,22 +222,11 @@ def train_callbacks(argsTrainer: dict) -> dict:
                     callback = callback_cls(**argsTrainer['callbacks'][i]['params'])
                 else:
                     callback = callback_cls()
-<<<<<<< HEAD
-            except NameError:
-                raise NameError(
-                    f'Your defined callback type: {argsTrainer["callbacks"][i]["type"]} cannot be found in the '
-                    f'given resources {_modules_callbacks}')
-
-            callback_cls = None
-
-            callback_list.append(callback)
-=======
                 callback_list.append(callback)
                 callback_cls = None
             except NameError:
                 raise NameError(f'Callback "{argsTrainer["callbacks"][i]["type"]}" cannot be found in given '
                                 f'sources: "{_modules_callbacks}"')
->>>>>>> devel
 
     if callback_list:
         argsTrainer['params']['callbacks'] = callback_list
