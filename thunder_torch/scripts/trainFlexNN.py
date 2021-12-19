@@ -3,7 +3,7 @@
 #######################################################################################################################
 from thunder_torch.utils import check_yaml_version, check_yaml_structure, train_model, train_config, check_args, \
     get_model, get_dataLoader, parse_yaml, parse_arguments, logger_level
-from thunder_torch import _logger
+from thunder_torch import _logger, LOGO
 
 
 def main(args_yaml: dict) -> None:
@@ -29,6 +29,7 @@ def main(args_yaml: dict) -> None:
 
 
 if __name__ == '__main__':
+    print(LOGO)
     args = parse_arguments()
     logger_level(args)
     args_yaml = parse_yaml(args.yaml_path)

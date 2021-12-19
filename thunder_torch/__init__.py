@@ -42,3 +42,16 @@ except ImportError as error:
     print(error.__class__.__name__ + ": " + error.msg)  # type: ignore[attr-defined]
     print("Are you sure you have installed the thunder_torch with ML support?")
     print("Run InstallThunderTorch.sh again and answer with 'y' when asked for ML support!")
+
+
+# Thunder Torch command line logo
+
+LOGO = "###########################################################\n" \
+       "##                                                       ##\n" \
+       "##  ### # # # # ### ##  ### ##      ###  #  ##   ## # #  ##\n" \
+       "##   #  # # # # # # # # #   # #      #  # # # # #   # #  ##\n" \
+       "##   #  ### # # # # # # ##  ##       #  # # ##  #   ###  ##\n" \
+       "##   #  # # # # # # # # #   # #      #  # # # # #   # #  ##\n" \
+       "##   #  # # ### # # ##  ### # #      #   #  # #  ## # #  ##\n" \
+       "##                                                       ##\n" \
+       "###########################################################\n"
