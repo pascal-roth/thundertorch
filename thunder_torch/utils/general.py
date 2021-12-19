@@ -148,9 +148,6 @@ def dynamic_imp(module_path: str, class_name: Optional[str] = None) -> tuple:
     # its description and path
     try:
         mypackage = importlib.import_module(module_path)
-        if class_name:
-            myclass = getattr(mypackage, class_name)
-
     except ModuleNotFoundError:
         _logger.debug(f"Module '{module_path}' could not be imported, trying imp import")
         try:
@@ -159,12 +156,15 @@ def dynamic_imp(module_path: str, class_name: Optional[str] = None) -> tuple:
             # dynamically ans takes the filepath
             # module and description as parameter
             mypackage = imp.load_module(module_path, fp, path, desc)  # type: ignore[arg-type]
-            if class_name:
-                # myclass = imp.load_module(f"{module_path}.{class_name}", fp, path, desc)  # type: ignore[arg-type]
-                myclass = getattr(mypackage, class_name)
-
         except ImportError:
             raise ImportError(f"Neither importlib nor imp could not load '{class_name}' from '{module_path}'")
+
+    if mypackage and class_name:
+        try:
+            # myclass = imp.load_module(f"{module_path}.{class_name}", fp, path, desc)  # type: ignore[arg-type]
+            myclass = getattr(mypackage, class_name)
+        except AttributeError:
+            _logger.debug(f'Module "{module_path}" imported but does not contain "{class_name}"')
 
     return mypackage, myclass
 

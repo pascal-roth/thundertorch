@@ -164,32 +164,20 @@ class LightningModelBase(pl.LightningModule):
     def check_hparams(self) -> None:
         options = self.get_OptionClass()
         options["hparams"].add_key('model_type', dtype=str)
-        OptionClass.checker(input_dict={'hparams': vars(self.hparams)}, option_classes=options)
+        OptionClass.checker(input_dict={'hparams': self.hparams}, option_classes=options)
 
     def get_default(self) -> None:
-        if not hasattr(self.hparams, 'activation'):
-            self.hparams.activation = 'ReLU'
+        if not self.hparams['optimizer']:
+            self.hparams['optimizer']: dict = {'type': 'Adam', 'params': {'lr': 1e-3}}
 
-        if not hasattr(self.hparams, 'loss'):
-            self.hparams.loss = 'MSELoss'
+        if not self.hparams['scheduler']:
+            self.hparams['scheduler']: dict = {'execute': False}
 
-        if not hasattr(self.hparams, 'optimizer'):
-            self.hparams.optimizer = {'type': 'Adam', 'params': {'lr': 1e-3}}
-
-        if not hasattr(self.hparams, 'scheduler'):
-            self.hparams.scheduler = {'execute': False}
-
-        if not hasattr(self.hparams, 'num_workers'):
-            self.hparams.num_workers = 10
-
-        if not hasattr(self.hparams, 'batch'):
-            self.hparams.batch = 64
-
-        if not hasattr(self.hparams, 'model_type'):
+        if 'model_type' not in self.hparams:
             class_name = str(self.__class__)
             class_name_split = class_name.split("'")[1]
             model_type = class_name_split.split(".")[-1]
-            self.hparams.model_type = model_type
+            self.hparams['model_type'] = model_type
 
     def get_functions(self) -> None:
         """
@@ -199,9 +187,11 @@ class LightningModelBase(pl.LightningModule):
             try:
                 _, activation_cls = dynamic_imp(m, self.hparams.activation)
                 self.activation_fn = activation_cls()
-                # self.activation_fn = getattr(importlib.import_module(m), self.hparams.activation)()
                 _logger.debug(f'{self.hparams.activation} fct found in {m}')
-                break
+                if activation_cls:
+                    break
+                else:
+                    continue
             except AttributeError or ModuleNotFoundError:
                 _logger.debug(f'{self.hparams.activation} fct not found in {m}')
         assert self.activation_fn is not None, f'{self.hparams.activation} could not be found in {_modules_activation}'
@@ -212,7 +202,10 @@ class LightningModelBase(pl.LightningModule):
                 self.loss_fn = loss_cls()
                 # self.loss_fn = getattr(importlib.import_module(m), self.hparams.loss)()
                 _logger.debug(f'{self.hparams.activation} fct found in {m}')
-                break
+                if loss_cls:
+                    break
+                else:
+                    continue
             except AttributeError or ModuleNotFoundError:
                 _logger.debug(f'{self.hparams.activation} fct not found in {m}')
         assert self.loss_fn is not None, f'{self.hparams.loss} could not be found in {_modules_loss}'
@@ -267,9 +260,10 @@ class LightningModelBase(pl.LightningModule):
                 try:
                     _, scheduler_cls = dynamic_imp(m, self.hparams.scheduler['type'])
                     scheduler = scheduler_cls(optimizer, **self.hparams.scheduler['params'])
-                    # scheduler = getattr(importlib.import_module(m), self.hparams.scheduler['type'])\
-                    #     (optimizer, **self.hparams.scheduler['params'])
-                    break
+                    if scheduler_cls:
+                        break
+                    else:
+                        continue
                 except AttributeError or ModuleNotFoundError:
                     _logger.debug('LR Scheduler of type {} not found in {}'.format(self.hparams.scheduler['type'], m))
 
@@ -290,16 +284,11 @@ class LightningModelBase(pl.LightningModule):
         x, y = batch
         y_hat = self(x)
         loss = self.loss_fn(y_hat, y)
-        # try:
-        #     loss = self.loss_fn(y_hat, y)
-        # except RuntimeError:  # TODO: makes target to int, really useful ?
-        #     loss = self.loss_fn(y_hat, y.long())
-        log = {'train_loss': loss}
-        hiddens = {'inputs': x.detach(), 'preds': y_hat.detach(), 'targets': y.detach()}
-        results = {'loss': loss, 'log': log, 'hiddens': hiddens}
-        return results
+        self.log('train_loss', loss, on_step=True, on_epoch=True, prog_bar=True, logger=True)
+        # hiddens = {'inputs': x.detach(), 'preds': y_hat.detach(), 'targets': y.detach()}
+        return loss
 
-    def validation_step(self, batch: Tuple[torch.Tensor, torch.Tensor], batch_idx: int) -> dict:
+    def validation_step(self, batch: Tuple[torch.Tensor, torch.Tensor], batch_idx: int) -> float:
         """
         Validation step of the network
         the "hiddens" dicts saves parameters which can be used in callback
@@ -307,26 +296,21 @@ class LightningModelBase(pl.LightningModule):
         x, y = batch
         y_hat = self(x)
         loss = self.loss_fn(y_hat, y)
-        # try:
-        #     loss = self.loss_fn(y_hat, y)
-        # except RuntimeError:
-        #     loss = self.loss_fn(y_hat, y.long())
-        hiddens = {'inputs': x.detach(), 'preds': y_hat.detach(), 'targets': y.detach()}
-        return {'val_loss': loss, 'hiddens': hiddens}
+        # hiddens = {'inputs': x.detach(), 'preds': y_hat.detach(), 'targets': y.detach()}
+        return loss
 
-    def validation_epoch_end(self, outputs: dict) -> dict:
+    def validation_epoch_end(self, outputs: list) -> dict:
         """
         Actions performed at the end of validation epoch (incl. calculating the val_loss)
         """
-        val_loss = torch.stack([x['val_loss'] for x in outputs]).mean()
+        val_loss = torch.stack([x for x in outputs]).mean()
         if self.min_val_loss is None:
             self.min_val_loss = val_loss
         if val_loss < self.min_val_loss:
             self.min_val_loss = val_loss
-        log = {'avg_val_loss': val_loss}
-        pbar = {'val_loss': val_loss, 'min_val_loss': self.min_val_loss}
-        results = {'log': log, 'val_loss': val_loss, 'progress_bar': pbar}
-        return results
+        self.log('val_loss', val_loss, on_epoch=True, prog_bar=True, logger=True)
+        self.log('avg_val_loss', self.min_val_loss, on_epoch=True, prog_bar=True, logger=False)
+        return val_loss
 
     def test_step(self, batch: Tuple[torch.Tensor, torch.Tensor], batch_idx: int) -> dict:
         """
@@ -336,21 +320,16 @@ class LightningModelBase(pl.LightningModule):
         x, y = batch
         y_hat = self(x)
         loss = self.loss_fn(y_hat, y)
-        # try:
-        #     loss = self.loss_fn(y_hat, y)
-        # except RuntimeError:
-        #     loss = self.loss_fn(y_hat, y.long())
-        hiddens = {'inputs': x.detach(), 'preds': y_hat.detach(), 'targets': y.detach()}
-        return {'test_loss': loss, 'hiddens': hiddens}
+        # hiddens = {'inputs': x.detach(), 'preds': y_hat.detach(), 'targets': y.detach()}
+        return loss  # {'test_loss': loss, 'hiddens': hiddens}
 
     def test_epoch_end(self, outputs: dict) -> dict:
         """
         Actions performed at the end of test epoch (incl. calculating the test_loss)
         """
-        test_loss = torch.stack([x['test_loss'] for x in outputs]).mean()
-        log = {'avg_test_loss': test_loss}
-        results = {'log': log, 'test_loss': test_loss}
-        return results
+        test_loss = torch.stack([x for x in outputs]).mean()
+        self.log('avg_test_loss', test_loss, logger=True)
+        return test_loss
 
     def hparams_save(self, path: Union[str, Path]) -> None:
         """
@@ -363,20 +342,17 @@ class LightningModelBase(pl.LightningModule):
         from pytorch_lightning.core.saving import save_hparams_to_yaml
         save_hparams_to_yaml(path, self.hparams)
 
-    def hparams_update(self, update_dict: Union[dict, Namespace]) -> None:
+    def hparams_update(self, update_dict: dict) -> None:
         """
         Update hyparams dict
 
         Parameters
         ----------
-        update_dict         - dict or namespace object
+        update_dict         - dict
         """
-        from pytorch_lightning.core.saving import update_hparams
+        for key, value in update_dict.items():
+            self.hparams[key] = value
 
-        if isinstance(update_dict, Namespace):
-            update_dict = vars(update_dict)
-
-        update_hparams(vars(self.hparams), update_dict)
         if self.get_OptionClass():
             self.check_hparams()
         self.get_functions()

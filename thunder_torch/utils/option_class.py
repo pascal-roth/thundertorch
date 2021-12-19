@@ -106,6 +106,8 @@ class OptionClass:
         """
         Control the datatype of the given key
         """
+        if item is None:
+            return
         if not isinstance(self.keylist[key]['dtype'], list):
             self.keylist[key]['dtype'] = [self.keylist[key]['dtype']]
         assert type(item) in self.keylist[key]['dtype'], 'Key "{}" is expected to have dtype(s) "{}", but "{}" was ' \
@@ -128,6 +130,9 @@ class OptionClass:
         """
         Check if the key value is an attr of the defined class/ module
         """
+        if item is None:
+            return
+
         if not isinstance(self.keylist[key].get('attr_of'), list):
             self.keylist[key]['attr_of'] = [self.keylist[key].get('attr_of')]
 

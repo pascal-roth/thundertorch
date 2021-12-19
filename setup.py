@@ -65,6 +65,7 @@ setup(
         'pytest-mypy',
         'nbstripout',
         'sphinx_rtd_theme',
+        'docutils==0.17',
         'more_itertools'
     ],
     extras_require={

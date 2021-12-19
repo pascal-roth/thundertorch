@@ -3,7 +3,6 @@
 #######################################################################################################################
 
 # import packages
-import argparse
 import os
 import pytorch_lightning as pl
 import torch
@@ -63,7 +62,7 @@ def train_config(argsConfig: dict, argsTrainer: dict) -> dict:
     return argsTrainer
 
 
-def get_model(argsModel: Union[dict, argparse.Namespace]) -> pl.LightningModule:
+def get_model(argsModel: dict) -> pl.LightningModule:
     """
     Load/ create the model given the model arguments
 
@@ -75,36 +74,32 @@ def get_model(argsModel: Union[dict, argparse.Namespace]) -> pl.LightningModule:
     -------
     model           - LightningModule
     """
-    if isinstance(argsModel, dict):
-        argsModel = argparse.Namespace(**argsModel)
-
     for m in _modules_models:
         try:
-            _, model_cls = dynamic_imp(m, argsModel.type)
-            # model_cls = getattr(importlib.import_module(m), argsModel.type)
-            _logger.debug(f'Model Class of type {argsModel.type} has been loaded from {m}')
+            _, model_cls = dynamic_imp(m, argsModel['type'])
+            _logger.debug(f'Model Class of type {argsModel["type"]} has been loaded from {m}')
             break
         except AttributeError or ModuleNotFoundError:
-            _logger.debug(f'Model Class of type {argsModel.type} has NOT been loaded from {m}')
+            _logger.debug(f'Model Class of type {argsModel["type"]} has NOT been loaded from {m}')
 
     try:
-        if hasattr(argsModel, 'load_model'):
-            ckpt_path = get_ckpt_path(argsModel.load_model['path'])
+        if 'load_model' in argsModel:
+            ckpt_path = get_ckpt_path(argsModel['load_model']['path'])
             model = model_cls.load_from_checkpoint(ckpt_path)
             _logger.debug('Model successfully loaded')
 
-        elif hasattr(argsModel, 'create_model'):
-            model = model_cls(argparse.Namespace(**argsModel.create_model))
+        elif 'create_model' in argsModel:
+            model = model_cls(**argsModel['create_model'])
             _logger.debug('Model successfully created')
 
         else:
             raise KeyError('Model not generated! Either include load_model or create_model dict!')
     except NameError:
-        raise NameError(f'Model "{argsModel.type}" cannot be found in given sources: "{_modules_models}"')
+        raise NameError(f'Model "{argsModel["type"]}" cannot be found in given sources: "{_modules_models}"')
 
-    if hasattr(argsModel, 'params'):
-        model.hparams_update(update_dict=argsModel.params)
-        _logger.debug('model default hparams updated by argsModel.params')
+    if 'params' in argsModel:
+        model.hparams_update(update_dict=argsModel['params'])
+        _logger.debug('model default hparams updated by argsModel["params"]')
     return model.double()
 
 
@@ -125,17 +120,18 @@ def get_dataLoader(argsLoader: dict, model: pl.LightningModule = None) -> Any:
     for m in _modules_loader:
         try:
             _, loader_cls = dynamic_imp(m, argsLoader['type'])
-            # loader_cls = getattr(importlib.import_module(m), argsLoader['type'])
-            _logger.debug('Model Class of type {} has been loaded from {}'.format(argsLoader['type'], m))
-            break
+            _logger.debug(f'Model Class of type {argsLoader["type"]} has been loaded from {m}')
+            if loader_cls:
+                break
+            else:
+                continue
         except AttributeError or ModuleNotFoundError:
-            _logger.debug('Model Class of type {} has NOT been loaded from {}'.format(argsLoader['type'], m))
-        # assert False, f"{argsLoader['type']} could not be found in {_modules_loader}"
+            _logger.debug(f'Model Class of type {argsLoader["type"]} has NOT been loaded from {m}')
 
     try:
         if model:
-            dataLoader = loader_cls.read_from_yaml(argsLoader, batch=model.hparams.batch,
-                                                   num_workers=model.hparams.num_workers)
+            dataLoader = loader_cls.read_from_yaml(argsLoader, batch=model.hparams['batch'],
+                                                   num_workers=model.hparams['num_workers'])
             model.hparams_update(update_dict={'lparams': dataLoader.lparams})
             _logger.info('DataLoader generated using batch_size and num_workers from model. Loader params are included '
                          'in model.hparams')

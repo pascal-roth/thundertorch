@@ -11,7 +11,7 @@
 import torch
 import yaml
 from argparse import Namespace
-from typing import Optional
+from typing import Optional, List
 
 from thunder_torch.models.ModelBase import LightningModelBase
 from thunder_torch.utils.option_class import OptionClass
@@ -41,7 +41,19 @@ class LightningFlexMLP(LightningModelBase):
     - output_activation:    str         activation fkt  (default: False)
     """
 
-    def __init__(self, hparams: Namespace) -> None:
+    def __init__(self,
+                 n_inp: int,
+                 n_out: int,
+                 hidden_layer: List[int],
+                 output_activation: Optional[str] = None,
+                 activation: str = 'ReLU',
+                 loss: str = 'MSELoss',
+                 optimizer: Optional[dict] = None,
+                 scheduler: Optional[dict] = None,
+                 batch: int = 64,
+                 num_workers: int = 10,
+                 lparams: Optional[Namespace] = None,
+    ) -> None:
         """
         Initializes a flexMLP model based on the provided parameters
 
@@ -51,63 +63,20 @@ class LightningFlexMLP(LightningModelBase):
         """
         super().__init__()
 
-        self.hparams = hparams
-        self.check_hparams()
+        self.save_hyperparameters()
         self.get_default()
+        self.check_hparams()
         self.get_functions()
         self.min_val_loss: Optional[torch.Tensor] = None
 
         # Construct MLP with a variable number of hidden layers
         self.layers_list = []
-        self.construct_mlp(self.hparams.n_inp, self.hparams.hidden_layer, self.hparams.n_out)
+        self.construct_mlp(n_inp, hidden_layer, n_out)
 
-        if hasattr(self.hparams, 'output_activation'):
-            self.layers_list.append(getattr(torch.nn, self.hparams.output_activation)())
+        if output_activation:  # TODO: change activation function search
+            self.layers_list.append(getattr(torch.nn, output_activation)())
 
         self.layers = torch.nn.Sequential(*self.layers_list)
-
-    # def training_step(self, batch, batch_idx) -> dict:
-    #     x, y = batch
-    #     y_hat = self(x)
-    #     loss = self.loss_fn(y_hat, y)
-    #     log = {'train_loss': loss}
-    #     results = {'loss': loss, 'log': log}
-    #     return results
-    #
-    # def validation_step(self, batch, batch_idx) -> dict:
-    #     x, y = batch
-    #     y_hat = self(x)
-    #     val_loss = self.loss_fn(y_hat, y)
-    #     return {'val_loss': val_loss}
-    #
-    # def validation_epoch_end(self, outputs) -> dict:
-    #     val_loss = torch.stack([x['val_loss'] for x in outputs]).mean()
-    #     if self.current_epoch == 0: self.min_val_loss = val_loss
-    #     if val_loss < self.min_val_loss:
-    #         self.min_val_loss = val_loss
-    #     log = {'avg_val_loss': val_loss}
-    #     pbar = {'val_loss': val_loss, 'min_val_loss': self.min_val_loss}
-    #     results = {'log': log, 'val_loss': val_loss, 'progress_bar': pbar}
-    #     return results
-    #
-    # def test_step(self, batch, batch_idx) -> dict:
-    #     x, y = batch
-    #     y_hat = self(x)
-    #     loss = self.loss_fn(y_hat, y)
-    #     return {'test_loss': loss}
-    #
-    # def test_epoch_end(self, outputs) -> dict:
-    #     test_loss = torch.stack([x['test_loss'] for x in outputs]).mean()
-    #     log = {'avg_test_loss': test_loss}
-    #     results = {'log': log, 'test_loss': test_loss}
-    #     return results
-
-    # # def add_model_specific_args(parent_parser):
-    # #     parser = argparse.ArgumentParser(parents=[parent_parser])
-    # #     parser.add_argument('--features', type=list, default=['pode', 'Z', 'H', 'PV'])
-    # #     parser.add_argument('--labels', type=list, default=['T'])
-    # #     parser.add_argument('--n_hidden_neurons', nargs='+', type=int, default=[64, 64, 64])
-    # #     return parser
 
     @staticmethod
     def get_OptionClass() -> dict:
@@ -115,7 +84,7 @@ class LightningFlexMLP(LightningModelBase):
         options['hparams'].add_key('n_inp', dtype=int, required=True)
         options['hparams'].add_key('n_out', dtype=int, required=True)
         options['hparams'].add_key('hidden_layer', dtype=list, required=True)
-        options['hparams'].add_key('output_activation', dtype=str, attr_of=_modules_activation)
+        options['hparams'].add_key('output_activation', dtype=[str, type(None)], attr_of=_modules_activation)
         options['hparams'].add_key('activation', dtype=str, attr_of=_modules_activation)
         options['hparams'].add_key('loss', dtype=str, attr_of=_modules_loss)
         options['hparams'].add_key('optimizer', dtype=dict)
