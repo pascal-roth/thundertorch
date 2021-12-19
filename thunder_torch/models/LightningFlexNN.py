@@ -46,7 +46,22 @@ class LightningFlexNN(LightningModelBase):
         - ceil_mode – when True, will use ceil instead of floor to compute the output shape
     """
 
-    def __init__(self, hparams: Namespace) -> None:
+    def __init__(self,
+                 height: int,
+                 width: Optional[int] = None,  # only required for 2d layers
+                 depth: Optional[int] = None,  # only required for 3d layers
+                 start_channels: Optional[int] = None,
+                 layers: Optional[List[dict]] = None,
+                 mlp_layer: Optional[dict] = None,
+                 output_activation: Optional[str] = None,
+                 activation: str = 'ReLU',
+                 loss: str = 'MSELoss',
+                 optimizer: Optional[dict] = None,
+                 scheduler: Optional[dict] = None,
+                 batch: int = 64,
+                 num_workers: int = 10,
+                 lparams: Optional[Namespace] = None,
+                 ) -> None:
         """
         Initializes a flexMLP model based on the provided parameters
 
@@ -56,64 +71,65 @@ class LightningFlexNN(LightningModelBase):
         """
         super().__init__()
 
-        self.hparams = hparams
+        self.save_hyperparameters()  # all args are automatically included in self.hparams and later used
         self.check_hparams()
         self.get_default()
         self.get_functions()
         self.min_val_loss: Optional[torch.Tensor] = None
 
-        if hasattr(self.hparams, 'layers'):
+        if layers:
             # if only a single layer is given, transform it to list object
-            if not isinstance(self.hparams.layers, list):
-                self.hparams.layers = [self.hparams.layers]
+            if not isinstance(layers, list):
+                self.hparams['layers'] = [layers]
 
-            self.hparams.layers, self.final_channel = self.set_channels(self.hparams.start_channels,
-                                                                        self.hparams.layers)
+            self.hparams['layers'], self.final_channel = self.set_channels(self.hparams.start_channels,
+                                                                        self.hparams['layers'])
 
+            # TODO: same function in AutoDeEnCoder, combine in new class
             in_dim = None
-            if self.hparams.layers[0]['type'] == 'Conv1d':
-                self.height = self.hparams.height
+            if self.hparams['layers'][0]['type'] == 'Conv1d':
+                self.height = self.hparams['height']
                 assert NotImplementedError('Support for 1d Conv layers not implemented at the moment')
                 # TODO: implement support
 
-            elif self.hparams.layers[0]['type'] == 'Conv2d':
-                self.height = self.hparams.height
-                self.width = self.hparams.width
-                self.construct_nn2d(layer_list=self.hparams.layers)
+            elif self.hparams['layers'][0]['type'] == 'Conv2d':
+                self.height = self.hparams['height']
+                self.width = self.hparams['width']
+                self.construct_nn2d(layer_list=self.hparams['layers'])
                 in_dim = self.final_channel * self.height * self.width
 
-            elif self.hparams.layers[0]['type'] == 'Conv3d':
-                self.height = self.hparams.height
-                self.width = self.hparams.width
-                self.depth = self.hparams.depth
-                self.construct_nn3d(layer_list=self.hparams.layers)
+            elif self.hparams['layers'][0]['type'] == 'Conv3d':
+                self.height = self.hparams['height']
+                self.width = self.hparams['width']
+                self.depth = self.hparams['depth']
+                self.construct_nn3d(layer_list=self.hparams['layers'])
                 in_dim = self.final_channel * self.height * self.width * self.depth
 
-            elif self.hparams.layers[0]['type'] == 'Linear':
+            elif self.hparams['layers'][0]['type'] == 'Linear':
                 raise NotImplementedError('Support for an MLP layer as starting layer in the layers dict not '
                                           'implemented yet. If an only mlp network should be constructed, pls use the '
                                           'key "mlp_layer" to construct it or the LightningFlexMLP module!')
 
             else:
-                raise KeyError(f'Type "{self.hparams.layers[0]["type"]}" as starting layer for the network is not '
+                raise KeyError(f'Type "{self.hparams["layers"][0]["type"]}" as starting layer for the network is not '
                                f'supported. Please start with either an convolutional or linear layer!')
 
-        if hasattr(self.hparams, 'mlp_layer'):
+        if mlp_layer:
 
-            if in_dim is not None and 'n_in' in self.hparams.mlp_layer:
-                assert in_dim == self.hparams.mlp_layer['n_in'], 'Entered input dimension of MLP Network not equal ' \
+            if in_dim is not None and 'n_in' in self.hparams['mlp_layer']:
+                assert in_dim == self.hparams['mlp_layer']['n_in'], 'Entered input dimension of MLP Network not equal ' \
                                                                    'to the one calculated '
-            elif in_dim is None and 'n_in' not in self.hparams.mlp_layer:
+            elif in_dim is None and 'n_in' not in self.hparams['mlp_layer']:
                 raise KeyError('Input dimension of MLP network is missing, please add "n_in" key to "mlp_layer" dict')
-            elif in_dim is not None and 'n_in' not in self.hparams.mlp_layer:
-                self.hparams.mlp_layer['n_in'] = in_dim
+            elif in_dim is not None and 'n_in' not in self.hparams['mlp_layer']:
+                self.hparams['mlp_layer']['n_in'] = in_dim
 
             self.layers_list.append(torch.nn.Flatten())  # type: ignore[attr-defined]
-            self.construct_mlp(self.hparams.mlp_layer['n_in'], self.hparams.mlp_layer['hidden_layer'],
-                               self.hparams.mlp_layer['n_out'])
+            self.construct_mlp(self.hparams['mlp_layer']['n_in'], self.hparams['mlp_layer']['hidden_layer'],
+                               self.hparams['mlp_layer']['n_out'])
 
-        if hasattr(self.hparams, 'output_activation'):
-            self.layers_list.append(getattr(torch.nn, self.hparams.output_activation)())
+        if output_activation:
+            self.layers_list.append(getattr(torch.nn, self.hparams['output_activation'])())
 
         self.layers = torch.nn.Sequential(*self.layers_list)
 
