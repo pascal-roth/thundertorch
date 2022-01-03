@@ -78,7 +78,11 @@ def get_model(argsModel: dict) -> pl.LightningModule:
         try:
             _, model_cls = dynamic_imp(m, argsModel['type'])
             _logger.debug(f'Model Class of type {argsModel["type"]} has been loaded from {m}')
-            break
+
+            if model_cls:
+                break
+            else:
+                continue
         except AttributeError or ModuleNotFoundError:
             _logger.debug(f'Model Class of type {argsModel["type"]} has NOT been loaded from {m}')
 
@@ -209,7 +213,11 @@ def train_callbacks(argsTrainer: dict) -> dict:
                 try:
                     _, callback_cls = dynamic_imp(m, argsTrainer['callbacks'][i]['type'])
                     # callback_cls = getattr(importlib.import_module(m), argsTrainer['callbacks'][i]['type'])
-                    break
+
+                    if callback_cls:
+                        break
+                    else:
+                        continue
                 except AttributeError:
                     _logger.debug('Callback of type {} NOT found in {}'.format(argsTrainer['callbacks'][i]['type'], m))
 

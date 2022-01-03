@@ -161,7 +161,8 @@ class LightningModelBase(pl.LightningModule, LayerConstructors):
                     _logger.debug('LR Scheduler of type {} not found in {}'.format(self.hparams.scheduler['type'], m))
 
             try:
-                return [optimizer], [scheduler]
+                monitor = 'val_loss'
+                return {'optimizer': optimizer, 'lr_scheduler': scheduler, 'monitor': monitor}
             except NameError:
                 raise NameError(f'LR Scheduler "{self.hparams.scheduler["type"]}" cannot be found in given '
                                 f'sources: "{_modules_lr_scheduler}"')

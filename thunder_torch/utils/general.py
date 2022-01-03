@@ -157,7 +157,7 @@ def dynamic_imp(module_path: str, class_name: Optional[str] = None) -> tuple:
             # module and description as parameter
             mypackage = imp.load_module(module_path, fp, path, desc)  # type: ignore[arg-type]
         except ImportError:
-            raise ImportError(f"Neither importlib nor imp could not load '{class_name}' from '{module_path}'")
+            raise ImportError(f"Neither importlib nor imp could load '{module_path}'")
 
     if mypackage and class_name:
         try:
