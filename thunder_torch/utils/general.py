@@ -96,11 +96,11 @@ def load_model_from_checkpoint(checkpoint_path: Union[str, Path, PosixPath]) -> 
 
     ckpt_path = get_ckpt_path(checkpoint_path)
     c = torch.load(ckpt_path, torch.device("cpu"))
-    if "model_type" not in c["hparams"].keys():
+    if "model_type" not in c["hyper_parameters"].keys():
         exit("ERROR in load_model_from_checkpoint: "
-             "Cannot use this function since there is no 'model_type' key available in hparams.")
+             "Cannot use this function since there is no 'model_type' key available in hyper_parameters.")
 
-    model_type = c["hparams"]["model_type"]
+    model_type = c["hyper_parameters"]["model_type"]
     model_class: LightningModule
 
     for m in _modules_models:
@@ -108,7 +108,11 @@ def load_model_from_checkpoint(checkpoint_path: Union[str, Path, PosixPath]) -> 
             _, model_class = dynamic_imp(m, model_type)
             # model_class = getattr(importlib.import_module(m), model_type)
             _logger.debug(f'{model_type} fct found in {m}')
-            break
+
+            if model_class:
+                break
+            else:
+                continue
         except AttributeError or ModuleNotFoundError:
             _logger.debug(f'{model_type} fct not found in {m}')
         # assert False, f'{model_type} could not be found in {_modules_models}'
@@ -206,10 +210,10 @@ def run_model(data: pd.DataFrame, checkpoint: Union[str, LightningModule], batch
     else:
         model = checkpoint
 
-    features = model.hparams.lparams.features
-    labels = model.hparams.lparams.labels
-    featureScaler = model.hparams.lparams.x_scaler
-    labelScaler = model.hparams.lparams.y_scaler
+    features = model['hyper_parameters'].lparams.features
+    labels = model['hyper_parameters'].lparams.labels
+    featureScaler = model['hyper_parameters'].lparams.x_scaler
+    labelScaler = model['hyper_parameters'].lparams.y_scaler
 
     if no_labels:
         df = data[features].copy()
