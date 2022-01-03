@@ -203,9 +203,9 @@ def train_callbacks(argsTrainer: dict) -> dict:
             argsTrainer['params']['early_stop_callback'] = earlyStopping
         # TODO: in newer version, pre-implemented checkpoint callback changed! better use this one, also the own
         #  keyword is not required anymore
-        elif argsTrainer['callbacks'][i]['type'] == 'ModelCheckpoint':
-            checkpoint = callbacks.Checkpointing(**argsTrainer['callbacks'][i]['params'])
-            argsTrainer['params']['checkpoint_callback'] = checkpoint
+        # elif argsTrainer['callbacks'][i]['type'] == 'ModelCheckpoint':
+        #     checkpoint = callbacks.Checkpointing(**argsTrainer['callbacks'][i]['params'])
+        #     argsTrainer['params']['checkpoint_callback'] = checkpoint
         else:
             callback_cls: Callable
             # Check from which destination the callback class is loaded
